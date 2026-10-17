@@ -1,0 +1,314 @@
+/* ───────── XLIDE slide system ─────────
+   Every size is relative to the slide container (cq units), so the same
+   slide renders as a 160px thumbnail, a phone in portrait or a 4K screen.
+   --k is the reader's text scale. */
+
+.xs {
+  --paper: var(--background);
+  --ink: var(--foreground);
+  --mute: var(--muted-foreground);
+  --line: color-mix(in oklab, var(--ink) 22%, transparent);
+  --chip: color-mix(in oklab, var(--ink) 7%, transparent);
+  --k: 1;
+  --pad: 5cqmin;
+  --min-body: 0px;
+  --min-label: 0px;
+  --t-body: max(var(--min-body), calc(2.05cqmin * var(--k)));
+  --t-label: max(var(--min-label), calc(1.45cqmin * var(--k)));
+
+  container: slide / size;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+.xs.inverse {
+  --paper: var(--foreground);
+  --ink: var(--background);
+  --mute: color-mix(in oklab, var(--ink) 58%, var(--paper));
+}
+.xs[data-live] {
+  --min-body: calc(14px * var(--k));
+  --min-label: calc(10.5px * var(--k));
+}
+
+.xs *, .xs *::before, .xs *::after { box-sizing: border-box; margin: 0; }
+
+.xs-pad {
+  position: absolute;
+  inset: 0;
+  padding: var(--pad);
+  display: flex;
+  flex-direction: column;
+  gap: 2.5cqmin;
+}
+.xs[data-live] .xs-pad { overflow-y: auto; scrollbar-width: none; }
+
+/* ── type ── */
+.xs-display {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  line-height: 0.86;
+  font-size: calc(var(--size, 12cqmin) * var(--k));
+  overflow-wrap: anywhere;
+}
+.xs-display > span { display: block; }
+.xs-label {
+  font-size: var(--t-label);
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 550;
+  white-space: pre-line;
+}
+.xs-body {
+  font-size: var(--t-body);
+  line-height: 1.38;
+  white-space: pre-line;
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+.xs-mute { color: var(--mute); }
+.xs-pre { white-space: pre-line; }
+.xs-rule { height: 1px; background: var(--line); width: 100%; flex-shrink: 0; }
+
+.xs-img {
+  position: relative;
+  overflow: hidden;
+  background: var(--chip);
+  border-radius: 1cqmin;
+}
+.xs-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.xs-img[data-empty] {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 1.2cqmin, var(--chip) 1.2cqmin calc(1.2cqmin + 1px)),
+    var(--chip);
+}
+.xs-pill {
+  position: absolute;
+  right: 1.4cqmin;
+  bottom: 1.4cqmin;
+  padding: 0.5cqmin 1.3cqmin;
+  border-radius: 99px;
+  background: rgb(20 20 20 / 0.55);
+  color: #f1f0ec;
+  backdrop-filter: blur(6px);
+}
+.xs-btn {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 1.5cqmin 3.2cqmin;
+  border-radius: 1cqmin;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--t-body);
+  font-weight: 500;
+}
+
+/* ── cover ── */
+.xs-cover .xs-meta3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2cqmin;
+}
+.xs-cover .xs-meta3 > :nth-child(2) { text-align: center; }
+.xs-cover .xs-meta3 > :nth-child(3) { text-align: right; }
+.xs-cover .xs-cover-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3cqmin;
+  margin-top: auto;
+  padding-inline: 8%;
+}
+.xs-cover .xs-display { --size: 13cqmin; }
+.xs-cover .xs-display > span:nth-child(even) { padding-left: 1.4em; }
+.xs-cover .xs-note { margin-top: 1.5cqmin; font-size: calc(var(--t-body) * 1.1); line-height: 1.25; white-space: pre-line; }
+.xs-cover.has-img .xs-cover-head { margin-top: 3cqmin; }
+.xs-cover .xs-cover-img {
+  flex: 1 1 0;
+  min-height: 20cqmin;
+  margin-inline: calc(var(--pad) * -1);
+  margin-bottom: calc(var(--pad) * -1);
+  border-radius: 0;
+}
+.xs-cover:not(.has-img) .xs-cover-foot { display: flex; justify-content: space-between; }
+
+/* ── stats ── */
+.xs-stats { flex-direction: row; gap: var(--pad); }
+.xs-stats .xs-left { flex: 1 1 0; display: flex; flex-direction: column; gap: 2.4cqmin; min-width: 0; }
+.xs-stats .xs-brand { display: flex; align-items: center; gap: 1.2cqmin; }
+.xs-stats .xs-brand-mark {
+  display: grid; place-items: center;
+  width: 4.4cqmin; height: 4.4cqmin; border-radius: 99px;
+  border: 1px solid var(--ink);
+}
+.xs-stats .xs-brand-mark svg { width: 50%; height: 50%; }
+.xs-stats .xs-display { --size: 10.5cqmin; margin-top: auto; }
+.xs-stats .xs-body { max-width: 46ch; }
+.xs-stats .xs-cells {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  border: 1px solid var(--line);
+  border-radius: 1.8cqmin;
+  overflow: hidden;
+  min-width: 0;
+}
+.xs-stats .xs-cell {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 1cqmin;
+  padding: 2.4cqmin;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  min-height: 0;
+}
+.xs-stats .xs-cell:nth-child(2n) { border-right: 0; }
+.xs-stats .xs-cell:nth-last-child(-n + 2):nth-child(odd),
+.xs-stats .xs-cell:last-child { border-bottom: 0; }
+.xs-stats .xs-cell svg { width: calc(3.2cqmin * var(--k)); height: calc(3.2cqmin * var(--k)); stroke-width: 1.5; }
+.xs-stats .xs-value { font-size: calc(8.5cqmin * var(--k)); font-weight: 500; letter-spacing: -0.045em; line-height: 0.9; text-transform: uppercase; white-space: pre-line; }
+
+/* ── services ── */
+.xs-services { gap: 0; }
+.xs-services .xs-svc-head { padding-left: 45%; padding-bottom: 1.6cqmin; }
+.xs-services .xs-rows { flex: 1 1 0; display: flex; flex-direction: column; min-height: 0; }
+.xs-services .xs-row {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: 45% 1fr auto auto;
+  gap: 2.4cqmin;
+  padding-block: 1.8cqmin;
+  border-top: 1px solid var(--line);
+  min-height: 0;
+}
+.xs-services .xs-row:last-child { border-bottom: 1px solid var(--line); }
+.xs-services .xs-row-title { display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+.xs-services .xs-display { --size: min(8cqmin, calc(68cqh / var(--rows, 3) * 0.36)); letter-spacing: -0.04em; }
+.xs-services .xs-row-desc { display: flex; flex-direction: column; justify-content: space-between; gap: 1cqmin; }
+.xs-services .xs-row-desc .xs-body { max-width: 28ch; font-size: calc(var(--t-body) * 0.9); }
+.xs-services .xs-row-act { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; min-width: 9cqmin; }
+.xs-services .xs-row-img { width: calc(60cqh / var(--rows, 3)); align-self: stretch; border-radius: 0.4cqmin; }
+
+/* ── gallery ── */
+.xs-gallery .xs-gal-head { display: flex; justify-content: space-between; gap: 4cqmin; align-items: flex-start; }
+.xs-gallery .xs-display { --size: 13cqmin; }
+.xs-gallery .xs-gal-head .xs-body { max-width: 30ch; font-size: calc(var(--t-body) * 0.95); }
+.xs-gallery .xs-cards {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 1.4cqmin;
+  min-height: 0;
+}
+.xs-gallery .xs-card { display: flex; flex-direction: column; gap: 0.8cqmin; min-height: 0; }
+.xs-gallery .xs-card .xs-img { flex: 1 1 0; min-height: 10cqmin; }
+.xs-gallery .xs-card-title {
+  font-size: calc(2.6cqmin * var(--k));
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  padding-bottom: 1cqmin;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── split ── */
+.xs-split .xs-split-top { display: flex; justify-content: space-between; }
+.xs-split .xs-display { --size: 9cqmin; margin-top: auto; }
+.xs-split .xs-cols {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: 6cqmin;
+}
+.xs-split .xs-h3 { font-size: calc(2.8cqmin * var(--k)); font-weight: 450; letter-spacing: -0.01em; margin-bottom: 2cqmin; }
+.xs-split .xs-body { max-width: 52ch; }
+
+/* ── statement ── */
+.xs-statement .xs-st-top { display: flex; justify-content: space-between; }
+.xs-statement .xs-display { --size: 9.5cqmin; margin-block: auto; }
+.xs-statement .xs-st-foot { display: flex; justify-content: flex-end; }
+.xs-statement .xs-body { max-width: 44ch; font-size: calc(var(--t-body) * 1.1); }
+
+/* ── contact ── */
+.xs-contact .xs-ct-top { display: flex; justify-content: space-between; align-items: center; }
+.xs-contact .xs-logo { font-size: calc(3cqmin * var(--k)); font-weight: 700; letter-spacing: -0.04em; }
+.xs-contact .xs-logo sup { font-size: 0.45em; }
+.xs-contact .xs-ct-menu { display: flex; align-items: center; gap: 1.5cqmin; }
+.xs-contact .xs-plus { position: relative; width: 4cqmin; height: 4cqmin; }
+.xs-contact .xs-plus::before, .xs-contact .xs-plus::after { content: ""; position: absolute; background: var(--ink); }
+.xs-contact .xs-plus::before { left: 0; right: 0; top: 50%; height: 1px; }
+.xs-contact .xs-plus::after { top: 0; bottom: 0; left: 50%; width: 1px; }
+.xs-contact .xs-info { margin-left: 58%; display: flex; flex-direction: column; gap: 2.2cqmin; margin-block: auto; }
+.xs-contact .xs-info dt { font-weight: 600; font-size: var(--t-label); }
+.xs-contact .xs-info dd { font-size: var(--t-label); line-height: 1.45; white-space: pre-line; color: var(--mute); }
+.xs-contact .xs-display { --size: 11cqmin; font-weight: 400; letter-spacing: -0.04em; }
+.xs-contact .xs-ct-line { display: flex; align-items: center; gap: 2cqmin; }
+.xs-contact .xs-ct-line .xs-rule { background: var(--ink); flex: 1; }
+.xs-contact .xs-ct-line svg { width: calc(6cqmin * var(--k)); height: calc(6cqmin * var(--k)); stroke-width: 1.4; flex-shrink: 0; }
+.xs-contact .xs-ct-bottom { display: flex; flex-direction: column; gap: 1.5cqmin; }
+
+/* ── image ── */
+.xs-image-bg { position: absolute; inset: 0; border-radius: 0; }
+.xs-image-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgb(10 10 10 / 0.65), transparent 55%), linear-gradient(to bottom, rgb(10 10 10 / 0.35), transparent 30%); }
+.xs-image .xs-pad { color: #f1f0ec; --mute: rgb(241 240 236 / 0.75); }
+.xs-image .xs-im-top { display: flex; justify-content: space-between; }
+.xs-image .xs-display { --size: 12cqmin; margin-top: auto; }
+
+/* ───────── portrait (phones) ───────── */
+@container slide (aspect-ratio < 1) {
+  .xs { --pad: 6cqw; }
+  .xs[data-live] .xs-pad { padding-bottom: calc(var(--pad) + 4.5rem); }
+  .xs-pad { gap: 5cqw; }
+  .xs-display { --size: 15cqw; }
+
+  .xs-cover .xs-meta3 { grid-template-columns: 1fr 1fr; }
+  .xs-cover .xs-meta3 > :nth-child(2) { text-align: right; }
+  .xs-cover .xs-meta3 > :nth-child(3) { grid-column: 1 / -1; text-align: left; }
+  .xs-cover .xs-cover-head { flex-direction: column; padding-inline: 0; }
+  .xs-cover .xs-display { --size: 17cqw; }
+  .xs-cover .xs-cover-img { min-height: 45cqw; }
+
+  .xs-stats { flex-direction: column; }
+  .xs-stats .xs-display { --size: 14cqw; margin-top: 10cqw; }
+  .xs-stats .xs-cells { flex: none; grid-auto-rows: minmax(32cqw, auto); }
+  .xs-stats .xs-cell { padding: 4cqw; }
+  .xs-stats .xs-value { font-size: calc(13cqw * var(--k)); }
+  .xs-stats .xs-cell svg { width: 6cqw; height: 6cqw; }
+  .xs-stats .xs-brand-mark { width: 8cqw; height: 8cqw; }
+
+  .xs-services .xs-svc-head { padding-left: 0; }
+  .xs-services .xs-rows { flex: none; }
+  .xs-services .xs-row { flex: none; grid-template-columns: 1fr auto; padding-block: 5cqw; gap: 4cqw; }
+  .xs-services .xs-display { --size: 11cqw; }
+  .xs-services .xs-row-title { grid-column: 1 / -1; gap: 2cqw; }
+  .xs-services .xs-row-img { grid-column: 1 / -1; grid-row: 2; width: 100%; height: auto; aspect-ratio: 16 / 10; }
+
+  .xs-gallery .xs-gal-head { flex-direction: column; }
+  .xs-gallery .xs-display { --size: 17cqw; }
+  .xs-gallery .xs-cards { flex: none; grid-template-columns: 1fr; gap: 6cqw; }
+  .xs-gallery .xs-card .xs-img { flex: none; aspect-ratio: 4 / 3; }
+  .xs-gallery .xs-card { flex: none; }
+  .xs-gallery .xs-card-title { font-size: calc(5cqw * var(--k)); }
+
+  .xs-split .xs-cols { grid-template-columns: 1fr; gap: 8cqw; }
+  .xs-split .xs-h3 { font-size: calc(5.5cqw * var(--k)); }
+  .xs-split .xs-display { --size: 13cqw; }
+
+  .xs-statement .xs-display { --size: 12cqw; }
+  .xs-statement .xs-st-foot { justify-content: flex-start; }
+
+  .xs-contact .xs-info { margin-left: 0; }
+  .xs-contact .xs-logo { font-size: calc(6cqw * var(--k)); }
+  .xs-contact .xs-display { --size: 16cqw; }
+  .xs-contact .xs-plus { width: 6cqw; height: 6cqw; }
+
+  .xs-image .xs-display { --size: 15cqw; }
+}

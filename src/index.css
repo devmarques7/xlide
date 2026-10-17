@@ -1,0 +1,128 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter-tight";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────── XLIDE identity tokens ─────────
+   Monochrome: off-white paper, off-gray ink, matte black. */
+:root {
+  --fs-scale: 1;
+  --background: #f1f0ec;
+  --foreground: #161615;
+  --card: #f7f6f3;
+  --card-foreground: #161615;
+  --popover: #f7f6f3;
+  --popover-foreground: #161615;
+  --primary: #161615;
+  --primary-foreground: #f1f0ec;
+  --secondary: #e6e5e0;
+  --secondary-foreground: #161615;
+  --muted: #e6e5e0;
+  --muted-foreground: #6f6e69;
+  --accent: #e3e2dd;
+  --accent-foreground: #161615;
+  --destructive: #8a2a22;
+  --border: #d6d5cf;
+  --input: #d6d5cf;
+  --ring: #161615;
+  --radius: 0.875rem;
+}
+
+.dark {
+  --background: #121211;
+  --foreground: #ecebe6;
+  --card: #1a1a19;
+  --card-foreground: #ecebe6;
+  --popover: #1a1a19;
+  --popover-foreground: #ecebe6;
+  --primary: #ecebe6;
+  --primary-foreground: #121211;
+  --secondary: #232322;
+  --secondary-foreground: #ecebe6;
+  --muted: #232322;
+  --muted-foreground: #8f8e89;
+  --accent: #262625;
+  --accent-foreground: #ecebe6;
+  --destructive: #d1695f;
+  --border: #2e2e2c;
+  --input: #2e2e2c;
+  --ring: #ecebe6;
+}
+
+@theme inline {
+  --font-sans: "Inter Tight Variable", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --animate-shake: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(5px); }
+  30%, 50%, 70% { transform: translateX(-10px); }
+  40%, 60% { transform: translateX(10px); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@layer base {
+  html {
+    /* Global accessibility scale: every rem-based size follows it. */
+    font-size: calc(100% * var(--fs-scale));
+    -webkit-text-size-adjust: 100%;
+  }
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+    min-height: 100dvh;
+  }
+  ::selection { background: var(--foreground); color: var(--background); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+}
+
+@layer utilities {
+  .label-xs {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .display {
+    text-transform: uppercase;
+    letter-spacing: -0.045em;
+    line-height: 0.88;
+    font-weight: 500;
+  }
+  .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,298 @@
+import { ArrowUpRight, CornerDownRight } from "lucide-react";
+import { useState, type CSSProperties } from "react";
+import { ICONS } from "@/lib/icons";
+import { tx, type Locale, type LText, type Slide } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import "./slides.css";
+
+interface Props {
+  slide: Slide;
+  lang: Locale;
+  fallback?: Locale;
+  /** Live = presenting/viewing: enforces readable minimum sizes and allows scrolling. */
+  live?: boolean;
+  /** Reader text scale (1 = 100%). */
+  scale?: number;
+  className?: string;
+}
+
+export function SlideView({ slide, lang, fallback, live, scale = 1, className }: Props) {
+  const T = (v: LText | undefined) => tx(v, lang, fallback);
+  const Layout = LAYOUT_COMPONENTS[slide.layout] ?? Statement;
+  return (
+    <div
+      className={cn("xs", slide.inverse && "inverse", className)}
+      data-layout={slide.layout}
+      data-live={live ? "" : undefined}
+      style={{ "--k": scale } as CSSProperties}
+      lang={lang}
+    >
+      <Layout s={slide} T={T} />
+    </div>
+  );
+}
+
+type LayoutProps = { s: Slide; T: (v: LText | undefined) => string };
+
+function Lines({ text }: { text: string }) {
+  return (
+    <>
+      {text.split("\n").map((l, i) => (
+        <span key={i}>{l || " "}</span>
+      ))}
+    </>
+  );
+}
+
+function Display({ text, className, as: Tag = "h2" }: { text: string; className?: string; as?: "h1" | "h2" }) {
+  if (!text) return null;
+  return (
+    <Tag className={cn("xs-display", className)}>
+      <Lines text={text} />
+    </Tag>
+  );
+}
+
+export function SlideImage({ src, className, children }: { src?: string; className?: string; children?: React.ReactNode }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const ok = src && failed !== src;
+  return (
+    <div className={cn("xs-img", className)} data-empty={ok ? undefined : ""}>
+      {ok && <img src={src} alt="" loading="lazy" draggable={false} onError={() => setFailed(src)} />}
+      {children}
+    </div>
+  );
+}
+
+const pad2 = (n: number) => String(n + 1).padStart(2, "0");
+
+function Cover({ s, T }: LayoutProps) {
+  return (
+    <div className={cn("xs-pad xs-cover", s.image && "has-img")}>
+      <div className="xs-meta3 xs-label">
+        <span>{T(s.eyebrow)}</span>
+        <span>{T(s.subtitle)}</span>
+        <span>{T(s.cta)}</span>
+      </div>
+      <div className="xs-cover-head">
+        <Display as="h1" text={T(s.title)} />
+        {T(s.body) && <p className="xs-note">{T(s.body)}</p>}
+      </div>
+      {s.image ? <SlideImage src={s.image} className="xs-cover-img" /> : (
+        <div className="xs-cover-foot xs-label xs-mute">
+          <span>01/</span>
+          <span>XLIDE</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stats({ s, T }: LayoutProps) {
+  const items = (s.items ?? []).slice(0, 6);
+  return (
+    <div className="xs-pad xs-stats">
+      <div className="xs-left">
+        {T(s.eyebrow) && (
+          <div className="xs-brand">
+            <span className="xs-brand-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </span>
+            <span className="xs-label">{T(s.eyebrow)}</span>
+          </div>
+        )}
+        <Display text={T(s.title)} />
+        {T(s.body) && <p className="xs-body">{T(s.body)}</p>}
+        {T(s.cta) && <span className="xs-btn">{T(s.cta)}</span>}
+      </div>
+      {items.length > 0 && (
+        <div className="xs-cells">
+          {items.map((it) => {
+            const Icon = it.icon ? ICONS[it.icon] : undefined;
+            return (
+              <div className="xs-cell" key={it.id}>
+                <div>{Icon && <Icon />}</div>
+                <div>
+                  {T(it.value) && <div className="xs-value">{T(it.value)}</div>}
+                  <div className="xs-label" style={{ marginTop: "1.2cqmin" }}>{T(it.label)}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Services({ s, T }: LayoutProps) {
+  const items = (s.items ?? []).slice(0, 5);
+  return (
+    <div className="xs-pad xs-services" style={{ "--rows": Math.max(items.length, 1) } as CSSProperties}>
+      <div className="xs-svc-head xs-label xs-mute">{T(s.eyebrow)}</div>
+      <div className="xs-rows">
+        {items.map((it, i) => (
+          <div className="xs-row" key={it.id}>
+            <div className="xs-row-title">
+              <span className="xs-label xs-mute">{pad2(i)}</span>
+              <Display text={T(it.label)} />
+            </div>
+            <div className="xs-row-desc">
+              <p className="xs-body">{T(it.text)}</p>
+              <span className="xs-label">{T(it.meta)}</span>
+            </div>
+            <div className="xs-row-act">
+              <span className="xs-label xs-mute">{T(it.value)}</span>
+              {T(s.cta) && (
+                <span className="xs-label" style={{ display: "inline-flex", alignItems: "center", gap: "0.6cqmin" }}>
+                  <CornerDownRight style={{ width: "1em", height: "1em" }} />
+                  {T(s.cta)}
+                </span>
+              )}
+            </div>
+            {it.image !== undefined && <SlideImage src={it.image} className="xs-row-img" />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Gallery({ s, T }: LayoutProps) {
+  const items = (s.items ?? []).slice(0, 6);
+  const cols = Math.min(Math.max(items.length, 1), 3);
+  return (
+    <div className="xs-pad xs-gallery" style={{ "--cols": cols } as CSSProperties}>
+      <div className="xs-gal-head">
+        <Display text={T(s.title)} />
+        {T(s.body) && <p className="xs-body">{T(s.body)}</p>}
+      </div>
+      <div className="xs-rule" />
+      <div className="xs-label xs-mute">
+        {T(s.eyebrow) || "Items"}: <b style={{ color: "var(--ink)" }}>{items.length}</b>
+      </div>
+      <div className="xs-cards">
+        {items.map((it) => (
+          <div className="xs-card" key={it.id}>
+            <SlideImage src={it.image}>{T(it.meta) && <span className="xs-pill xs-label">{T(it.meta)}</span>}</SlideImage>
+            <span className="xs-label xs-mute" style={{ textTransform: "none" }}>{T(it.value)}</span>
+            <span className="xs-card-title">{T(it.label)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Split({ s, T }: LayoutProps) {
+  const items = (s.items ?? []).slice(0, 3);
+  return (
+    <div className="xs-pad xs-split" style={{ "--cols": Math.max(items.length, 1) } as CSSProperties}>
+      <div className="xs-split-top xs-label">
+        <span>{T(s.eyebrow)}</span>
+        <span>{T(s.subtitle)}</span>
+      </div>
+      <Display text={T(s.title)} />
+      <div className="xs-cols">
+        {items.map((it) => (
+          <div key={it.id}>
+            <h3 className="xs-h3">{T(it.label)}</h3>
+            <p className="xs-body xs-mute">{T(it.text)}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Statement({ s, T }: LayoutProps) {
+  return (
+    <div className="xs-pad xs-statement">
+      <div className="xs-st-top xs-label">
+        <span>{T(s.eyebrow)}</span>
+        <span className="xs-mute">{T(s.subtitle)}</span>
+      </div>
+      <Display text={T(s.title)} />
+      {T(s.body) && (
+        <div className="xs-st-foot">
+          <p className="xs-body">{T(s.body)}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Contact({ s, T }: LayoutProps) {
+  const items = (s.items ?? []).slice(0, 5);
+  return (
+    <div className="xs-pad xs-contact">
+      <div className="xs-ct-top">
+        <span className="xs-logo">
+          {T(s.eyebrow)}
+          <sup>®</sup>
+        </span>
+        <span className="xs-ct-menu xs-label">
+          Menu <span className="xs-plus" />
+        </span>
+      </div>
+      <dl className="xs-info">
+        {items.map((it) => (
+          <div key={it.id}>
+            <dt>{T(it.label)}</dt>
+            {T(it.text) && <dd>{T(it.text)}</dd>}
+          </div>
+        ))}
+      </dl>
+      <div className="xs-ct-bottom">
+        <span className="xs-label" style={{ textTransform: "none" }}>{T(s.subtitle)}</span>
+        <Display text={T(s.title)} />
+        <div className="xs-ct-line">
+          <div className="xs-rule" />
+          {T(s.cta) && <span className="xs-label">{T(s.cta)}</span>}
+          <ArrowUpRight />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ImageLayout({ s, T }: LayoutProps) {
+  return (
+    <div className="xs-image">
+      <SlideImage src={s.image} className="xs-image-bg" />
+      <div className="xs-image-shade" />
+      <div className="xs-pad">
+        <div className="xs-im-top xs-label">
+          <span>{T(s.eyebrow)}</span>
+          <span>{T(s.subtitle)}</span>
+        </div>
+        <Display text={T(s.title)} />
+        {T(s.body) && <p className="xs-body">{T(s.body)}</p>}
+      </div>
+    </div>
+  );
+}
+
+const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.ReactElement> = {
+  cover: Cover,
+  stats: Stats,
+  services: Services,
+  gallery: Gallery,
+  split: Split,
+  statement: Statement,
+  contact: Contact,
+  image: ImageLayout,
+};
+
+/** Fixed-ratio frame for previews and thumbnails. */
+export function SlideFrame({ className, ratio = "16 / 9", ...props }: Props & { ratio?: string }) {
+  return (
+    <div className={cn("relative w-full overflow-hidden rounded-lg border border-border", className)} style={{ aspectRatio: ratio }}>
+      <div className="absolute inset-0">
+        <SlideView {...props} />
+      </div>
+    </div>
+  );
+}
