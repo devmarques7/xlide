@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { translate, type TKey } from "./i18n";
 import { LOCALES, type Locale } from "./types";
 
@@ -41,6 +41,10 @@ function load(): Prefs {
   }
 }
 
+function resolvedThemeOf(theme: ThemePref, systemDark: boolean): "light" | "dark" {
+  return theme === "system" ? (systemDark ? "dark" : "light") : theme;
+}
+
 const Ctx = createContext<PrefsCtx | null>(null);
 
 export function PrefsProvider({ children }: { children: ReactNode }) {
@@ -52,13 +56,34 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    const root = document.documentElement;
     const mq = matchMedia("(prefers-color-scheme: dark)");
-    const on = (e: MediaQueryListEvent) => !document.documentElement.dataset.theme && setSystemDark(e.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
+    const read = () => setSystemDark(root.dataset.theme ? root.dataset.theme === "dark" : mq.matches);
+    mq.addEventListener("change", read);
+    // Hosts that embed the app can switch theme by setting data-theme on <html>.
+    const obs = new MutationObserver(read);
+    obs.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => {
+      mq.removeEventListener("change", read);
+      obs.disconnect();
+    };
   }, []);
 
-  const resolvedTheme = prefs.theme === "system" ? (systemDark ? "dark" : "light") : prefs.theme;
+  const resolvedTheme = resolvedThemeOf(prefs.theme, systemDark);
+
+  // Cross-fade colours for a moment whenever the effective theme changes.
+  const firstTheme = useRef(true);
+  useLayoutEffect(() => {
+    if (firstTheme.current) {
+      firstTheme.current = false;
+      return;
+    }
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+    const t = setTimeout(() => root.classList.remove("theme-switching"), 300);
+    return () => clearTimeout(t);
+  }, [resolvedTheme]);
+
 
   useEffect(() => {
     try {

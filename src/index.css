@@ -1,7 +1,20 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter-tight";
+@import "@fontsource/fragment-mono/400.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* BDO Grotesk (VJ Type) is self-hosted: drop the files in public/fonts/.
+   Until then an installed copy is used, then Inter Tight as fallback. */
+@font-face {
+  font-family: "BDO Grotesk";
+  src: local("BDO Grotesk"), local("BDOGrotesk-Regular"),
+    url("/fonts/BDOGrotesk-VF.woff2") format("woff2-variations"),
+    url("/fonts/BDOGrotesk-VF.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ───────── XLIDE identity tokens ─────────
    Monochrome: off-white paper, off-gray ink, matte black. */
@@ -25,7 +38,8 @@
   --border: #d6d5cf;
   --input: #d6d5cf;
   --ring: #161615;
-  --radius: 0.875rem;
+  --radius: 0px;
+  color-scheme: light;
 }
 
 .dark {
@@ -47,10 +61,12 @@
   --border: #2e2e2c;
   --input: #2e2e2c;
   --ring: #ecebe6;
+  color-scheme: dark;
 }
 
 @theme inline {
-  --font-sans: "Inter Tight Variable", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "BDO Grotesk", "Inter Tight Variable", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -69,10 +85,15 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 6px);
-  --radius-md: calc(var(--radius) - 4px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 6px);
+  /* Square system: every radius token is zero. */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
   --animate-shake: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-fade-up: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -106,11 +127,12 @@
 
 @layer utilities {
   .label-xs {
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     line-height: 1rem;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
-    font-weight: 500;
+    font-weight: 400;
   }
   .display {
     text-transform: uppercase;
@@ -125,4 +147,27 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ───────── Unlayered overrides ─────────
+   Kept outside @layer on purpose: hosts (e.g. an embedded preview) may inject
+   their own unlayered body reset, which would otherwise beat Tailwind's
+   layered base styles and leave a white background behind a dark UI. */
+html body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Square system: no rounded corners anywhere, including third-party parts. */
+*, *::before, *::after {
+  border-radius: 0 !important;
+}
+
+/* Brief cross-fade while switching theme (class added by the prefs provider). */
+html.theme-switching, html.theme-switching * {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, fill 0.25s ease, stroke 0.25s ease !important;
 }

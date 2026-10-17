@@ -61,11 +61,10 @@ export default function Dashboard() {
       <AppHeader />
       <main className="mx-auto max-w-[90rem] px-4 sm:px-6">
         {/* Search hero */}
-        <section className="flex flex-col items-center pt-14 pb-12 text-center sm:pt-24 sm:pb-16">
-          <p className="label-xs text-muted-foreground">{t("dash.greeting")}</p>
-          <h1 className="display mt-4 text-[clamp(3.5rem,14vw,9rem)]">Xlide</h1>
+        <section className="flex flex-col items-center pt-16 pb-12 text-center sm:pt-28 sm:pb-16">
+          <h1 className="sr-only">{t("dash.greeting")}</h1>
           <form
-            className="relative mt-8 w-full max-w-2xl sm:mt-10"
+            className="relative w-full max-w-2xl"
             role="search"
             onSubmit={(e) => {
               e.preventDefault();

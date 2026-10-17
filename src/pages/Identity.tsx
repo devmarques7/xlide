@@ -2,7 +2,7 @@ import {
   ArrowUpRight, Contrast, Grid3x3, Languages, Play, QrCode, ScanText, Search, Smartphone, Type,
 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
-import { LogoMark } from "@/components/logo";
+import { LogoGlyph, LogoMark } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,11 +26,11 @@ const COLORS = [
 ];
 
 const TYPE_SCALE = [
-  { name: "Display", spec: "clamp(56–208px) / 0.86 / −4.5%", cls: "display text-6xl sm:text-8xl", sample: "Xlide" },
+  { name: "Display", spec: "BDO Grotesk clamp(56–208px) / 0.86 / −4.5%", cls: "display text-6xl sm:text-8xl", sample: "Xlide" },
   { name: "Heading", spec: "40px / 1.0 / −3%", cls: "text-[2.5rem] leading-none font-medium tracking-tight uppercase", sample: "Projects" },
   { name: "Title", spec: "20px / 1.2 / −1%", cls: "text-xl font-medium tracking-tight", sample: "Attention to details" },
   { name: "Body", spec: "15px / 1.45 / 0", cls: "text-[0.95rem] leading-relaxed", sample: "Real projects that show how we think, work, and solve problems." },
-  { name: "Label", spec: "11px / 1.45 / +4% · caps", cls: "label-xs", sample: "Items: 6 — 4K resolution" },
+  { name: "Label · mono", spec: "Fragment Mono 11px / 1.45 / +2% · caps", cls: "label-xs", sample: "Items: 6 — 4K resolution" },
 ];
 
 const GRID = [
@@ -41,11 +41,11 @@ const GRID = [
 
 const SPACING = [4, 8, 12, 16, 24, 32, 48, 64, 96];
 const RADII = [
-  { n: "sm", v: 8 },
-  { n: "md", v: 10 },
-  { n: "lg", v: 14 },
-  { n: "xl", v: 20 },
-  { n: "full", v: 999 },
+  { n: "button", v: 0 },
+  { n: "input", v: 0 },
+  { n: "card", v: 0 },
+  { n: "dialog", v: 0 },
+  { n: "key", v: 0 },
 ];
 const MOTION = [
   { n: "instant", d: "75ms", e: "linear", use: "Key press" },
@@ -94,7 +94,7 @@ export default function Identity() {
           <div className="flex flex-col justify-between gap-10">
             <span className="inline-flex items-center gap-2.5">
               <span className="grid size-9 place-items-center rounded-full border border-foreground">
-                <LogoMark className="size-4" inverted />
+                <LogoGlyph className="size-5" />
               </span>
               <span className="label-xs">by xlide.app</span>
             </span>
@@ -153,11 +153,11 @@ export default function Identity() {
 
         <Section n="02" title={t("identity.logo")}>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="grid aspect-square place-items-center rounded-2xl border border-border bg-[#F1F0EC]">
-              <svg viewBox="0 0 64 64" className="size-24"><rect width="64" height="64" rx="14" fill="#161615" /><path d="M19 19 L45 45 M45 19 L19 45" stroke="#F1F0EC" strokeWidth="5.5" strokeLinecap="square" /></svg>
+            <div className="grid aspect-square place-items-center border border-border bg-[#F1F0EC] text-[#161615]">
+              <LogoGlyph className="size-28" />
             </div>
-            <div className="grid aspect-square place-items-center rounded-2xl border border-border bg-[#121211]">
-              <svg viewBox="0 0 64 64" className="size-24"><rect width="64" height="64" rx="14" fill="#ECEBE6" /><path d="M19 19 L45 45 M45 19 L19 45" stroke="#121211" strokeWidth="5.5" strokeLinecap="square" /></svg>
+            <div className="grid aspect-square place-items-center border border-border bg-[#121211] text-[#ECEBE6]">
+              <LogoGlyph className="size-28" />
             </div>
             <div className="flex aspect-square flex-col justify-between rounded-2xl border border-border p-5">
               <span className="label-xs text-muted-foreground">Wordmark</span>
@@ -175,7 +175,7 @@ export default function Identity() {
             </div>
           </div>
           <p className="mt-4 max-w-xl text-sm text-muted-foreground">
-            The X is two square-capped strokes at 45° on a 64-unit tile, stroke 5.5, corner radius 14. Keep clear space equal to one stroke length (¼ tile). It doubles as the favicon.
+            A six-armed asterisk on a 100-unit grid: one flared arm rotated 0°, 60° and −60°, split by an S-shaped cut. On the square app tile the glyph fills 72% of the tile, which leaves the clear space. It follows the theme: ink on paper in light mode, paper on ink in dark mode. Files: logo.svg (adapts to the OS theme), logo-light.svg, logo-dark.svg, favicon.svg.
           </p>
         </Section>
 
@@ -212,8 +212,10 @@ export default function Identity() {
           <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-border p-5 sm:flex-row sm:items-end">
             <span className="display text-[7rem] sm:text-[10rem]">Aa</span>
             <div className="text-sm sm:text-right">
-              <p className="font-medium">Inter Tight Variable</p>
-              <p className="text-muted-foreground">Grotesk · 100–900 · Latin ext.</p>
+              <p className="font-medium">BDO Grotesk</p>
+              <p className="text-muted-foreground">Titles and text · 300–800</p>
+              <p className="mt-2 font-mono">Fragment Mono</p>
+              <p className="text-muted-foreground">Labels, meta and data · 400</p>
               <p className="mt-2 font-mono text-xs text-muted-foreground">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br />abcdefghijklmnopqrstuvwxyz 0123456789 ãçéñü</p>
             </div>
           </div>
@@ -273,9 +275,9 @@ export default function Identity() {
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {RADII.map((r) => (
                 <div key={r.n} className="flex flex-col items-center gap-2">
-                  <div className="aspect-square w-full border border-foreground bg-card" style={{ borderRadius: Math.min(r.v, 40) }} />
+                  <div className="aspect-square w-full border border-foreground bg-card" />
                   <span className="label-xs text-muted-foreground">
-                    {r.n} · {r.v === 999 ? "∞" : r.v}
+                    {r.n} · {r.v}
                   </span>
                 </div>
               ))}

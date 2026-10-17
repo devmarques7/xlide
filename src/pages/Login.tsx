@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogoMark } from "@/components/logo";
+import { LogoGlyph, LogoMark } from "@/components/logo";
 import { PinPad } from "@/components/pin-pad";
 import { FontSizeControl, LanguageMenu, ThemeToggle } from "@/components/prefs-controls";
 import { unlock } from "@/lib/auth";
@@ -17,7 +17,7 @@ export default function Login() {
         <div className="flex items-center justify-between">
           <span className="inline-flex items-center gap-2.5">
             <span className="grid size-9 place-items-center rounded-full border border-foreground">
-              <LogoMark className="size-4" inverted />
+              <LogoGlyph className="size-5" />
             </span>
             <span className="label-xs">by xlide.app</span>
           </span>
@@ -47,7 +47,7 @@ export default function Login() {
           </div>
         </div>
         <div className="flex flex-1 flex-col items-center justify-center px-4 pb-10">
-          <LogoMark className="mb-8 size-14 animate-fade-up" />
+          <LogoGlyph className="mb-8 size-16 animate-fade-up" title="XLIDE" />
           <PinPad
             hint={t("login.hint")}
             onSubmit={(code) => {

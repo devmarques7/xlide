@@ -87,7 +87,7 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
               <ArrowLeft />
             </Link>
           </Button>
-          <LogoMark className="hidden size-6 sm:block" />
+          <LogoMark className="hidden size-6 sm:inline-grid" />
           <div className="min-w-0 flex-1 px-1">
             <p className="label-xs truncate text-muted-foreground">{t("editor.deck")}</p>
             <h1 className="truncate text-sm font-medium uppercase tracking-tight sm:text-base">{title || t("common.untitled")}</h1>

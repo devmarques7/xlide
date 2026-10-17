@@ -1,5 +1,6 @@
 import { ArrowUpRight, CornerDownRight } from "lucide-react";
 import { useState, type CSSProperties } from "react";
+import { LogoGlyph } from "@/components/logo";
 import { ICONS } from "@/lib/icons";
 import { tx, type Locale, type LText, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -96,9 +97,7 @@ function Stats({ s, T }: LayoutProps) {
         {T(s.eyebrow) && (
           <div className="xs-brand">
             <span className="xs-brand-mark">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
+              <LogoGlyph />
             </span>
             <span className="xs-label">{T(s.eyebrow)}</span>
           </div>
