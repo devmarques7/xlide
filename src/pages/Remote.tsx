@@ -11,6 +11,7 @@ import { useSync, type SyncMessage } from "@/lib/sync";
 import { tx, type Locale } from "@/lib/types";
 import { useRemoteDeck } from "@/lib/use-remote-deck";
 import { cn } from "@/lib/utils";
+import { DeckLook } from "@/slides/look";
 import { SlideFrame } from "@/slides/SlideView";
 
 export default function Remote() {
@@ -48,16 +49,23 @@ function RemoteControl() {
   }, []);
   const { status, presence, send } = useSync(id, "remote", onMessage);
 
-  const cmd = (action: "next" | "prev") => {
-    navigator.vibrate?.(12);
-    send({ t: "cmd", action });
-    // Optimistic update so the remote feels instant.
-    setState((s) => (s ? { ...s, index: Math.max(0, Math.min(s.total - 1, s.index + (action === "next" ? 1 : -1))) } : s));
-  };
-
-  const online = state != null && (presence.presenter > 0 || status === "local");
   const lang = state?.lang ?? deck?.defaultLanguage ?? "en";
   const i = state?.index ?? 0;
+  const total = deck?.slides.length ?? state?.total ?? 1;
+
+  /* The remote publishes the absolute position, so every device (presenter,
+     audience, other remotes) lands on the same slide, even without a presenter. */
+  const publish = (index: number, l: Locale = lang) => {
+    const next = { index: Math.max(0, Math.min(total - 1, index)), lang: l, total };
+    setState(next);
+    send({ t: "state", ...next });
+  };
+  const cmd = (action: "next" | "prev") => {
+    navigator.vibrate?.(12);
+    publish(i + (action === "next" ? 1 : -1));
+  };
+
+  const online = status === "live";
   const slide = deck?.slides[i];
   const next = deck?.slides[i + 1];
   const note = tx(slide?.notes, lang, deck?.defaultLanguage);
@@ -72,10 +80,11 @@ function RemoteControl() {
         </div>
         <span className={cn("label-xs inline-flex items-center gap-1.5", online ? "text-foreground" : "text-muted-foreground")}>
           <span className={cn("size-2 rounded-full", online ? "bg-foreground" : "animate-pulse bg-foreground/30")} />
-          {online ? t("remote.connected") : t("remote.waiting")}
+          {online ? (presence.presenter > 0 ? t("remote.connected") : t("present.live")) : t("present.offline")}
         </span>
       </header>
 
+      <DeckLook deck={deck} lang={lang}>
       <main className="flex flex-1 flex-col gap-4 p-4">
         {loading ? (
           <Loader2 className="mx-auto mt-20 size-6 animate-spin text-muted-foreground" />
@@ -102,7 +111,7 @@ function RemoteControl() {
               </div>
             </section>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <LangSwitch languages={deck.languages} value={lang} onChange={(l) => send({ t: "cmd", action: "lang", lang: l })} label={t("present.language")} />
+              <LangSwitch languages={deck.languages} value={lang} onChange={(l) => publish(i, l)} label={t("present.language")} />
               <div className="flex items-center gap-1">
                 <FontSizeControl compact />
                 <ThemeToggle />
@@ -113,6 +122,7 @@ function RemoteControl() {
           <p className="mt-20 text-center text-muted-foreground">{t("view.notFound")}</p>
         )}
       </main>
+      </DeckLook>
 
       <footer className="sticky bottom-0 grid grid-cols-[1fr_1.6fr] gap-3 border-t border-border bg-background/95 p-4 pb-safe backdrop-blur">
         <button

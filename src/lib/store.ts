@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { samplePresentations } from "./samples";
+import { pitchDeck } from "./templates";
 import type { Presentation } from "./types";
 import { uid } from "./utils";
 
@@ -9,14 +10,31 @@ type Listener = () => void;
 let cache: Presentation[] = read();
 const listeners = new Set<Listener>();
 
+const SEED_KEY = "xlide.seeded";
+const SEEDS = ["p_pitch"];
+
 function read(): Presentation[] {
+  let list: Presentation[] | null = null;
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) list = JSON.parse(raw);
   } catch {
     /* ignore */
   }
-  return samplePresentations();
+  if (!list) return [pitchDeck(), ...samplePresentations()];
+  // Add example decks shipped after this browser first ran XLIDE (once each).
+  try {
+    const seeded: string[] = JSON.parse(localStorage.getItem(SEED_KEY) || "[]");
+    const missing = SEEDS.filter((id) => !seeded.includes(id));
+    if (missing.length) {
+      if (missing.includes("p_pitch") && !list.some((p) => p.id === "p_pitch")) list = [pitchDeck(), ...list];
+      localStorage.setItem(SEED_KEY, JSON.stringify([...seeded, ...missing]));
+      localStorage.setItem(KEY, JSON.stringify(list));
+    }
+  } catch {
+    /* ignore */
+  }
+  return list;
 }
 
 function write(next: Presentation[]) {

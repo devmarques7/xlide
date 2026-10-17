@@ -1,16 +1,18 @@
-import { Copy, FileJson, MoreHorizontal, Pencil, Play, Plus, Search, Trash2, X } from "lucide-react";
+import { Copy, FileJson, FileText, LayoutTemplate, MoreHorizontal, Pencil, Play, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Highlight } from "@/components/highlight";
 import { ImportPanel } from "@/components/import-panel";
+import { TemplateJson } from "@/components/template-json";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { fromTemplate, TEMPLATE_LIST } from "@/lib/templates";
 import { relativeTime } from "@/lib/format";
 import { LOCALE_SHORT } from "@/lib/i18n";
 import { presentationFromImport } from "@/lib/importer";
@@ -19,6 +21,7 @@ import { searchPresentations, type SearchHit } from "@/lib/search";
 import { deletePresentation, duplicatePresentation, savePresentation, usePresentations } from "@/lib/store";
 import { tx, type Presentation } from "@/lib/types";
 import { uid } from "@/lib/utils";
+import { DeckLook } from "@/slides/look";
 import { SlideFrame } from "@/slides/SlideView";
 
 export default function Dashboard() {
@@ -94,9 +97,31 @@ export default function Dashboard() {
             )}
           </form>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <Button onClick={createNew}>
-              <Plus /> {t("dash.new")}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Plus /> {t("dash.new")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuItem onSelect={createNew}>
+                  <FileText /> {t("dash.blank")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>{t("dash.fromTemplate")}</DropdownMenuLabel>
+                {TEMPLATE_LIST.map(({ id }) => (
+                  <DropdownMenuItem
+                    key={id}
+                    onSelect={() => {
+                      const p = savePresentation(fromTemplate(id));
+                      navigate(`/p/${p.id}`);
+                    }}
+                  >
+                    <LayoutTemplate /> {t(`template.${id}`)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <FileJson /> {t("dash.import")}
             </Button>
@@ -132,6 +157,7 @@ export default function Dashboard() {
             <DialogTitle>{t("dash.import")}</DialogTitle>
             <DialogDescription>{t("json.schema")}</DialogDescription>
           </DialogHeader>
+          <TemplateJson />
           <ImportPanel
             actions={[
               {
@@ -164,7 +190,9 @@ function PresentationCard({ hit, q, index }: { hit: SearchHit; q: string; index:
       <Link to={`/p/${p.id}`} className="block">
         <div className="relative">
           {preview ? (
-            <SlideFrame slide={preview} lang={lang} fallback={p.defaultLanguage} className="transition-transform duration-300 group-hover:-translate-y-0.5" />
+            <DeckLook deck={p} lang={lang}>
+              <SlideFrame slide={preview} lang={lang} fallback={p.defaultLanguage} className="transition-transform duration-300 group-hover:-translate-y-0.5" />
+            </DeckLook>
           ) : (
             <div className="aspect-video rounded-lg border border-dashed border-border" />
           )}

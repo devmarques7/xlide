@@ -10,6 +10,12 @@ const CAPACITY: Record<Layout, number> = {
   statement: 35,
   contact: 45,
   image: 18,
+  "pitch-cover": 30,
+  "pitch-numbers": 40,
+  "pitch-feature": 40,
+  "pitch-toc": 60,
+  "pitch-split": 45,
+  "pitch-team": 40,
 };
 
 const WPM = 130;
@@ -57,7 +63,7 @@ export function analyzeSlide(s: Slide, index: number, deck: Presentation, lang: 
   const issues: Issue[] = [];
 
   const title = tx(s.title, lang, fb).replace(/\n/g, " ");
-  if (!title && ["cover", "stats", "gallery", "statement", "contact"].includes(s.layout)) {
+  if (!title && (["cover", "stats", "gallery", "statement", "contact"].includes(s.layout) || s.layout.startsWith("pitch-"))) {
     issues.push({ kind: "noTitle", severity: "warn", slideIndex: index });
   }
   if (title.length > 40) issues.push({ kind: "longTitle", severity: "warn", slideIndex: index, vars: { n: title.length } });

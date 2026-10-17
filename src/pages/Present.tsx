@@ -48,12 +48,21 @@ export default function Present() {
         if (m.action === "goto" && m.index != null) go(m.index);
         if (m.action === "lang" && m.lang) setLang(m.lang);
       }
+      // Any controller (phone remote, another presenter window) can move the deck.
+      if (m.t === "state") {
+        if (m.index !== indexRef.current) go(m.index);
+        if (m.lang && m.lang !== langRef.current) setLang(m.lang);
+      }
       if (m.t === "hello" && m.role !== "presenter") stateRef.current();
     },
     [go, total],
   );
   const { status, presence, send } = useSync(id, "presenter", onMessage);
 
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const langRef = useRef(lang);
+  langRef.current = lang;
   stateRef.current = () => send({ t: "state", index, lang, total });
   useEffect(() => {
     stateRef.current();
@@ -185,6 +194,7 @@ export default function Present() {
             </Badge>
             <span className="text-xs text-muted-foreground">{t("present.connected", { n: connected })}</span>
           </div>
+          {status === "local" && <p className="bg-muted p-3 text-xs text-muted-foreground">{t("present.syncOff")}</p>}
           <CopyField value={remoteUrl} />
           <LanHint />
         </DialogContent>

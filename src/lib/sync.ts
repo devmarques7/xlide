@@ -33,7 +33,8 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
       if (m._id) {
         if (seen.has(m._id)) return;
         seen.add(m._id);
-        if (seen.size > 500) seen.clear();
+        // Forget the oldest ids only (clearing all could replay recent commands).
+        if (seen.size > 600) for (const id of [...seen].slice(0, 200)) seen.delete(id);
       }
       if (m.t === "presence") setPresence({ presenter: m.presenter, remote: m.remote, viewer: m.viewer });
       handler.current(m);
@@ -57,7 +58,10 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
     const poll = async (first = false) => {
       if (closed) return;
       try {
-        const res = await fetch(`/api/sync/${encodeURIComponent(room)}?after=${after}&client=${client}&role=${role}`, { cache: "no-store" });
+        // Ask with an overlap margin: messages can land slightly out of order,
+        // and duplicates are dropped by their id in deliver().
+        const since = first ? 0 : Math.max(0, after - 20);
+        const res = await fetch(`/api/sync/${encodeURIComponent(room)}?after=${since}&client=${client}&role=${role}`, { cache: "no-store" });
         if (res.status === 503 || res.status === 404 || !res.headers.get("content-type")?.includes("json")) {
           mode = "none";
           setStatus("local");
@@ -66,8 +70,13 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
         const data = await res.json();
         pollFails = 0;
         setStatus("live");
-        if (first && data.state) deliver({ ...data.state, _id: `s${data.state._seq}` });
-        for (const m of data.messages ?? []) deliver({ ...m, _id: m._id ?? `m${m._seq}` });
+        if (first) {
+          // Join: take the current slide, but don't replay old commands.
+          for (const m of data.messages ?? []) if (m._id) seen.add(m._id);
+          if (data.state) deliver({ ...data.state, _id: `join-${data.state._id ?? data.state._seq}` });
+        } else {
+          for (const m of data.messages ?? []) deliver({ ...m, _id: m._id ?? `m${m._seq}` });
+        }
         if (data.presence) deliver(data.presence);
         after = Math.max(after, data.seq ?? 0);
         if (first) send({ t: "hello", role });

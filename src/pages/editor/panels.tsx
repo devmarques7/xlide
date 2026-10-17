@@ -1,6 +1,7 @@
 import { AlertTriangle, Check, Copy, Download, Info } from "lucide-react";
 import { toast } from "sonner";
 import { ImportPanel } from "@/components/import-panel";
+import { TemplateJson } from "@/components/template-json";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
@@ -10,47 +11,124 @@ import { LOCALE_SHORT, type TKey } from "@/lib/i18n";
 import { exportPresentation, presentationFromImport } from "@/lib/importer";
 import { usePrefs } from "@/lib/prefs";
 import { savePresentation } from "@/lib/store";
-import { LAYOUTS, LOCALES, tx, type Locale, type Presentation, type Slide } from "@/lib/types";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, EDITORIAL_LAYOUTS, LAYOUTS, LOCALES, PITCH_LAYOUTS, TEMPLATES, TONES, tx, VARIANTS, type Locale, type Presentation, type Slide, type Template } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { SlideFrame } from "@/slides/SlideView";
 import { LTextField } from "./fields";
 
 /* ───────── Design ───────── */
 
-export function DesignPanel({ slide, lang, fallback, onChange }: { slide: Slide; lang: Locale; fallback: Locale; onChange: (p: Partial<Slide>) => void }) {
+export function DesignPanel({ slide, lang, fallback, template, onChange }: { slide: Slide; lang: Locale; fallback: Locale; template: Template; onChange: (p: Partial<Slide>) => void }) {
   const { t } = usePrefs();
+  const groups = template === "pitch" ? [PITCH_LAYOUTS, EDITORIAL_LAYOUTS] : [EDITORIAL_LAYOUTS, PITCH_LAYOUTS];
+  const variants = VARIANTS[slide.layout];
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <Label>{t("editor.layout")}</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {LAYOUTS.map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => onChange({ layout: l })}
-              aria-pressed={slide.layout === l}
-              className="group flex flex-col gap-1.5 text-left"
-            >
-              <SlideFrame
-                slide={{ ...slide, layout: l }}
-                lang={lang}
-                fallback={fallback}
-                className={cn("pointer-events-none transition-shadow", slide.layout === l ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "group-hover:border-foreground/40")}
-              />
-              <span className={cn("label-xs", slide.layout === l ? "text-foreground" : "text-muted-foreground")}>{t(`layout.${l}`)}</span>
-            </button>
-          ))}
-        </div>
+        <Label>{t("editor.tone")}</Label>
+        <Segmented
+          value={slide.tone ?? "auto"}
+          options={["auto", ...TONES].map((v) => ({ value: v, label: t(`tone.${v}` as TKey) }))}
+          onChange={(v) => onChange({ tone: v === "auto" ? undefined : (v as Slide["tone"]) })}
+        />
       </div>
+      {variants && (
+        <div className="flex flex-col gap-2">
+          <Label>{t("editor.variant")}</Label>
+          <Segmented
+            value={slide.variant ?? variants[0]}
+            options={variants.map((v) => ({ value: v, label: t(`variant.${v}` as TKey) }))}
+            onChange={(v) => onChange({ variant: v })}
+          />
+        </div>
+      )}
       <Separator />
-      <label className="flex items-center justify-between gap-4">
-        <span>
-          <span className="block text-sm font-medium">{t("editor.inverse")}</span>
-          <span className="block text-xs text-muted-foreground">{t("editor.inverseHint")}</span>
-        </span>
-        <Switch checked={!!slide.inverse} onCheckedChange={(v) => onChange({ inverse: v })} />
-      </label>
+      {groups.map((group) => (
+        <div key={group[0]} className="flex flex-col gap-2">
+          <Label>
+            {t("editor.layout")} · {t(group === PITCH_LAYOUTS ? "template.pitch" : "template.editorial")}
+          </Label>
+          <div className="grid grid-cols-2 gap-3">
+            {group.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => onChange({ layout: l })}
+                aria-pressed={slide.layout === l}
+                className="group flex flex-col gap-1.5 text-left"
+              >
+                <SlideFrame
+                  slide={{ ...slide, layout: l }}
+                  lang={lang}
+                  fallback={fallback}
+                  className={cn("pointer-events-none transition-shadow", slide.layout === l ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "group-hover:border-foreground/40")}
+                />
+                <span className={cn("label-xs", slide.layout === l ? "text-foreground" : "text-muted-foreground")}>{t(`layout.${l}`)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {!slide.layout.startsWith("pitch-") && (
+        <>
+          <Separator />
+          <label className="flex items-center justify-between gap-4">
+            <span>
+              <span className="block text-sm font-medium">{t("editor.inverse")}</span>
+              <span className="block text-xs text-muted-foreground">{t("editor.inverseHint")}</span>
+            </span>
+            <Switch checked={!!slide.inverse} onCheckedChange={(v) => onChange({ inverse: v })} />
+          </label>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Segmented({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+  return (
+    <div className="flex gap-1 bg-muted p-1" role="radiogroup">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn("flex-1 px-2 py-1.5 text-xs font-medium", value === o.value ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Attention colour: presets plus a free colour picker. */
+function AccentPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = usePrefs();
+  return (
+    <div className="flex flex-col gap-2">
+      <Label>{t("editor.accent")}</Label>
+      <div className="flex flex-wrap gap-1.5">
+        {ACCENT_PRESETS.map((c) => (
+          <button
+            key={c.value}
+            type="button"
+            title={c.name}
+            aria-label={c.name}
+            aria-pressed={value.toLowerCase() === c.value.toLowerCase()}
+            onClick={() => onChange(c.value)}
+            className={cn("size-9 border border-border outline-offset-2", value.toLowerCase() === c.value.toLowerCase() && "outline-2 outline-foreground")}
+            style={{ background: c.value }}
+          />
+        ))}
+        <label className="relative flex h-9 items-center gap-2 border border-border px-2 text-xs" title={t("editor.customColor")}>
+          <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="size-6 cursor-pointer border-0 bg-transparent p-0" />
+          <span className="font-mono uppercase">{value}</span>
+        </label>
+      </div>
+      <p className="text-xs text-muted-foreground">{t("editor.accentHint")} {t("editor.highlightHint")}</p>
     </div>
   );
 }
@@ -176,6 +254,7 @@ export function JsonPanel({ deck, onReplace, onAppend }: { deck: Presentation; o
   const title = tx(deck.title, deck.defaultLanguage) || "xlide";
   return (
     <div className="flex flex-col gap-6">
+      <TemplateJson />
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-medium">{t("json.import")}</h3>
         <ImportPanel
@@ -239,6 +318,16 @@ export function DeckPanel({ deck, lang, onChange }: { deck: Presentation; lang: 
   const common = { lang, languages: deck.languages, fallback: deck.defaultLanguage };
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label>{t("template.label")}</Label>
+        <Segmented
+          value={deck.template ?? "editorial"}
+          options={TEMPLATES.map((v) => ({ value: v, label: t(`template.${v}`) }))}
+          onChange={(v) => onChange({ template: v as Template })}
+        />
+      </div>
+      <AccentPicker value={deck.accent ?? DEFAULT_ACCENT} onChange={(accent) => onChange({ accent })} />
+      <Separator />
       <LTextField label={t("editor.deckTitle")} value={deck.title} onChange={(v) => onChange({ title: v ?? "" })} {...common} />
       <LTextField label={t("editor.deckDescription")} value={deck.description} multiline onChange={(v) => onChange({ description: v })} {...common} />
       <div className="flex flex-col gap-1.5">

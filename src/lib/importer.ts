@@ -1,4 +1,4 @@
-import { LAYOUTS, LOCALES, type Layout, type Locale, type LText, type Presentation, type Slide, type SlideItem } from "./types";
+import { LAYOUTS, LOCALES, TEMPLATES, TONES, type Layout, type Template, type Tone, type Locale, type LText, type Presentation, type Slide, type SlideItem } from "./types";
 import { uid } from "./utils";
 
 function asLText(v: unknown): LText | undefined {
@@ -41,6 +41,9 @@ export function asSlide(raw: unknown): Slide {
     body: asLText(r.body ?? r.text),
     cta: asLText(r.cta),
     image: typeof r.image === "string" ? r.image : undefined,
+    images: Array.isArray(r.images) ? r.images.filter((x): x is string => typeof x === "string") : undefined,
+    tone: (TONES as readonly string[]).includes(r.tone as string) ? (r.tone as Tone) : undefined,
+    variant: typeof r.variant === "string" ? r.variant : undefined,
     items: Array.isArray(r.items) ? r.items.map(asItem) : undefined,
     notes: asLText(r.notes),
   };
@@ -69,6 +72,9 @@ function parsePlainText(text: string): Slide[] {
 
 export interface ParsedImport {
   title?: LText;
+  author?: string;
+  template?: Template;
+  accent?: string;
   description?: LText;
   languages?: Locale[];
   defaultLanguage?: Locale;
@@ -87,6 +93,9 @@ export function parseImport(input: string): ParsedImport {
       : undefined;
     return {
       title: asLText(obj.title),
+      author: typeof obj.author === "string" ? obj.author : undefined,
+      template: (TEMPLATES as readonly string[]).includes(obj.template) ? obj.template : undefined,
+      accent: typeof obj.accent === "string" && /^#[0-9a-f]{6}$/i.test(obj.accent) ? obj.accent : undefined,
       description: asLText(obj.description),
       languages: languages?.length ? languages : undefined,
       defaultLanguage: (LOCALES as readonly string[]).includes(obj.defaultLanguage) ? obj.defaultLanguage : undefined,
@@ -104,6 +113,9 @@ export function presentationFromImport(p: ParsedImport, fallbackLang: Locale): P
     id: uid("p_"),
     title: p.title ?? "Imported",
     description: p.description,
+    author: p.author,
+    template: p.template,
+    accent: p.accent,
     languages,
     defaultLanguage: p.defaultLanguage ?? languages[0],
     slides: p.slides,
@@ -123,6 +135,8 @@ export function exportPresentation(p: Presentation) {
     title: p.title,
     description: p.description,
     author: p.author,
+    template: p.template,
+    accent: p.accent,
     tags: p.tags,
     languages: p.languages,
     defaultLanguage: p.defaultLanguage,
@@ -133,6 +147,8 @@ export function exportPresentation(p: Presentation) {
 export function blankSlide(layout: Layout): Slide {
   const base: Slide = { id: uid("s_"), layout, title: "" };
   if (["stats"].includes(layout)) base.items = [0, 1, 2, 3].map(() => ({ id: uid("i_"), value: "", label: "" }));
+  if (layout.startsWith("pitch-") && layout !== "pitch-cover") base.items = [0, 1, 2].map(() => ({ id: uid("i_"), label: "", text: "" }));
+  if (layout === "pitch-cover") base.tone = "dark";
   if (["services", "gallery", "split", "contact"].includes(layout))
     base.items = [0, 1].map(() => ({ id: uid("i_"), label: "", text: "" }));
   return base;

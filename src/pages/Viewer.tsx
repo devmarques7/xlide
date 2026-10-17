@@ -28,7 +28,7 @@ export default function Viewer() {
   const onMessage = useCallback((m: SyncMessage) => {
     if (m.t === "state") setLive({ index: m.index, lang: m.lang });
   }, []);
-  useSync(id, "viewer", onMessage);
+  const { status } = useSync(id, "viewer", onMessage);
 
   const total = deck?.slides.length ?? 0;
   const following = follow && live != null;
@@ -70,7 +70,13 @@ export default function Viewer() {
           disabled={!live}
           title={t("view.follow")}
         >
-          <Radio className={cn(following && "animate-pulse")} />
+          <span className="relative">
+            <Radio className={cn(following && "animate-pulse")} />
+            <span
+              className={cn("absolute -top-0.5 -right-0.5 size-1.5", status === "live" ? "bg-current" : "bg-muted-foreground/50")}
+              title={status === "live" ? t("present.live") : t("present.offline")}
+            />
+          </span>
           <span className="hidden min-[420px]:inline">{following ? t("view.following") : t("view.follow")}</span>
         </Button>
         <BarDivider />

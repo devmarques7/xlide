@@ -14,8 +14,9 @@ import { LOCALE_SHORT } from "@/lib/i18n";
 import { blankSlide } from "@/lib/importer";
 import { usePrefs } from "@/lib/prefs";
 import { updatePresentation, usePresentation } from "@/lib/store";
-import { LAYOUTS, tx, type Locale, type Presentation, type Slide } from "@/lib/types";
+import { EDITORIAL_LAYOUTS, PITCH_LAYOUTS, tx, type Locale, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
+import { DeckLook } from "@/slides/look";
 import { SlideFrame } from "@/slides/SlideView";
 import { SlideContentForm } from "./editor/fields";
 import { AnalysisPanel, DeckPanel, DesignPanel, JsonPanel } from "./editor/panels";
@@ -78,6 +79,7 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
   const title = tx(deck.title, editLang, deck.defaultLanguage);
 
   return (
+    <DeckLook deck={deck} lang={editLang}>
     <div className="flex min-h-dvh flex-col lg:h-dvh">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
@@ -149,11 +151,15 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t("editor.layout")}</DropdownMenuLabel>
-                {LAYOUTS.map((l) => (
-                  <DropdownMenuItem key={l} onSelect={() => insertAfter(blankSlide(l))}>
-                    {t(`layout.${l}`)}
-                  </DropdownMenuItem>
+                {(deck.template === "pitch" ? [PITCH_LAYOUTS, EDITORIAL_LAYOUTS] : [EDITORIAL_LAYOUTS, PITCH_LAYOUTS]).map((group, gi) => (
+                  <div key={gi}>
+                    <DropdownMenuLabel>{t(group === PITCH_LAYOUTS ? "template.pitch" : "template.editorial")}</DropdownMenuLabel>
+                    {group.map((l) => (
+                      <DropdownMenuItem key={l} onSelect={() => insertAfter(blankSlide(l))}>
+                        {t(`layout.${l}`)}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -236,7 +242,7 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                 )}
               </TabsContent>
               <TabsContent value="design">
-                {slide && <DesignPanel slide={slide} lang={editLang} fallback={deck.defaultLanguage} onChange={patchSlide} />}
+                {slide && <DesignPanel slide={slide} lang={editLang} fallback={deck.defaultLanguage} template={deck.template ?? "editorial"} onChange={patchSlide} />}
               </TabsContent>
               <TabsContent value="analysis">
                 <AnalysisPanel deck={deck} slideIndex={index} lang={editLang} onGo={go} />
@@ -261,5 +267,6 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
 
       <ShareDialog id={deck.id} title={title} open={shareOpen} onOpenChange={setShareOpen} />
     </div>
+    </DeckLook>
   );
 }

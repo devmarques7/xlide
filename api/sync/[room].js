@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const msg = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     if (!msg || typeof msg.t !== "string") return res.status(400).end();
-    const [seq] = await redis(["INCR", k("seq")]);
+    const seq = Number((await redis(["INCR", k("seq")]))[0]);
     const entry = JSON.stringify({ ...msg, _seq: seq });
     const ops = [
       ["RPUSH", k("log"), entry],
@@ -50,7 +50,10 @@ export default async function handler(req, res) {
     }
     if (stale.length) redis(["HDEL", k("presence"), ...stale]).catch(() => {});
     const messages = (log ?? []).map((e) => JSON.parse(e)).filter((m) => m._seq > after && m._client !== client);
-    return res.json({ seq: Number(seq ?? 0), state: state ? JSON.parse(state) : null, messages, presence });
+    // Highest sequence actually present in the log: a message whose number was
+    // taken but not yet written is picked up on the next poll instead of lost.
+    const logged = (log ?? []).reduce((m, e) => Math.max(m, JSON.parse(e)._seq ?? 0), 0);
+    return res.json({ seq: logged, latest: Number(seq ?? 0), state: state ? JSON.parse(state) : null, messages, presence });
   }
   res.status(405).end();
 }

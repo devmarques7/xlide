@@ -11,7 +11,7 @@ type SlideKey = "eyebrow" | "title" | "subtitle" | "body" | "cta" | "notes";
 type ItemKey = "label" | "value" | "text" | "meta";
 
 interface FieldDef {
-  key: SlideKey | "image";
+  key: SlideKey | "image" | "images";
   label: TKey;
   multiline?: boolean;
 }
@@ -85,6 +85,53 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
       { key: "subtitle", label: "editor.fields.subtitle" },
       { key: "body", label: "editor.fields.body", multiline: true },
     ],
+  },
+  "pitch-cover": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "image", label: "editor.fields.image" },
+    ],
+  },
+  "pitch-numbers": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "cta", label: "editor.fields.footnote" },
+    ],
+    items: ["value", "text"],
+  },
+  "pitch-feature": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "images", label: "editor.fields.images" },
+      { key: "cta", label: "editor.fields.footnote" },
+    ],
+    items: ["value", "label"],
+  },
+  "pitch-toc": {
+    fields: [{ key: "title", label: "editor.fields.title", multiline: true }],
+    items: ["label"],
+  },
+  "pitch-split": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "cta", label: "editor.fields.footnote" },
+    ],
+    items: ["value", "text"],
+  },
+  "pitch-team": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "cta", label: "editor.fields.footnote" },
+    ],
+    items: ["image", "label", "text"],
   },
 };
 
@@ -173,8 +220,20 @@ export function SlideContentForm({
 
   return (
     <div className="flex flex-col gap-4">
+      {slide.layout.startsWith("pitch-") && <p className="text-xs text-muted-foreground">{t("editor.highlightHint")}</p>}
       {def.fields.map((f) =>
-        f.key === "image" ? (
+        f.key === "images" ? (
+          <div key="images" className="flex flex-col gap-1.5">
+            <Label>{t(f.label)}</Label>
+            <Textarea
+              rows={3}
+              className="font-mono text-xs"
+              value={(slide.images ?? []).join("\n")}
+              onChange={(e) => onChange({ images: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean) })}
+              placeholder="https://…"
+            />
+          </div>
+        ) : f.key === "image" ? (
           <div key="image" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
             <Input value={slide.image ?? ""} onChange={(e) => onChange({ image: e.target.value || undefined })} placeholder="https://…" />

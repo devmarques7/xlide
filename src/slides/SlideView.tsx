@@ -1,10 +1,16 @@
 import { ArrowUpRight, CornerDownRight } from "lucide-react";
-import { useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { LogoGlyph } from "@/components/logo";
 import { ICONS } from "@/lib/icons";
 import { tx, type Locale, type LText, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { onAccent, useLook } from "./look";
+import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchTeam, PitchToc } from "./pitch";
+import { Rich } from "./rich";
+import { SlideImage } from "./slide-image";
 import "./slides.css";
+
+export { SlideImage };
 
 interface Props {
   slide: Slide;
@@ -18,14 +24,18 @@ interface Props {
 }
 
 export function SlideView({ slide, lang, fallback, live, scale = 1, className }: Props) {
+  const look = useLook();
   const T = (v: LText | undefined) => tx(v, lang, fallback);
   const Layout = LAYOUT_COMPONENTS[slide.layout] ?? Statement;
+  const pitch = slide.layout.startsWith("pitch-");
+  const tone = slide.tone ?? (slide.layout === "pitch-cover" ? "dark" : undefined);
   return (
     <div
-      className={cn("xs", slide.inverse && "inverse", className)}
+      className={cn("xs", slide.inverse && "inverse", pitch && "tpl-pitch", className)}
       data-layout={slide.layout}
+      data-tone={tone}
       data-live={live ? "" : undefined}
-      style={{ "--k": scale } as CSSProperties}
+      style={{ "--k": scale, "--accent": look.accent, "--on-accent": onAccent(look.accent) } as CSSProperties}
       lang={lang}
     >
       <Layout s={slide} T={T} />
@@ -51,17 +61,6 @@ function Display({ text, className, as: Tag = "h2" }: { text: string; className?
     <Tag className={cn("xs-display", className)}>
       <Lines text={text} />
     </Tag>
-  );
-}
-
-export function SlideImage({ src, className, children }: { src?: string; className?: string; children?: React.ReactNode }) {
-  const [failed, setFailed] = useState<string | null>(null);
-  const ok = src && failed !== src;
-  return (
-    <div className={cn("xs-img", className)} data-empty={ok ? undefined : ""}>
-      {ok && <img src={src} alt="" loading="lazy" draggable={false} onError={() => setFailed(src)} />}
-      {children}
-    </div>
   );
 }
 
@@ -103,7 +102,7 @@ function Stats({ s, T }: LayoutProps) {
           </div>
         )}
         <Display text={T(s.title)} />
-        {T(s.body) && <p className="xs-body">{T(s.body)}</p>}
+        {T(s.body) && <p className="xs-body"><Rich text={T(s.body)} /></p>}
         {T(s.cta) && <span className="xs-btn">{T(s.cta)}</span>}
       </div>
       {items.length > 0 && (
@@ -166,7 +165,7 @@ function Gallery({ s, T }: LayoutProps) {
     <div className="xs-pad xs-gallery" style={{ "--cols": cols } as CSSProperties}>
       <div className="xs-gal-head">
         <Display text={T(s.title)} />
-        {T(s.body) && <p className="xs-body">{T(s.body)}</p>}
+        {T(s.body) && <p className="xs-body"><Rich text={T(s.body)} /></p>}
       </div>
       <div className="xs-rule" />
       <div className="xs-label xs-mute">
@@ -268,7 +267,7 @@ function ImageLayout({ s, T }: LayoutProps) {
           <span>{T(s.subtitle)}</span>
         </div>
         <Display text={T(s.title)} />
-        {T(s.body) && <p className="xs-body">{T(s.body)}</p>}
+        {T(s.body) && <p className="xs-body"><Rich text={T(s.body)} /></p>}
       </div>
     </div>
   );
@@ -283,6 +282,12 @@ const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.React
   statement: Statement,
   contact: Contact,
   image: ImageLayout,
+  "pitch-cover": PitchCover,
+  "pitch-numbers": PitchNumbers,
+  "pitch-feature": PitchFeature,
+  "pitch-toc": PitchToc,
+  "pitch-split": PitchSplit,
+  "pitch-team": PitchTeam,
 };
 
 /** Fixed-ratio frame for previews and thumbnails. */

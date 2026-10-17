@@ -4,16 +4,33 @@ export type Locale = (typeof LOCALES)[number];
 /** A text value: plain string (same for every language) or one per language. */
 export type LText = string | Partial<Record<Locale, string>>;
 
-export const LAYOUTS = [
-  "cover",
-  "stats",
-  "services",
-  "gallery",
-  "split",
-  "statement",
-  "contact",
-  "image",
+export const EDITORIAL_LAYOUTS = ["cover", "stats", "services", "gallery", "split", "statement", "contact", "image"] as const;
+export const PITCH_LAYOUTS = ["pitch-cover", "pitch-numbers", "pitch-feature", "pitch-toc", "pitch-split", "pitch-team"] as const;
+export const LAYOUTS = [...EDITORIAL_LAYOUTS, ...PITCH_LAYOUTS] as const;
+
+export const TEMPLATES = ["editorial", "pitch"] as const;
+export type Template = (typeof TEMPLATES)[number];
+
+/** Slide background: paper, ink, or the deck's attention colour. */
+export const TONES = ["light", "dark", "accent"] as const;
+export type Tone = (typeof TONES)[number];
+
+/** Layout variants (image arrangement). */
+export const VARIANTS: Partial<Record<string, readonly string[]>> = {
+  "pitch-feature": ["side", "collage", "row"],
+  "pitch-split": ["left", "right"],
+};
+
+export const ACCENT_PRESETS = [
+  { name: "Cobalt", value: "#1F4BD8" },
+  { name: "Signal", value: "#E5322D" },
+  { name: "Orange", value: "#FF5A1F" },
+  { name: "Lime", value: "#B7E21E" },
+  { name: "Forest", value: "#1E7A4C" },
+  { name: "Violet", value: "#6A3DF0" },
+  { name: "Ink", value: "#161615" },
 ] as const;
+export const DEFAULT_ACCENT = "#1F4BD8";
 export type Layout = (typeof LAYOUTS)[number];
 
 export interface SlideItem {
@@ -36,6 +53,10 @@ export interface Slide {
   body?: LText;
   cta?: LText;
   image?: string;
+  /** Extra images for collage/row layouts. */
+  images?: string[];
+  tone?: Tone;
+  variant?: string;
   items?: SlideItem[];
   notes?: LText;
 }
@@ -48,6 +69,10 @@ export interface Presentation {
   tags?: string[];
   languages: Locale[];
   defaultLanguage: Locale;
+  /** Visual template; editorial is the default monochrome XLIDE look. */
+  template?: Template;
+  /** Attention colour (hex) used for highlights and accent-toned slides. */
+  accent?: string;
   slides: Slide[];
   createdAt: number;
   updatedAt: number;

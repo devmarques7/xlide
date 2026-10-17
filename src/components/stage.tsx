@@ -3,6 +3,7 @@ import { InstallHint } from "@/components/install-hint";
 import { setBrowserTint, useImmersive } from "@/lib/app-mode";
 import type { Locale, Presentation } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { DeckLook } from "@/slides/look";
 import { SlideView } from "@/slides/SlideView";
 
 /** Full-viewport slide with a fade between pages and a hairline progress bar. */
@@ -45,7 +46,9 @@ export function Stage({
       >
         {slide && (
           <div key={`${slide.id}-${lang}`} className="absolute inset-0 animate-[fade-up_0.45s_cubic-bezier(0.2,0.7,0.2,1)_both]">
-            <SlideView slide={slide} lang={lang} fallback={deck.defaultLanguage} live scale={scale} />
+            <DeckLook deck={deck} lang={lang}>
+              <SlideView slide={slide} lang={lang} fallback={deck.defaultLanguage} live scale={scale} />
+            </DeckLook>
           </div>
         )}
       </div>
