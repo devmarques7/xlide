@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePrefs } from "@/lib/prefs";
 import { usePresentation } from "@/lib/store";
-import { usePublicOrigin, useSync, type SyncMessage } from "@/lib/sync";
+import { appUrl, usePublicOrigin, useSync, type SyncMessage } from "@/lib/sync";
 import { tx, type Locale } from "@/lib/types";
 import { toggleFullscreen, useSlideNav } from "@/lib/use-slide-nav";
 import { ACCESS_CODE, cn } from "@/lib/utils";
@@ -101,7 +101,7 @@ export default function Present() {
 
   const slide = deck.slides[index];
   const note = tx(slide?.notes, lang, deck.defaultLanguage);
-  const remoteUrl = `${origin}/remote/${deck.id}`;
+  const remoteUrl = appUrl(origin, `/remote/${deck.id}`);
   const connected = presence.remote + presence.viewer;
 
   return (

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePrefs } from "@/lib/prefs";
-import { usePublicOrigin } from "@/lib/sync";
+import { appUrl, usePublicOrigin } from "@/lib/sync";
 
 export function QrBlock({ url, caption }: { url: string; caption?: string }) {
   return (
@@ -61,7 +61,7 @@ export function LanHint() {
 export function ShareDialog({ id, title, open, onOpenChange }: { id: string; title: string; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { t } = usePrefs();
   const { origin } = usePublicOrigin();
-  const url = `${origin}/view/${id}`;
+  const url = appUrl(origin, `/view/${id}`);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

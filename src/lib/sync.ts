@@ -42,20 +42,60 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
     const bc = "BroadcastChannel" in window ? new BroadcastChannel(`xlide:${room}`) : null;
     if (bc) bc.onmessage = (e) => deliver(e.data);
 
+    const client = uid("c_");
     let ws: WebSocket | null = null;
     let retry: ReturnType<typeof setTimeout>;
+    let pollTimer: ReturnType<typeof setTimeout>;
     let closed = false;
     let attempts = 0;
+    let everOpened = false;
+    let mode: "ws" | "poll" | "none" = "ws";
+    let after = 0;
+    let pollFails = 0;
+
+    /* HTTP polling relay (Vercel serverless has no WebSockets). */
+    const poll = async (first = false) => {
+      if (closed) return;
+      try {
+        const res = await fetch(`/api/sync/${encodeURIComponent(room)}?after=${after}&client=${client}&role=${role}`, { cache: "no-store" });
+        if (res.status === 503 || res.status === 404 || !res.headers.get("content-type")?.includes("json")) {
+          mode = "none";
+          setStatus("local");
+          return;
+        }
+        const data = await res.json();
+        pollFails = 0;
+        setStatus("live");
+        if (first && data.state) deliver({ ...data.state, _id: `s${data.state._seq}` });
+        for (const m of data.messages ?? []) deliver({ ...m, _id: m._id ?? `m${m._seq}` });
+        if (data.presence) deliver(data.presence);
+        after = Math.max(after, data.seq ?? 0);
+        if (first) send({ t: "hello", role });
+      } catch {
+        if (++pollFails > 3) setStatus("local");
+      }
+      pollTimer = setTimeout(() => poll(), document.hidden ? 4000 : 900);
+    };
+
+    const startPolling = () => {
+      if (mode === "poll" || closed) return;
+      mode = "poll";
+      ws?.close();
+      poll(true);
+    };
 
     const connect = () => {
       const proto = location.protocol === "https:" ? "wss" : "ws";
       try {
         ws = new WebSocket(`${proto}://${location.host}/ws`);
       } catch {
-        setStatus("local");
+        startPolling();
         return;
       }
+      const openTimeout = setTimeout(() => !everOpened && startPolling(), 2500);
       ws.onopen = () => {
+        clearTimeout(openTimeout);
+        everOpened = true;
         attempts = 0;
         setStatus("live");
         ws!.send(JSON.stringify({ t: "join", room, role }));
@@ -69,7 +109,9 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
         }
       };
       ws.onclose = () => {
-        if (closed) return;
+        clearTimeout(openTimeout);
+        if (closed || mode !== "ws") return;
+        if (!everOpened) return startPolling();
         setStatus("local");
         retry = setTimeout(connect, Math.min(10000, 1000 * 2 ** attempts++));
       };
@@ -79,7 +121,14 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
       const env: Envelope = { ...m, _id: uid() };
       seen.add(env._id!);
       bc?.postMessage(env);
-      if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(env));
+      if (mode === "ws" && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(env));
+      if (mode === "poll") {
+        fetch(`/api/sync/${encodeURIComponent(room)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...env, _client: client }),
+        }).catch(() => {});
+      }
     };
     sendRef.current = send;
 
@@ -89,6 +138,7 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
     return () => {
       closed = true;
       clearTimeout(retry);
+      clearTimeout(pollTimer);
       ws?.close();
       bc?.close();
     };
@@ -113,4 +163,10 @@ export function usePublicOrigin() {
       .catch(() => {});
   }, []);
   return { origin, isLocal };
+}
+
+/** Absolute link to an app route, respecting hash routing on static hosts. */
+export function appUrl(origin: string, path: string) {
+  if (import.meta.env.VITE_HASH_ROUTER) return `${location.href.split("#")[0]}#${path}`;
+  return `${origin}${path}`;
 }

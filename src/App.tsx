@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { isUnlocked } from "@/lib/auth";
 import { PrefsProvider } from "@/lib/prefs";
@@ -11,6 +11,9 @@ import Login from "@/pages/Login";
 import Present from "@/pages/Present";
 import Remote from "@/pages/Remote";
 import Viewer from "@/pages/Viewer";
+
+/** Static hosts without SPA rewrites (e.g. a preview) use #/ routes. */
+const Router = import.meta.env.VITE_HASH_ROUTER ? HashRouter : BrowserRouter;
 
 function RequireCode({ children }: { children: ReactNode }) {
   const loc = useLocation();
@@ -24,7 +27,7 @@ export default function App() {
   }, []);
   return (
     <PrefsProvider>
-      <BrowserRouter>
+      <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RequireCode><Dashboard /></RequireCode>} />
@@ -37,7 +40,7 @@ export default function App() {
           <Route path="/view/:id" element={<Viewer />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </Router>
       <Toaster />
     </PrefsProvider>
   );

@@ -45,11 +45,15 @@ const Ctx = createContext<PrefsCtx | null>(null);
 
 export function PrefsProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>(load);
-  const [systemDark, setSystemDark] = useState(() => matchMedia("(prefers-color-scheme: dark)").matches);
+  // A host page may pin the theme with data-theme on <html>; otherwise follow the OS.
+  const hostTheme = document.documentElement.dataset.theme;
+  const [systemDark, setSystemDark] = useState(() =>
+    hostTheme ? hostTheme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches,
+  );
 
   useEffect(() => {
     const mq = matchMedia("(prefers-color-scheme: dark)");
-    const on = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    const on = (e: MediaQueryListEvent) => !document.documentElement.dataset.theme && setSystemDark(e.matches);
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);

@@ -1,12 +1,13 @@
 {
   "name": "xlide",
   "version": "1.0.0",
-  "description": "XLIDE — multilingual web presentations with live remote control",
+  "description": "XLIDE \u2014 multilingual web presentations with live remote control",
   "scripts": {
     "dev": "concurrently -k -n api,web -c gray,white \"node server/index.js\" \"vite --host\"",
-    "build": "tsc -b && vite build",
+    "build": "tsc -p . && vite build",
     "start": "NODE_ENV=production node server/index.js",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "build:static": "VITE_HASH_ROUTER=1 vite build --base ./ --outDir dist-static"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -44,5 +45,8 @@
     "vite": "^8.3.4"
   },
   "private": true,
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
 }
