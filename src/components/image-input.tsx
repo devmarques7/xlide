@@ -1,5 +1,5 @@
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ export function ImageInput({ value, onChange, compact }: { value?: string; onCha
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [value]);
 
   const upload = async (f: File | undefined) => {
     if (!f || !f.type.startsWith("image/")) return;
@@ -51,8 +53,8 @@ export function ImageInput({ value, onChange, compact }: { value?: string; onCha
       >
         {busy ? (
           <Loader2 className="size-4 animate-spin" />
-        ) : value ? (
-          <img src={value} alt="" className="size-full object-cover" />
+        ) : value && !broken ? (
+          <img src={value} alt="" className="size-full object-cover" onError={() => setBroken(true)} />
         ) : (
           <ImagePlus className="size-4" />
         )}
