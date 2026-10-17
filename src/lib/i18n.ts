@@ -255,6 +255,8 @@ const en = {
   "json.copyTemplate": "Copy template",
   "json.downloadTemplate": "Download template",
   "present.syncOff": "Live sync is off: this server has no database. On Vercel, connect a Redis database (Storage tab) and redeploy.",
+  "app.updateReady": "A new version of XLIDE is available.",
+  "app.update": "Update",
   "common.of": "of",
 } as const;
 
@@ -502,6 +504,8 @@ const pt: Dict = {
   "json.copyTemplate": "Copiar modelo",
   "json.downloadTemplate": "Baixar modelo",
   "present.syncOff": "Sincronização ao vivo desligada: este servidor não tem banco de dados. Na Vercel, conecte um banco Redis (aba Storage) e faça o redeploy.",
+  "app.updateReady": "Há uma nova versão do XLIDE disponível.",
+  "app.update": "Atualizar",
   "common.of": "de",
 };
 
@@ -746,6 +750,8 @@ const nl: Dict = {
   "json.copyTemplate": "Sjabloon kopiëren",
   "json.downloadTemplate": "Sjabloon downloaden",
   "present.syncOff": "Live synchronisatie staat uit: deze server heeft geen database. Koppel op Vercel een Redis-database (tab Storage) en deploy opnieuw.",
+  "app.updateReady": "Er is een nieuwe versie van XLIDE beschikbaar.",
+  "app.update": "Bijwerken",
   "common.of": "van",
 };
 

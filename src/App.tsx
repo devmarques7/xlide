@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { isUnlocked } from "@/lib/auth";
 import { PrefsProvider } from "@/lib/prefs";
 import { syncFromServer } from "@/lib/store";
+import { startUpdateCheck } from "@/lib/update-check";
+import { LOCALES, type Locale } from "@/lib/types";
 import Dashboard from "@/pages/Dashboard";
 import Editor from "@/pages/Editor";
 import Identity from "@/pages/Identity";
@@ -24,6 +26,10 @@ function RequireCode({ children }: { children: ReactNode }) {
 export default function App() {
   useEffect(() => {
     syncFromServer();
+    startUpdateCheck(() => {
+      const l = document.documentElement.lang.slice(0, 2) as Locale;
+      return LOCALES.includes(l) ? l : "en";
+    });
   }, []);
   return (
     <PrefsProvider>
