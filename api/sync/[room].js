@@ -15,6 +15,8 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const msg = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     if (!msg || typeof msg.t !== "string") return res.status(400).end();
+    // Only the presenter and paired remotes (passcode) may move the deck.
+    if (msg._role === "viewer" && (msg.t === "state" || msg.t === "cmd")) return res.status(403).end();
     const seq = Number((await redis(["INCR", k("seq")]))[0]);
     const entry = JSON.stringify({ ...msg, _seq: seq });
     const ops = [

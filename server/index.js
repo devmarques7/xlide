@@ -124,6 +124,8 @@ wss.on("connection", (ws) => {
       return;
     }
     if (!ws.room) return;
+    // Only the presenter and paired remotes (passcode) may move the deck.
+    if (ws.role === "viewer" && (msg.t === "state" || msg.t === "cmd")) return;
     const r = room(ws.room);
     if (msg.t === "state") r.state = msg;
     broadcast(r, msg, ws);

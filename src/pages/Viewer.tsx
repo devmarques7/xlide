@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Loader2, Maximize, Minimize, Moon, Radio, Sun } from "lucide-react";
+import { Loader2, Maximize, Minimize, Moon, Radio, Sun } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { LangSwitch } from "@/components/lang-switch";
@@ -21,7 +21,6 @@ export default function Viewer() {
   const { deck, loading } = useRemoteDeck(id);
   const [follow, setFollow] = useState(true);
   const [live, setLive] = useState<{ index: number; lang: Locale } | null>(null);
-  const [own, setOwn] = useState(0);
   const [myLang, setMyLang] = useState<Locale | null>(null);
   const [bar, setBar] = useState(true);
 
@@ -32,15 +31,11 @@ export default function Viewer() {
 
   const total = deck?.slides.length ?? 0;
   const following = follow && live != null;
-  const index = Math.min(total - 1, Math.max(0, following ? live.index : own));
+  const index = Math.min(total - 1, Math.max(0, live?.index ?? 0)); // audience always follows the admin
   const lang: Locale =
     myLang ?? live?.lang ?? (deck?.languages.includes(locale) ? locale : deck?.defaultLanguage) ?? "en";
 
-  const step = (d: number) => {
-    setFollow(false);
-    setOwn(Math.max(0, Math.min(total - 1, index + d)));
-  };
-  useSlideNav({ onNext: () => step(1), onPrev: () => step(-1), onKey: (k) => k === "f" && toggleFullscreen() });
+  useSlideNav({ onNext: () => {}, onPrev: () => {}, onKey: (k) => k === "f" && toggleFullscreen() });
   const fs = useFullscreenState();
 
   // The bar gets out of the way after a few seconds; a tap brings it back.
@@ -65,7 +60,6 @@ export default function Viewer() {
           className="h-10"
           onClick={() => {
             setFollow(true);
-            if (live) setOwn(live.index);
           }}
           disabled={!live}
           title={t("view.follow")}
@@ -80,15 +74,9 @@ export default function Viewer() {
           <span className="hidden min-[420px]:inline">{following ? t("view.following") : t("view.follow")}</span>
         </Button>
         <BarDivider />
-        <Button variant="ghost" size="icon" onClick={() => step(-1)} disabled={index === 0} aria-label={t("present.prev")}>
-          <ChevronLeft />
-        </Button>
         <span className="min-w-12 text-center text-xs tabular-nums">
           {String(index + 1).padStart(2, "0")}<span className="text-muted-foreground">/{String(total).padStart(2, "0")}</span>
         </span>
-        <Button variant="ghost" size="icon" onClick={() => step(1)} disabled={index >= total - 1} aria-label={t("present.next")}>
-          <ChevronRight />
-        </Button>
         <BarDivider />
         <LangSwitch languages={deck.languages} value={lang} onChange={setMyLang} label={t("present.language")} />
         <FontSizeControl compact className="border-0" />

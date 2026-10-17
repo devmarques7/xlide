@@ -135,7 +135,7 @@ export function useSync(room: string | undefined, role: Role, onMessage: (m: Syn
         fetch(`/api/sync/${encodeURIComponent(room)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...env, _client: client }),
+          body: JSON.stringify({ ...env, _client: client, _role: role }),
         }).catch(() => {});
       }
     };

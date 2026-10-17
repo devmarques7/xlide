@@ -41,6 +41,10 @@ export default function Present() {
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const stateRef = useRef(() => {});
+  const joinedAt = useRef(Date.now());
+  // Opened on a chosen slide (editor "Present"): that choice wins over the room's
+  // last position. Opened plainly (e.g. a reload mid-talk): join the live slide.
+  const explicitStart = params.has("slide");
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(total - 1, i))), [total]);
 
   const onMessage = useCallback(
@@ -52,7 +56,9 @@ export default function Present() {
         if (m.action === "lang" && m.lang) setLang(m.lang);
       }
       // Any controller (phone remote, another presenter window) can move the deck.
-      if (m.t === "state") {
+      // Right after (re)joining, the room may replay an old position: the presenter
+      // who just opened the deck is the authority, so ignore it briefly.
+      if (m.t === "state" && !(explicitStart && Date.now() - joinedAt.current < 2500)) {
         if (m.index !== indexRef.current) go(m.index);
         if (m.lang && m.lang !== langRef.current) setLang(m.lang);
       }
@@ -67,6 +73,9 @@ export default function Present() {
   const langRef = useRef(lang);
   langRef.current = lang;
   stateRef.current = () => send({ t: "state", index, lang, total });
+  useEffect(() => {
+    if (status === "live") joinedAt.current = Date.now();
+  }, [status]);
   useEffect(() => {
     stateRef.current();
   }, [index, lang, total, status]);
