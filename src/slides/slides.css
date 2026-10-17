@@ -111,6 +111,7 @@
   border-radius: 1cqmin;
 }
 .xs-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.xs[data-layout="cover"] .xs-img img, .xs[data-layout="image"] .xs-img img { filter: grayscale(1); }
 .xs-img[data-empty] {
   background:
     repeating-linear-gradient(135deg, transparent 0 1.2cqmin, var(--chip) 1.2cqmin calc(1.2cqmin + 1px)),
@@ -166,6 +167,14 @@
   border-radius: 0;
 }
 .xs-cover:not(.has-img) .xs-cover-foot { display: flex; justify-content: space-between; }
+/* Full-bleed photo behind the title, lightly darkened so text stays readable. */
+.xs-cover.is-full { color: #f1f0ec; --mute: rgb(241 240 236 / 0.75); }
+.xs-cover.is-full > * { position: relative; z-index: 1; }
+.xs-cover.is-full > .xs-cover-img { position: absolute; inset: 0; z-index: 0; margin: 0; min-height: 0; }
+.xs-cover.is-full > .xs-cover-img::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.5), rgb(0 0 0 / 0.18) 55%, rgb(0 0 0 / 0.3));
+}
 
 /* ── stats ── */
 .xs-stats { flex-direction: row; gap: var(--pad); }

@@ -103,7 +103,7 @@ function Aura({ s, T }: LayoutProps) {
 
 function Cover({ s, T }: LayoutProps) {
   return (
-    <div className={cn("xs-pad xs-cover", s.image && "has-img")}>
+    <div className={cn("xs-pad xs-cover", s.image && "has-img", s.image && s.variant === "full" && "is-full")}>
       <div className="xs-meta3 xs-label">
         <span>{T(s.eyebrow)}</span>
         <span>{T(s.subtitle)}</span>

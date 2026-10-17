@@ -69,7 +69,8 @@
         "pt": "IMAGEM: ilha pequena no oceano, vista de cima, tons frios. Fale: um homem sozinho numa ilha, passou fome, passou frio, e guardou uma caixa como esta.",
         "en": "IMAGE: small island in the ocean, aerial view, cold tones. Say: a man alone on an island, hungry, cold, and he kept a box like this one.",
         "nl": "AFBEELDING: klein eiland in de oceaan, van bovenaf, koele tinten. Zeg: een man alleen op een eiland, honger, kou, en hij bewaarde een doos zoals deze."
-      }
+      },
+      "variant": "full"
     },
     {
       "layout": "statement",
@@ -319,7 +320,8 @@
         "pt": "IMAGEM: relógio de bolso antigo aberto, preto e branco. Chuck trabalha numa empresa de entregas, vive pelo relógio, ganha um relógio de bolso e promete voltar logo.",
         "en": "IMAGE: antique open pocket watch, black and white. Chuck works for a delivery company, lives by the clock, gets a pocket watch and promises to be back soon.",
         "nl": "AFBEELDING: antiek open zakhorloge, zwart-wit. Chuck werkt bij een koeriersbedrijf, leeft op de klok, krijgt een zakhorloge en belooft snel terug te zijn."
-      }
+      },
+      "variant": "full"
     },
     {
       "layout": "cover",
@@ -333,7 +335,8 @@
         "pt": "IMAGEM: caixas de papelão molhadas na areia. O avião cai, ele chega à ilha, abre quase todas as caixas para sobreviver. Uma, com asas, ele nunca abre.",
         "en": "IMAGE: wet cardboard boxes on the sand. The plane crashes, he reaches the island, opens almost every box to survive. One, with wings, he never opens.",
         "nl": "AFBEELDING: natte kartonnen dozen op het zand. Het vliegtuig stort neer, hij bereikt het eiland en opent bijna alle dozen om te overleven. Eén, met vleugels, opent hij nooit."
-      }
+      },
+      "variant": "full"
     },
     {
       "layout": "statement",
