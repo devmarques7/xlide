@@ -216,6 +216,11 @@ const en = {
   "editor.shareText": "Same text for all languages",
   "common.undo": "Undo",
   "remote.unlock": "Enter the passcode to pair this phone",
+  "app.openAsApp": "Watch full screen",
+  "app.iosHint": "Tap {share} Share, then “Add to Home Screen”. XLIDE opens like an app, with no browser bars.",
+  "app.install": "Install app",
+  "app.installHint": "Install XLIDE to watch presentations full screen, like an app.",
+  "app.dismiss": "Not now",
   "common.of": "of",
 } as const;
 
@@ -424,6 +429,11 @@ const pt: Dict = {
   "editor.shareText": "Mesmo texto em todos os idiomas",
   "common.undo": "Desfazer",
   "remote.unlock": "Digite o código para conectar este celular",
+  "app.openAsApp": "Assista em tela cheia",
+  "app.iosHint": "Toque em {share} Compartilhar e depois em “Adicionar à Tela de Início”. O XLIDE abre como um app, sem as barras do navegador.",
+  "app.install": "Instalar app",
+  "app.installHint": "Instale o XLIDE para assistir às apresentações em tela cheia, como um app.",
+  "app.dismiss": "Agora não",
   "common.of": "de",
 };
 
@@ -629,6 +639,11 @@ const nl: Dict = {
   "editor.shareText": "Zelfde tekst voor alle talen",
   "common.undo": "Ongedaan maken",
   "remote.unlock": "Voer de code in om deze telefoon te koppelen",
+  "app.openAsApp": "Bekijk op volledig scherm",
+  "app.iosHint": "Tik op {share} Deel en daarna op “Zet op beginscherm”. XLIDE opent dan als app, zonder browserbalken.",
+  "app.install": "App installeren",
+  "app.installHint": "Installeer XLIDE om presentaties op volledig scherm te bekijken, als een app.",
+  "app.dismiss": "Niet nu",
   "common.of": "van",
 };
 

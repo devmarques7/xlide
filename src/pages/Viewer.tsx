@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Loader2, Moon, Radio, Sun } from "lucide-react";
-import { useCallback, useState } from "react";
+import { ChevronLeft, ChevronRight, Loader2, Maximize, Minimize, Moon, Radio, Sun } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { LangSwitch } from "@/components/lang-switch";
 import { LogoMark } from "@/components/logo";
@@ -10,6 +10,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useSync, type SyncMessage } from "@/lib/sync";
 import type { Locale } from "@/lib/types";
 import { useRemoteDeck } from "@/lib/use-remote-deck";
+import { canFullscreen, toggleFullscreen, useFullscreenState } from "@/lib/app-mode";
 import { useSlideNav } from "@/lib/use-slide-nav";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +40,15 @@ export default function Viewer() {
     setFollow(false);
     setOwn(Math.max(0, Math.min(total - 1, index + d)));
   };
-  useSlideNav({ onNext: () => step(1), onPrev: () => step(-1) });
+  useSlideNav({ onNext: () => step(1), onPrev: () => step(-1), onKey: (k) => k === "f" && toggleFullscreen() });
+  const fs = useFullscreenState();
+
+  // The bar gets out of the way after a few seconds; a tap brings it back.
+  useEffect(() => {
+    if (!bar) return;
+    const id = setTimeout(() => setBar(false), 4500);
+    return () => clearTimeout(id);
+  }, [bar, index]);
 
   if (loading) return <Loader2 className="mx-auto mt-[40vh] size-6 animate-spin text-muted-foreground" />;
   if (!deck) return <p className="grid min-h-dvh place-items-center p-6 text-center text-muted-foreground">{t("view.notFound")}</p>;
@@ -80,6 +89,11 @@ export default function Viewer() {
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={t("present.theme")} className="hidden min-[420px]:inline-flex">
           {resolvedTheme === "dark" ? <Sun /> : <Moon />}
         </Button>
+        {canFullscreen() && (
+          <Button variant="ghost" size="icon" onClick={toggleFullscreen} aria-label={t("present.fullscreen")}>
+            {fs ? <Minimize /> : <Maximize />}
+          </Button>
+        )}
       </ControlBar>
     </Stage>
   );

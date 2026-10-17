@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { InstallHint } from "@/components/install-hint";
+import { useImmersive } from "@/lib/app-mode";
 import type { Locale, Presentation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { SlideView } from "@/slides/SlideView";
@@ -19,10 +21,11 @@ export function Stage({
   onTap?: () => void;
   children?: ReactNode;
 }) {
+  useImmersive();
   const slide = deck.slides[index];
   const progress = deck.slides.length > 1 ? index / (deck.slides.length - 1) : 1;
   return (
-    <div className="fixed inset-0 overflow-hidden bg-background select-none">
+    <div className="fixed inset-0 h-dvh overflow-hidden bg-background select-none">
       <div
         className="absolute inset-0"
         onClick={(e) => {
@@ -39,6 +42,7 @@ export function Stage({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-foreground/10">
         <div className="h-full bg-foreground/70 transition-[width] duration-500" style={{ width: `${progress * 100}%` }} />
       </div>
+      <InstallHint />
       {children}
     </div>
   );
@@ -48,10 +52,11 @@ export function ControlBar({ open, children, className }: { open: boolean; child
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-safe transition-all duration-300",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pb-safe transition-all duration-300",
         open ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0",
       )}
       aria-hidden={!open}
+      style={{ paddingLeft: "max(0.75rem, env(safe-area-inset-left))", paddingRight: "max(0.75rem, env(safe-area-inset-right))" }}
     >
       <div
         className={cn(

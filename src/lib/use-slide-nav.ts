@@ -72,8 +72,3 @@ export function useSlideNav(opts: {
     };
   }, [opts.enabled]);
 }
-
-export function toggleFullscreen() {
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  else document.documentElement.requestFullscreen?.().catch(() => {});
-}

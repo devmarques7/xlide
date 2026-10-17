@@ -14,7 +14,8 @@ import { usePrefs } from "@/lib/prefs";
 import { usePresentation } from "@/lib/store";
 import { appUrl, usePublicOrigin, useSync, type SyncMessage } from "@/lib/sync";
 import { tx, type Locale } from "@/lib/types";
-import { toggleFullscreen, useSlideNav } from "@/lib/use-slide-nav";
+import { canFullscreen, toggleFullscreen, useFullscreenState } from "@/lib/app-mode";
+import { useSlideNav } from "@/lib/use-slide-nav";
 import { ACCESS_CODE, cn } from "@/lib/utils";
 
 export default function Present() {
@@ -32,7 +33,7 @@ export default function Present() {
   const [notes, setNotes] = useState(false);
   const [remoteOpen, setRemoteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [fs, setFs] = useState(false);
+  const fs = useFullscreenState();
   const total = deck?.slides.length ?? 0;
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -57,12 +58,6 @@ export default function Present() {
   useEffect(() => {
     stateRef.current();
   }, [index, lang, total, status]);
-
-  useEffect(() => {
-    const on = () => setFs(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", on);
-    return () => document.removeEventListener("fullscreenchange", on);
-  }, []);
 
   // Bar fades out by itself after a while; a tap brings it back.
   useEffect(() => {
@@ -155,9 +150,11 @@ export default function Present() {
         <Button variant="ghost" size="icon" onClick={() => setNotes((v) => !v)} aria-label={t("present.notes")} aria-pressed={notes} className={cn(notes && "bg-accent")}>
           <NotebookText />
         </Button>
-        <Button variant="ghost" size="icon" onClick={toggleFullscreen} aria-label={t("present.fullscreen")} className="hidden sm:inline-flex">
-          {fs ? <Minimize /> : <Maximize />}
-        </Button>
+        {canFullscreen() && (
+          <Button variant="ghost" size="icon" onClick={toggleFullscreen} aria-label={t("present.fullscreen")}>
+            {fs ? <Minimize /> : <Maximize />}
+          </Button>
+        )}
       </ControlBar>
 
       <Dialog open={remoteOpen} onOpenChange={setRemoteOpen}>

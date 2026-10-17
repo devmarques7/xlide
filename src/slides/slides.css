@@ -47,7 +47,15 @@
   flex-direction: column;
   gap: 2.5cqmin;
 }
-.xs[data-live] .xs-pad { overflow-y: auto; scrollbar-width: none; }
+.xs[data-live] .xs-pad {
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* Keep content clear of notches and home indicators in full screen. */
+  padding-top: max(var(--pad), env(safe-area-inset-top, 0px));
+  padding-right: max(var(--pad), env(safe-area-inset-right, 0px));
+  padding-bottom: max(var(--pad), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--pad), env(safe-area-inset-left, 0px));
+}
 
 /* ── type ── */
 .xs-display {
@@ -266,7 +274,7 @@
 /* ───────── portrait (phones) ───────── */
 @container slide (aspect-ratio < 1) {
   .xs { --pad: 6cqw; }
-  .xs[data-live] .xs-pad { padding-bottom: calc(var(--pad) + 4.5rem); }
+  .xs[data-live] .xs-pad { padding-bottom: calc(max(var(--pad), env(safe-area-inset-bottom, 0px)) + 4.5rem); }
   .xs-pad { gap: 5cqw; }
   .xs-display { --size: 15cqw; }
 
