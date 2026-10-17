@@ -76,6 +76,7 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
       { key: "eyebrow", label: "editor.fields.eyebrow" },
       { key: "subtitle", label: "editor.fields.subtitle" },
       { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "image", label: "editor.fields.image" },
     ],
   },
   contact: {

@@ -103,7 +103,7 @@ function Aura({ s, T }: LayoutProps) {
 
 function Cover({ s, T }: LayoutProps) {
   return (
-    <div className={cn("xs-pad xs-cover", s.image && "has-img", s.image && s.variant === "full" && "is-full")}>
+    <div className={cn("xs-pad xs-cover", s.image && "has-img", s.image && (s.variant === "full" || s.variant === "dim") && "is-full", s.variant === "dim" && "is-dim")}>
       <div className="xs-meta3 xs-label">
         <span>{T(s.eyebrow)}</span>
         <span>{T(s.subtitle)}</span>
@@ -241,8 +241,8 @@ function Split({ s, T }: LayoutProps) {
 }
 
 function Statement({ s, T }: LayoutProps) {
-  return (
-    <div className="xs-pad xs-statement">
+  const pad = (
+    <div className={cn("xs-pad xs-statement", s.image && "has-bg")}>
       <div className="xs-st-top xs-label">
         <span>{T(s.eyebrow)}</span>
         <span className="xs-mute">{T(s.subtitle)}</span>
@@ -254,6 +254,14 @@ function Statement({ s, T }: LayoutProps) {
         </div>
       )}
     </div>
+  );
+  if (!s.image) return pad;
+  // Photo behind the text, darkened enough to read on top of it.
+  return (
+    <>
+      <SlideImage src={s.image} className="xs-statement-bg" />
+      {pad}
+    </>
   );
 }
 

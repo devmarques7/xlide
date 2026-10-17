@@ -448,7 +448,8 @@
         "pt": "Fogo na ilha é luz, calor e alimento. A Palavra é as três coisas. (Imagem opcional: lamparina acesa.)",
         "en": "Fire on the island is light, warmth and food. The Word is all three. (Optional image: lit oil lamp.)",
         "nl": "Vuur op het eiland is licht, warmte en voedsel. Het Woord is alle drie. (Optionele afbeelding: brandende olielamp.)"
-      }
+      },
+      "image": "/images/slide18.jpg"
     },
     {
       "layout": "statement",
@@ -554,7 +555,8 @@
         "pt": "Quando a tempestade leva a bola, ele se joga no mar e chora como quem perde um irmão.",
         "en": "When the storm takes the ball, he throws himself into the sea and weeps as if he had lost a brother.",
         "nl": "Als de storm de bal meeneemt, springt hij in zee en huilt alsof hij een broer verliest."
-      }
+      },
+      "image": "/images/slide24.jpg"
     },
     {
       "layout": "statement",
@@ -864,7 +866,8 @@
         "pt": "IMAGEM: mão idosa passando uma Bíblia para mão jovem, preto e branco. Em 1852, um punhado de crentes. Hoje, uma comunidade mundial. Alguém entregou a caixa para alguém.",
         "en": "IMAGE: an elderly hand passing a Bible to a young hand, black and white. In 1852, a handful of believers. Today, a worldwide community. Someone delivered the box to someone.",
         "nl": "AFBEELDING: een oude hand die een Bijbel aan een jonge hand geeft, zwart-wit. In 1852 een handvol gelovigen. Nu een wereldwijde gemeenschap. Iemand bezorgde de doos bij iemand."
-      }
+      },
+      "variant": "full"
     },
     {
       "layout": "statement",
@@ -942,7 +945,8 @@
         "pt": "IMAGEM: caixa deixada na porta de uma casa, com bilhete escrito à mão. Ele é resgatado, a vida de antes não existe mais, e mesmo assim leva a caixa até a porta de quem a enviou.",
         "en": "IMAGE: a box left at a front door with a handwritten note. He is rescued, his old life is gone, and still he takes the box to the door of the one who sent it.",
         "nl": "AFBEELDING: een doos voor een voordeur met een handgeschreven briefje. Hij wordt gered, zijn oude leven is weg, en toch brengt hij de doos naar de deur van wie haar stuurde."
-      }
+      },
+      "variant": "full"
     },
     {
       "layout": "statement",
@@ -1016,7 +1020,8 @@
         "pt": "IMAGEM: cruzamento de estradas de terra no campo, vista de cima. Ele vê as mesmas asas na caminhonete: era a dona da caixa. Um dia o Dono da nossa caixa também vai aparecer no caminho.",
         "en": "IMAGE: a crossroads of dirt roads in the countryside, aerial view. He sees the same wings on the truck: it was the owner of the box. One day the Owner of our box will also appear on the road.",
         "nl": "AFBEELDING: een kruising van zandwegen op het platteland, van bovenaf. Hij ziet dezelfde vleugels op de pick-up: het was de eigenaar van de doos. Op een dag verschijnt ook de Eigenaar van onze doos op de weg."
-      }
+      },
+      "variant": "full"
     },
     {
       "layout": "statement",
@@ -1118,7 +1123,8 @@
         "pt": "IMAGEM (opcional): a mesma foto da caixa do slide de título. Diga a frase, 'Amém', e deixe o slide na tela.",
         "en": "IMAGE (optional): the same box photo as the title slide. Say the line, 'Amen', and leave the slide up.",
         "nl": "AFBEELDING (optioneel): dezelfde foto van de doos als de titeldia. Zeg de zin, 'Amen', en laat de dia staan."
-      }
+      },
+      "variant": "dim"
     }
   ],
   "template": "editorial"

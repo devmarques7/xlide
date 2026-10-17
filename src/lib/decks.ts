@@ -15,6 +15,7 @@ export function shippedDeck(id: string, json: unknown, version = SHIPPED_AT): Pr
 
 export const SHIPPED_DECKS: Record<string, () => Presentation> = {
   p_caixa: () => shippedDeck("p_caixa", caixa),
-  // v2: aura cover. v3: full-screen photos on slides 2, 12 and 13.
-  p_caixa_editorial: () => shippedDeck("p_caixa_editorial", caixaEditorial, Date.UTC(2026, 9, 17, 2)),
+  // v2: aura cover. v3: full-screen photos on 2, 12, 13. v4: photo backgrounds on 18, 24.
+  // v5: full-screen 38, 42, 46; dark background on 49.
+  p_caixa_editorial: () => shippedDeck("p_caixa_editorial", caixaEditorial, Date.UTC(2026, 9, 17, 4)),
 };

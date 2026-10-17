@@ -17,7 +17,7 @@ export type Tone = (typeof TONES)[number];
 
 /** Layout variants (image arrangement). */
 export const VARIANTS: Partial<Record<string, readonly string[]>> = {
-  cover: ["band", "full"],
+  cover: ["band", "full", "dim"],
   "pitch-feature": ["side", "collage", "row"],
   "pitch-split": ["left", "right"],
 };

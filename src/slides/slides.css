@@ -175,6 +175,8 @@
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(to bottom, rgb(0 0 0 / 0.5), rgb(0 0 0 / 0.18) 55%, rgb(0 0 0 / 0.3));
 }
+/* Dim: the photo stays far back, the words carry the slide. */
+.xs-cover.is-dim > .xs-cover-img::after { background: rgb(6 6 6 / 0.8); }
 
 /* ── stats ── */
 .xs-stats { flex-direction: row; gap: var(--pad); }
@@ -271,6 +273,10 @@
 .xs-statement .xs-display { --size: 9.5cqmin; margin-block: auto; }
 .xs-statement .xs-st-foot { display: flex; justify-content: flex-end; }
 .xs-statement .xs-body { max-width: 44ch; font-size: calc(var(--t-body) * 1.1); }
+.xs-statement-bg { position: absolute; inset: 0; border-radius: 0; }
+.xs-statement-bg img { filter: grayscale(1); }
+.xs-statement-bg::after { content: ""; position: absolute; inset: 0; background: rgb(8 8 8 / 0.62); }
+.xs-statement.has-bg { color: #f1f0ec; --mute: rgb(241 240 236 / 0.72); }
 
 /* ── contact ── */
 .xs-contact .xs-ct-top { display: flex; justify-content: space-between; align-items: center; }
