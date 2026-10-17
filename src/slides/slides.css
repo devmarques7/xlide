@@ -288,6 +288,50 @@
 .xs-image .xs-im-top { display: flex; justify-content: space-between; }
 .xs-image .xs-display { --size: 12cqmin; margin-top: auto; }
 
+/* ── aura (animated cover) ── */
+.xs-aura { position: absolute; inset: 0; overflow: hidden; background: var(--aura-base, #e6e5e8); }
+.xs-aura-bg { position: absolute; inset: -25%; filter: blur(9cqmin) saturate(1.05); }
+.xs-aura-bg span { position: absolute; border-radius: 50% !important; will-change: transform; }
+.xs-aura-bg span:nth-child(1) { width: 70%; height: 70%; left: 45%; top: 40%; background: radial-gradient(closest-side, #3c3f4d, transparent); --dx: -22%; --dy: 10%; }
+.xs-aura-bg span:nth-child(2) { width: 55%; height: 55%; left: 5%; top: 55%; background: radial-gradient(closest-side, #e9a477, transparent); --dx: 26%; --dy: -14%; }
+.xs-aura-bg span:nth-child(3) { width: 45%; height: 45%; left: 60%; top: 62%; background: radial-gradient(closest-side, #b0646a, transparent); --dx: -28%; --dy: -16%; }
+.xs-aura-bg span:nth-child(4) { width: 80%; height: 60%; left: 0%; top: 0%; background: radial-gradient(closest-side, #f4f3f6, transparent); --dx: 14%; --dy: 18%; }
+.xs[data-animate] .xs-aura-bg span { animation: aura-drift 14s ease-in-out infinite alternate; }
+.xs[data-animate] .xs-aura-bg span:nth-child(2) { animation-duration: 17s; animation-delay: -6s; }
+.xs[data-animate] .xs-aura-bg span:nth-child(3) { animation-duration: 12s; animation-delay: -11s; }
+.xs[data-animate] .xs-aura-bg span:nth-child(4) { animation-duration: 20s; animation-delay: -3s; }
+@keyframes aura-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * -0.6)) scale(1.18); }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) { .xs .xs-aura-bg span { animation: none !important; } }
+.xs-aura-grain {
+  position: absolute; inset: 0; opacity: 0.16; mix-blend-mode: overlay; pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.xs-aura-content { align-items: center; justify-content: flex-end; text-align: center; gap: 1.6cqmin; padding-bottom: 9cqh; color: #141414; --mute: rgb(20 20 20 / 0.62); }
+.xs-aura-mark { width: calc(3.6cqmin * var(--k)); height: calc(3.6cqmin * var(--k)); margin-bottom: 0.6cqmin; }
+.xs-aura-title { font-size: calc(7.2cqmin * var(--k)); font-weight: 500; letter-spacing: -0.03em; line-height: 0.95; }
+.xs-aura-title > span { display: block; }
+.xs-aura-title sup { font-size: 0.4em; font-weight: 400; vertical-align: super; line-height: 0; margin-left: 0.08em; letter-spacing: 0; position: relative; top: -0.35em; }
+.xs-aura-kicker { margin-top: 1.2cqmin; font-size: max(var(--min-label), calc(1.5cqmin * var(--k))); letter-spacing: 0.06em; }
+.xs-aura .xs-hl { color: inherit; font-weight: 600; }
+.xs-aura-hook { max-width: 40ch; margin-top: 1.4cqmin; font-size: max(var(--min-body), calc(2.1cqmin * var(--k))); line-height: 1.3; white-space: pre-line; text-wrap: balance; }
+.xs-aura-speaker { margin-top: 2cqmin; font-size: max(var(--min-label), calc(1.45cqmin * var(--k))); letter-spacing: 0.08em; }
+.xs-aura-foot { margin-top: 3cqmin; font-size: max(var(--min-label), calc(1.15cqmin * var(--k))); line-height: 1.35; white-space: pre-line; color: var(--mute); }
+/* Dark: app in dark mode (unless the slide is forced light), inverted or dark-toned slides. */
+:where(.dark) .xs:not(.inverse):not([data-tone="light"]) .xs-aura,
+.xs.inverse:not(:where(.dark) *) .xs-aura,
+.xs[data-tone="dark"] .xs-aura { --aura-base: #141416; }
+:where(.dark) .xs:not(.inverse):not([data-tone="light"]) .xs-aura-content,
+.xs.inverse:not(:where(.dark) *) .xs-aura-content,
+.xs[data-tone="dark"] .xs-aura-content { color: #efeee9; --mute: rgb(239 238 233 / 0.6); }
+:where(.dark) .xs:not(.inverse):not([data-tone="light"]) .xs-aura-bg span:nth-child(4),
+.xs.inverse:not(:where(.dark) *) .xs-aura-bg span:nth-child(4),
+.xs[data-tone="dark"] .xs-aura-bg span:nth-child(4) { background: radial-gradient(closest-side, #26262c, transparent); }
+:where(.dark) .xs:not(.inverse):not([data-tone="light"]) .xs-aura-bg span:nth-child(1) { background: radial-gradient(closest-side, #5a5f74, transparent); }
+
 /* ───────── portrait (phones) ───────── */
 @container slide (aspect-ratio < 1) {
   .xs { --pad: 6cqw; }
@@ -337,4 +381,8 @@
   .xs-contact .xs-plus { width: 6cqw; height: 6cqw; }
 
   .xs-image .xs-display { --size: 15cqw; }
+  .xs-aura-title { font-size: calc(12cqw * var(--k)); }
+  .xs-aura-hook { font-size: max(var(--min-body), calc(4.4cqw * var(--k))); }
+  .xs-aura-mark { width: 7cqw; height: 7cqw; }
+  .xs-aura-content { padding-bottom: calc(10cqh + 4.5rem); }
 }

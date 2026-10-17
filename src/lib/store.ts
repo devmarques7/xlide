@@ -25,9 +25,17 @@ function deletedBuiltins(): string[] {
 
 function withBuiltins(list: Presentation[]) {
   const deleted = deletedBuiltins();
+  // Newer shipped version replaces a copy nobody edited (edits get a newer date).
+  list = list.map((p) => {
+    const make = BUILTINS[p.id];
+    if (!make) return p;
+    const fresh = make();
+    return p.updatedAt >= fresh.updatedAt ? p : { ...fresh, addedAt: Date.now() };
+  });
   const missing = Object.keys(BUILTINS).filter((id) => !deleted.includes(id) && !list.some((p) => p.id === id));
   const now = Date.now();
-  return missing.length ? [...missing.map((id) => ({ ...BUILTINS[id](), addedAt: now })), ...list] : list;
+  if (!missing.length) return list;
+  return [...missing.map((id) => ({ ...BUILTINS[id](), addedAt: now })), ...list];
 }
 
 function read(): Presentation[] {

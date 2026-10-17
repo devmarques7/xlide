@@ -2,6 +2,7 @@ import { hasLang, LAYOUTS, tx, type Layout, type Locale, type LText, type Presen
 
 /** Comfortable word budget per layout before a slide feels crowded. */
 const CAPACITY: Record<Layout, number> = {
+  aura: 40,
   cover: 25,
   stats: 70,
   services: 90,

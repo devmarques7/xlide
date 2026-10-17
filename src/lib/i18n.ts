@@ -93,6 +93,7 @@ const en = {
   "editor.fallback": "Showing {lang} fallback",
   "editor.selectSlide": "Select a slide",
 
+  "layout.aura": "Aura cover",
   "layout.cover": "Cover",
   "layout.stats": "Key figures",
   "layout.services": "Services list",
@@ -361,6 +362,7 @@ const pt: Dict = {
   "editor.missing": "Falta em {lang}",
   "editor.fallback": "Mostrando {lang} como alternativa",
   "editor.selectSlide": "Selecione um slide",
+  "layout.aura": "Capa aura",
   "layout.cover": "Capa",
   "layout.stats": "Números-chave",
   "layout.services": "Lista de serviços",
@@ -618,6 +620,7 @@ const nl: Dict = {
   "editor.missing": "Ontbreekt in {lang}",
   "editor.fallback": "{lang} wordt als terugval getoond",
   "editor.selectSlide": "Kies een dia",
+  "layout.aura": "Aura-omslag",
   "layout.cover": "Omslag",
   "layout.stats": "Kerncijfers",
   "layout.services": "Dienstenlijst",

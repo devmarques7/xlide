@@ -243,7 +243,7 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
           {slide ? (
             <>
               <div className="mx-auto w-full max-w-5xl">
-                <SlideFrame slide={slide} lang={editLang} fallback={deck.defaultLanguage} className="shadow-[0_20px_60px_-30px_rgba(0,0,0,0.35)]" />
+                <SlideFrame slide={slide} lang={editLang} fallback={deck.defaultLanguage} animate className="shadow-[0_20px_60px_-30px_rgba(0,0,0,0.35)]" />
               </div>
               <div className="mx-auto flex w-full max-w-5xl items-center gap-2">
                 <Button variant="ghost" size="icon-sm" onClick={() => go(index - 1)} disabled={index === 0} aria-label={t("present.prev")}>

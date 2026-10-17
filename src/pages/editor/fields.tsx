@@ -19,6 +19,15 @@ interface FieldDef {
 
 /** Which fields each layout uses, in editing order. */
 export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKey | "icon" | "image")[] }> = {
+  aura: {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "cta", label: "editor.fields.meta" },
+      { key: "body", label: "editor.fields.footnote", multiline: true },
+    ],
+  },
   cover: {
     fields: [
       { key: "title", label: "editor.fields.title", multiline: true },

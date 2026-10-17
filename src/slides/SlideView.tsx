@@ -20,10 +20,12 @@ interface Props {
   live?: boolean;
   /** Reader text scale (1 = 100%). */
   scale?: number;
+  /** Run background motion (big preview and presenting; thumbnails stay still). */
+  animate?: boolean;
   className?: string;
 }
 
-export function SlideView({ slide, lang, fallback, live, scale = 1, className }: Props) {
+export function SlideView({ slide, lang, fallback, live, scale = 1, animate, className }: Props) {
   const look = useLook();
   const T = (v: LText | undefined) => tx(v, lang, fallback);
   const Layout = LAYOUT_COMPONENTS[slide.layout] ?? Statement;
@@ -35,6 +37,7 @@ export function SlideView({ slide, lang, fallback, live, scale = 1, className }:
       data-layout={slide.layout}
       data-tone={tone}
       data-live={live ? "" : undefined}
+      data-animate={animate || live ? "" : undefined}
       style={{ "--k": scale, "--accent": look.accent, "--on-accent": onAccent(look.accent) } as CSSProperties}
       lang={lang}
     >
@@ -65,6 +68,38 @@ function Display({ text, className, as: Tag = "h2" }: { text: string; className?
 }
 
 const pad2 = (n: number) => String(n + 1).padStart(2, "0");
+
+/** Aura: centred title over a slow, blurred colour field with film grain. */
+function Aura({ s, T }: LayoutProps) {
+  return (
+    <div className="xs-aura">
+      <div className="xs-aura-bg" aria-hidden>
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="xs-aura-grain" aria-hidden />
+      <div className="xs-pad xs-aura-content">
+        <LogoGlyph className="xs-aura-mark" />
+        <h1 className="xs-aura-title">
+          {T(s.title)
+            .split("\n")
+            .map((line, i, all) => (
+              <span key={i}>
+                {line}
+                {i === all.length - 1 && <sup>©</sup>}
+              </span>
+            ))}
+        </h1>
+        {T(s.eyebrow) && <p className="xs-label xs-aura-kicker">{T(s.eyebrow)}</p>}
+        {T(s.subtitle) && <p className="xs-aura-hook"><Rich text={T(s.subtitle)} /></p>}
+        {T(s.cta) && <p className="xs-label xs-aura-speaker">{T(s.cta)}</p>}
+        {T(s.body) && <p className="xs-aura-foot">{T(s.body)}</p>}
+      </div>
+    </div>
+  );
+}
 
 function Cover({ s, T }: LayoutProps) {
   return (
@@ -274,6 +309,7 @@ function ImageLayout({ s, T }: LayoutProps) {
 }
 
 const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.ReactElement> = {
+  aura: Aura,
   cover: Cover,
   stats: Stats,
   services: Services,

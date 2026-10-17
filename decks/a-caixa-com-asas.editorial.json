@@ -1,0 +1,1122 @@
+{
+  "title": {
+    "pt": "A Caixa com Asas · Editorial",
+    "en": "The Box with Wings · Editorial",
+    "nl": "De doos met vleugels · Editorial"
+  },
+  "description": {
+    "pt": "Sermão de 30 minutos para os 174 anos da Escola Sabatina, a partir de Mateus 24:45-47 e do filme Náufrago.",
+    "en": "A 30-minute sermon for the 174th anniversary of Sabbath School, based on Matthew 24:45-47 and the film Cast Away.",
+    "nl": "Een preek van 30 minuten voor het 174-jarig bestaan van de Sabbatschool, op basis van Matteüs 24:45-47 en de film Cast Away."
+  },
+  "author": "Escola Sabatina · 174 anos",
+  "tags": [
+    "sermão",
+    "escola-sabatina",
+    "174-anos",
+    "mateus-24",
+    "missão"
+  ],
+  "languages": [
+    "pt",
+    "en",
+    "nl"
+  ],
+  "defaultLanguage": "pt",
+  "slides": [
+    {
+      "layout": "aura",
+      "title": {
+        "pt": "A Caixa com Asas",
+        "en": "The Box with Wings",
+        "nl": "De doos met vleugels"
+      },
+      "eyebrow": {
+        "pt": "Escola Sabatina · 174 anos",
+        "en": "Sabbath School · 174 years",
+        "nl": "Sabbatschool · 174 jaar"
+      },
+      "subtitle": {
+        "pt": "Ele abriu quase todas as caixas para sobreviver.\n*Menos uma.*",
+        "en": "He opened almost every box to survive.\n*Except one.*",
+        "nl": "Hij opende bijna elke doos om te overleven.\n*Op één na.*"
+      },
+      "cta": {
+        "pt": "Palestrante — D. Marques",
+        "en": "Speaker — D. Marques",
+        "nl": "Spreker — D. Marques"
+      },
+      "body": {
+        "pt": "©1852–2026 Escola Sabatina.\nMateus 24:45-47",
+        "en": "©1852–2026 Sabbath School.\nMatthew 24:45-47",
+        "nl": "©1852–2026 Sabbatschool.\nMatteüs 24:45-47"
+      },
+      "notes": {
+        "pt": "Capa: deixe na tela enquanto a igreja se acomoda. Depois suba em silêncio, revele a caixa e conte cinco segundos antes de falar.",
+        "en": "Cover: leave it up while people settle in. Then walk up in silence, uncover the box and count five seconds before speaking.",
+        "nl": "Omslag: laat deze staan terwijl iedereen gaat zitten. Loop dan in stilte naar voren, haal het doek van de doos en tel vijf seconden."
+      }
+    },
+    {
+      "layout": "cover",
+      "title": {
+        "pt": "Quatro anos.",
+        "en": "Four years.",
+        "nl": "Vier jaar."
+      },
+      "image": "/images/slide02.jpg",
+      "notes": {
+        "pt": "IMAGEM: ilha pequena no oceano, vista de cima, tons frios. Fale: um homem sozinho numa ilha, passou fome, passou frio, e guardou uma caixa como esta.",
+        "en": "IMAGE: small island in the ocean, aerial view, cold tones. Say: a man alone on an island, hungry, cold, and he kept a box like this one.",
+        "nl": "AFBEELDING: klein eiland in de oceaan, van bovenaf, koele tinten. Zeg: een man alleen op een eiland, honger, kou, en hij bewaarde een doos zoals deze."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": "",
+      "title": {
+        "pt": "Ele não abriu.",
+        "en": "He did not open it.",
+        "nl": "Hij maakte hem niet open."
+      },
+      "notes": {
+        "pt": "Antes: 'Tinha todos os motivos para abrir. Ninguém ficaria sabendo.' Pausa. Depois a frase, e silêncio.",
+        "en": "Before: 'He had every reason to open it. No one would ever know.' Pause. Then the line, and silence.",
+        "nl": "Vooraf: 'Hij had alle reden om hem te openen. Niemand zou het ooit weten.' Pauze. Dan de zin, en stilte."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Pergunta",
+        "en": "Question",
+        "nl": "Vraag"
+      },
+      "title": {
+        "pt": "Por que ele não abriu a caixa?\nO que estava escrito no bilhete?",
+        "en": "Why didn't he open the box?\nWhat did the note say?",
+        "nl": "Waarom maakte hij de doos niet open?\nWat stond er op het briefje?"
+      },
+      "notes": {
+        "pt": "Abra as duas perguntas; as respostas vêm só no bloco 5. 'Antes de terminar, vou contar o que estava no bilhete.'",
+        "en": "Open both questions; the answers come only in block 5. 'Before I finish, I'll tell you what the note said.'",
+        "nl": "Open beide vragen; de antwoorden komen pas in blok 5. 'Voordat ik eindig, vertel ik wat er op het briefje stond.'"
+      }
+    },
+    {
+      "layout": "cover",
+      "eyebrow": {
+        "pt": "Escola Sabatina · 174 anos",
+        "en": "Sabbath School · 174 years",
+        "nl": "Sabbatschool · 174 jaar"
+      },
+      "subtitle": {
+        "pt": "Mateus 24:45-47",
+        "en": "Matthew 24:45-47",
+        "nl": "Matteüs 24:45-47"
+      },
+      "title": {
+        "pt": "A Caixa\ncom Asas",
+        "en": "The Box\nwith Wings",
+        "nl": "De doos\nmet vleugels"
+      },
+      "body": {
+        "pt": "Há 174 anos esta igreja segura\numa caixa que não é dela.",
+        "en": "For 174 years this church has held\na box that is not its own.",
+        "nl": "Al 174 jaar houdt deze kerk\neen doos vast die niet van haar is."
+      },
+      "image": "/images/slide05.jpg",
+      "notes": {
+        "pt": "IMAGEM: foto da sua própria caixa com asas, fundo escuro. Fale: 'Essa história não nasceu no cinema. Jesus contou primeiro.' Ligue a caixa aos 174 anos.",
+        "en": "IMAGE: photo of your own winged box, dark background. Say: 'This story wasn't born in the cinema. Jesus told it first.' Connect the box to the 174 years.",
+        "nl": "AFBEELDING: foto van je eigen doos met vleugels, donkere achtergrond. Zeg: 'Dit verhaal is niet in de bioscoop ontstaan. Jezus vertelde het als eerste.' Verbind de doos met de 174 jaar."
+      }
+    },
+    {
+      "layout": "cover",
+      "eyebrow": "01",
+      "subtitle": {
+        "pt": "Jesus contou essa história primeiro.",
+        "en": "Jesus told this story first.",
+        "nl": "Jezus vertelde dit verhaal als eerste."
+      },
+      "title": {
+        "pt": "A Parábola",
+        "en": "The Parable",
+        "nl": "De gelijkenis"
+      },
+      "image": "/images/slide06.jpg",
+      "notes": {
+        "pt": "IMAGEM (opcional): Bíblia aberta, luz lateral. Fale: 'Abram comigo em Mateus 24.' Espere a igreja abrir.",
+        "en": "IMAGE (optional): open Bible, side light. Say: 'Open with me to Matthew 24.' Wait for people to open.",
+        "nl": "AFBEELDING (optioneel): open Bijbel, zijlicht. Zeg: 'Sla met mij Matteüs 24 open.' Wacht tot iedereen hem open heeft."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Mateus 24:45-46",
+        "en": "Matthew 24:45-46 (KJV)",
+        "nl": "Matteüs 24:45-46"
+      },
+      "title": {
+        "pt": "Servo fiel e prudente\nDar o sustento a seu tempo\nAchar servindo assim",
+        "en": "A faithful and wise servant\nTo give them meat in due season\nShall find so doing",
+        "nl": "Een trouwe en verstandige dienaar\nOp de juiste tijd het voedsel geven\nZo bezig vinden"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Quem é, pois, o servo fiel e prudente, que o Senhor constituiu sobre a sua casa, para dar o sustento a seu tempo? Bem-aventurado aquele servo que o Senhor, quando vier, achar servindo assim.",
+        "en": "Who then is a faithful and wise servant, whom his lord hath made ruler over his household, to give them meat in due season? Blessed is that servant, whom his lord when he cometh shall find so doing.",
+        "nl": "Wie is dan de trouwe en verstandige dienaar, die zijn heer over zijn huishouden heeft aangesteld, om hun op de juiste tijd het voedsel te geven? Gelukkig is die dienaar die zijn heer, wanneer hij komt, zo bezig zal vinden."
+      },
+      "notes": {
+        "pt": "Explique a cena: o Dono saiu, o servo ficou com a casa, a tarefa é dar sustento, e o Dono volta.",
+        "en": "Explain the scene: the Master left, the servant was put in charge, the task is to give food, and the Master returns.",
+        "nl": "Leg de scène uit: de Heer vertrok, de dienaar kreeg het huis, de taak is voedsel geven, en de Heer komt terug."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Pergunta",
+        "en": "Question",
+        "nl": "Vraag"
+      },
+      "title": {
+        "pt": "Quem Jesus vai encontrar\nfazendo o que Ele pediu?",
+        "en": "Whom will Jesus find\ndoing what He asked?",
+        "nl": "Wie zal Jezus aantreffen\nterwijl hij doet wat Hij vroeg?"
+      },
+      "notes": {
+        "pt": "Ele não pergunta quem começou empolgado. E o que Ele pediu? (próximo slide)",
+        "en": "He doesn't ask who started out excited. And what did He ask? (next slide)",
+        "nl": "Hij vraagt niet wie enthousiast begon. En wat vroeg Hij? (volgende dia)"
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Mateus 24:14",
+        "en": "Matthew 24:14 (KJV)",
+        "nl": "Matteüs 24:14"
+      },
+      "title": {
+        "pt": "Será pregado este evangelho\nEntão, virá o fim.",
+        "en": "This gospel shall be preached\nThen shall the end come",
+        "nl": "Dit evangelie zal gepredikt worden\nEn dan zal het einde komen"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "E será pregado este evangelho do reino por todo o mundo, para testemunho a todas as nações. Então, virá o fim.",
+        "en": "And this gospel of the kingdom shall be preached in all the world for a witness unto all nations; and then shall the end come.",
+        "nl": "En dit evangelie van het Koninkrijk zal in de hele wereld gepredikt worden tot een getuigenis voor alle volken, en dan zal het einde komen."
+      },
+      "notes": {
+        "pt": "Essa é a caixa: o evangelho, a notícia de que Jesus salva e vai voltar. Primeiro a entrega, depois a volta.",
+        "en": "This is the box: the gospel, the news that Jesus saves and will return. First the delivery, then the return.",
+        "nl": "Dit is de doos: het evangelie, het nieuws dat Jezus redt en terugkomt. Eerst de bezorging, dan de terugkomst."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Insight",
+        "en": "Insight",
+        "nl": "Inzicht"
+      },
+      "title": {
+        "pt": "Primeiro a entrega.\nDepois a volta.",
+        "en": "First the delivery.\nThen the return.",
+        "nl": "Eerst de bezorging.\nDan de terugkomst."
+      },
+      "notes": {
+        "pt": "Muita gente espera a volta de Jesus parada, como quem espera um ônibus. Jesus liga a volta à entrega. Esperar é estar em movimento.",
+        "en": "Many wait for Jesus' return standing still, like waiting for a bus. Jesus links the return to the delivery. Waiting means moving.",
+        "nl": "Veel mensen wachten stil op Jezus' terugkomst, zoals op een bus. Jezus verbindt de terugkomst met de bezorging. Wachten is in beweging zijn."
+      }
+    },
+    {
+      "layout": "services",
+      "eyebrow": {
+        "pt": "O elenco",
+        "en": "The cast",
+        "nl": "De rolverdeling"
+      },
+      "items": [
+        {
+          "label": {
+            "pt": "A caixa",
+            "en": "The box",
+            "nl": "De doos"
+          },
+          "text": {
+            "pt": "O evangelho e a missão",
+            "en": "The gospel and the mission",
+            "nl": "Het evangelie en de missie"
+          }
+        },
+        {
+          "label": {
+            "pt": "A dona da caixa",
+            "en": "The box's owner",
+            "nl": "De eigenaar van de doos"
+          },
+          "text": {
+            "pt": "Jesus",
+            "en": "Jesus",
+            "nl": "Jezus"
+          }
+        },
+        {
+          "label": {
+            "pt": "A ilha",
+            "en": "The island",
+            "nl": "Het eiland"
+          },
+          "text": {
+            "pt": "O tempo de espera",
+            "en": "The time of waiting",
+            "nl": "De tijd van wachten"
+          }
+        },
+        {
+          "label": {
+            "pt": "O náufrago",
+            "en": "The castaway",
+            "nl": "De schipbreukeling"
+          },
+          "text": {
+            "pt": "Nós",
+            "en": "Us",
+            "nl": "Wij"
+          }
+        }
+      ],
+      "notes": {
+        "pt": "Leia linha por linha, devagar: 'Guardem essas quatro chaves.'",
+        "en": "Read line by line, slowly: 'Keep these four keys in mind.'",
+        "nl": "Lees regel voor regel, langzaam: 'Onthoud deze vier sleutels.'"
+      }
+    },
+    {
+      "layout": "cover",
+      "title": {
+        "pt": "O homem do relógio",
+        "en": "The man of the clock",
+        "nl": "De man van de klok"
+      },
+      "image": "/images/slide12.jpg",
+      "notes": {
+        "pt": "IMAGEM: relógio de bolso antigo aberto, preto e branco. Chuck trabalha numa empresa de entregas, vive pelo relógio, ganha um relógio de bolso e promete voltar logo.",
+        "en": "IMAGE: antique open pocket watch, black and white. Chuck works for a delivery company, lives by the clock, gets a pocket watch and promises to be back soon.",
+        "nl": "AFBEELDING: antiek open zakhorloge, zwart-wit. Chuck werkt bij een koeriersbedrijf, leeft op de klok, krijgt een zakhorloge en belooft snel terug te zijn."
+      }
+    },
+    {
+      "layout": "cover",
+      "title": {
+        "pt": "A ilha e as caixas",
+        "en": "The island and the boxes",
+        "nl": "Het eiland en de dozen"
+      },
+      "image": "/images/slide13.jpg",
+      "notes": {
+        "pt": "IMAGEM: caixas de papelão molhadas na areia. O avião cai, ele chega à ilha, abre quase todas as caixas para sobreviver. Uma, com asas, ele nunca abre.",
+        "en": "IMAGE: wet cardboard boxes on the sand. The plane crashes, he reaches the island, opens almost every box to survive. One, with wings, he never opens.",
+        "nl": "AFBEELDING: natte kartonnen dozen op het zand. Het vliegtuig stort neer, hij bereikt het eiland en opent bijna alle dozen om te overleven. Eén, met vleugels, opent hij nooit."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Pergunta",
+        "en": "Question",
+        "nl": "Vraag"
+      },
+      "title": {
+        "pt": "Por que ele não abriu esta?",
+        "en": "Why didn't he open this one?",
+        "nl": "Waarom opende hij deze niet?"
+      },
+      "notes": {
+        "pt": "Imagem opcional: sua caixa. 'Guardem essa pergunta. Antes, vamos ver como um homem sobrevive quatro anos numa ilha.'",
+        "en": "Optional image: your box. 'Keep this question. First, let's see how a man survives four years on an island.'",
+        "nl": "Optionele afbeelding: je doos. 'Bewaar deze vraag. Eerst kijken we hoe een man vier jaar op een eiland overleeft.'"
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Para levar para casa",
+        "en": "Take home",
+        "nl": "Neem mee naar huis"
+      },
+      "title": {
+        "pt": "Jesus contou essa história primeiro.\nNós somos o servo que ficou com a caixa.",
+        "en": "Jesus told this story first.\nWe are the servant left with the box.",
+        "nl": "Jezus vertelde dit verhaal als eerste.\nWij zijn de dienaar die de doos kreeg."
+      },
+      "notes": {
+        "pt": "Leia uma vez, sem comentar.",
+        "en": "Read it once, without comment.",
+        "nl": "Lees het één keer, zonder commentaar."
+      }
+    },
+    {
+      "layout": "cover",
+      "eyebrow": "02",
+      "subtitle": {
+        "pt": "Alimentar: ninguém espera com fome.",
+        "en": "Feed: no one can wait while starving.",
+        "nl": "Voeden: niemand kan wachten met honger."
+      },
+      "title": {
+        "pt": "Fogo",
+        "en": "Fire",
+        "nl": "Vuur"
+      },
+      "image": "/images/slide16.jpg",
+      "notes": {
+        "pt": "IMAGEM: fogueira na praia à noite. Sem fogo: frio, escuro, comida crua. Quando a chama aparece, ele comemora sozinho.",
+        "en": "IMAGE: campfire on the beach at night. Without fire: cold, dark, raw food. When the flame appears, he celebrates alone.",
+        "nl": "AFBEELDING: kampvuur op het strand 's nachts. Zonder vuur: kou, duisternis, rauw eten. Als de vlam verschijnt, viert hij het alleen."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Mateus 4:4",
+        "en": "Matthew 4:4 (KJV)",
+        "nl": "Matteüs 4:4"
+      },
+      "title": {
+        "pt": "De toda palavra que procede da boca de Deus",
+        "en": "By every word that proceedeth out of the mouth of God",
+        "nl": "Van elk woord dat uit de mond van God komt"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Não só de pão viverá o homem, mas de toda palavra que procede da boca de Deus.",
+        "en": "Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God.",
+        "nl": "De mens zal niet van brood alleen leven, maar van elk woord dat uit de mond van God komt."
+      },
+      "notes": {
+        "pt": "Sustento é o que mantém alguém de pé. Ligue a 'dar o sustento a seu tempo'.",
+        "en": "Food is what keeps someone standing. Link it to 'meat in due season'.",
+        "nl": "Voedsel is wat iemand overeind houdt. Verbind het met 'voedsel op de juiste tijd'."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Salmo 119:105",
+        "en": "Psalm 119:105 (KJV)",
+        "nl": "Psalm 119:105"
+      },
+      "title": {
+        "pt": "Lâmpada\nLuz",
+        "en": "A lamp\nA light",
+        "nl": "Een lamp\nEen licht"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Lâmpada para os meus pés é a tua palavra, e luz para o meu caminho.",
+        "en": "Thy word is a lamp unto my feet, and a light unto my path.",
+        "nl": "Uw woord is een lamp voor mijn voet en een licht op mijn pad."
+      },
+      "notes": {
+        "pt": "Fogo na ilha é luz, calor e alimento. A Palavra é as três coisas. (Imagem opcional: lamparina acesa.)",
+        "en": "Fire on the island is light, warmth and food. The Word is all three. (Optional image: lit oil lamp.)",
+        "nl": "Vuur op het eiland is licht, warmte en voedsel. Het Woord is alle drie. (Optionele afbeelding: brandende olielamp.)"
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Insight",
+        "en": "Insight",
+        "nl": "Inzicht"
+      },
+      "title": {
+        "pt": "A Escola Sabatina é\na fogueira da nossa ilha.",
+        "en": "Sabbath School is\nthe campfire on our island.",
+        "nl": "De Sabbatschool is\nhet kampvuur op ons eiland."
+      },
+      "notes": {
+        "pt": "Há 174 anos a igreja se reúne em volta da mesma chama: a Bíblia estudada em ordem, junto. Assim gerações entenderam o santuário, o sábado e a volta de Jesus.",
+        "en": "For 174 years the church has gathered around the same flame: the Bible studied in order, together. That is how generations understood the sanctuary, the Sabbath and Jesus' return.",
+        "nl": "Al 174 jaar komt de kerk samen rond dezelfde vlam: de Bijbel, samen en ordelijk bestudeerd. Zo begrepen generaties het heiligdom, de sabbat en Jezus' terugkomst."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Insight",
+        "en": "Insight",
+        "nl": "Inzicht"
+      },
+      "title": {
+        "pt": "Toda fogueira tem uma regra:\nse ninguém alimentar, ela apaga.",
+        "en": "Every fire has one rule:\nif no one feeds it, it goes out.",
+        "nl": "Elk vuur heeft één regel:\nals niemand het voedt, gaat het uit."
+      },
+      "notes": {
+        "pt": "Não adianta acender no sábado e deixar virar cinza durante a semana. Igreja com fome cai na primeira tempestade.",
+        "en": "Lighting it on Sabbath and letting it turn to ash during the week doesn't work. A hungry church falls in the first storm.",
+        "nl": "Het heeft geen zin om het op sabbat aan te steken en het door de week tot as te laten worden. Een hongerige kerk valt bij de eerste storm."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Pergunta",
+        "en": "Question",
+        "nl": "Vraag"
+      },
+      "title": {
+        "pt": "Como está o seu fogo hoje?\nChama, brasa ou cinza?",
+        "en": "How is your fire today?\nFlame, embers or ashes?",
+        "nl": "Hoe is jouw vuur vandaag?\nVlam, gloed of as?"
+      },
+      "notes": {
+        "pt": "Espere em silêncio. Depois: dez minutos por dia com a lição, num horário fixo. (Imagem opcional: chama, brasa, cinza.)",
+        "en": "Wait in silence. Then: ten minutes a day with the lesson, at a fixed time. (Optional image: flame, embers, ashes.)",
+        "nl": "Wacht in stilte. Dan: tien minuten per dag met de les, op een vast tijdstip. (Optionele afbeelding: vlam, gloed, as.)"
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Para levar para casa",
+        "en": "Take home",
+        "nl": "Neem mee naar huis"
+      },
+      "title": {
+        "pt": "Ninguém aguenta esperar Jesus com fome.",
+        "en": "No one can wait for Jesus while starving.",
+        "nl": "Niemand houdt het vol om met honger op Jezus te wachten."
+      },
+      "notes": {
+        "pt": "Leia uma vez.",
+        "en": "Read it once.",
+        "nl": "Lees het één keer."
+      }
+    },
+    {
+      "layout": "cover",
+      "eyebrow": "03",
+      "subtitle": {
+        "pt": "Cuidar: ninguém deveria estar sozinho na ilha.",
+        "en": "Care: no one should be alone on the island.",
+        "nl": "Zorgen: niemand zou alleen op het eiland moeten zijn."
+      },
+      "title": "Wilson",
+      "image": "/images/slide23.jpg",
+      "notes": {
+        "pt": "IMAGEM: bola de vôlei sozinha na areia, sem marca visível. Ele desenha um rosto na bola e conversa com ela por anos. Conte sem fazer piada.",
+        "en": "IMAGE: a lone volleyball on the sand, no visible brand. He draws a face on the ball and talks to it for years. Tell it without joking.",
+        "nl": "AFBEELDING: een eenzame volleybal op het zand, zonder zichtbaar merk. Hij tekent een gezicht op de bal en praat er jarenlang mee. Vertel het zonder grappen."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Insight",
+        "en": "Insight",
+        "nl": "Inzicht"
+      },
+      "title": {
+        "pt": "Wilson não é engraçado.\nÉ o retrato da solidão.",
+        "en": "Wilson is not funny.\nHe is a portrait of loneliness.",
+        "nl": "Wilson is niet grappig.\nHij is een portret van eenzaamheid."
+      },
+      "notes": {
+        "pt": "Quando a tempestade leva a bola, ele se joga no mar e chora como quem perde um irmão.",
+        "en": "When the storm takes the ball, he throws himself into the sea and weeps as if he had lost a brother.",
+        "nl": "Als de storm de bal meeneemt, springt hij in zee en huilt alsof hij een broer verliest."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Eclesiastes 4:9-10",
+        "en": "Ecclesiastes 4:9-10 (KJV)",
+        "nl": "Prediker 4:9-10"
+      },
+      "title": {
+        "pt": "Ai do que estiver só",
+        "en": "Woe to him that is alone",
+        "nl": "Wee de eenzame"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Melhor é serem dois do que um… Porque se caírem, um levanta o companheiro; ai, porém, do que estiver só; pois, caindo, não haverá quem o levante.",
+        "en": "Two are better than one… For if they fall, the one will lift up his fellow: but woe to him that is alone when he falleth; for he hath not another to help him up.",
+        "nl": "Twee zijn beter dan één… Want als zij vallen, richt de een de ander op; maar wee de eenzame die valt, want er is geen tweede om hem op te richten."
+      },
+      "notes": {
+        "pt": "Na ilha da espera, nem todos estão em volta da fogueira.",
+        "en": "On the island of waiting, not everyone is around the fire.",
+        "nl": "Op het eiland van het wachten zit niet iedereen rond het vuur."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Hebreus 10:24-25",
+        "en": "Hebrews 10:24-25 (KJV)",
+        "nl": "Hebreeën 10:24-25"
+      },
+      "title": {
+        "pt": "Consideremo-nos uns aos outros\nTanto mais quanto vedes que se vai aproximando aquele Dia",
+        "en": "Let us consider one another\nSo much the more, as ye see the day approaching",
+        "nl": "Laten wij op elkaar letten\nTemeer naarmate u de dag ziet naderen"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Consideremo-nos uns aos outros, para nos estimularmos ao amor e às boas obras, não deixando a nossa congregação… e tanto mais quanto vedes que se vai aproximando aquele Dia.",
+        "en": "And let us consider one another to provoke unto love and to good works: not forsaking the assembling of ourselves together… and so much the more, as ye see the day approaching.",
+        "nl": "En laten wij op elkaar letten om elkaar aan te sporen tot liefde en goede werken, zonder onze samenkomsten te verzuimen… en dat temeer naarmate u de dag ziet naderen."
+      },
+      "notes": {
+        "pt": "Considerar é prestar atenção de propósito. Quanto mais perto da volta, mais urgente.",
+        "en": "Considering is paying attention on purpose. The closer the return, the more urgent.",
+        "nl": "Op elkaar letten is bewust aandacht geven. Hoe dichter bij de terugkomst, hoe dringender."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Ellen G. White · Conselhos sobre a Escola Sabatina, p. 9",
+        "en": "Ellen G. White · Counsels on Sabbath School Work",
+        "nl": "Ellen G. White · Counsels on Sabbath School Work"
+      },
+      "title": {
+        "pt": "Maravilhoso poder",
+        "en": "Wonderful power",
+        "nl": "Een wonderbare kracht"
+      },
+      "subtitle": {
+        "pt": "Citação",
+        "en": "Quote (translated)",
+        "nl": "Citaat (vertaald)"
+      },
+      "body": {
+        "pt": "A Escola Sabatina, quando bem dirigida, possui maravilhoso poder e se destina a realizar uma grande obra.",
+        "en": "The Sabbath school, when rightly conducted, possesses wonderful power and is designed to accomplish a great work.",
+        "nl": "Wanneer de Sabbatschool goed geleid wordt, heeft zij een wonderbare kracht en is zij bestemd om een groot werk te doen."
+      },
+      "notes": {
+        "pt": "Esse poder aparece quando a classe vira família: quem falta é lembrado, quem esfria é visitado.",
+        "en": "That power shows when the class becomes a family: whoever is absent is remembered, whoever grows cold is visited.",
+        "nl": "Die kracht wordt zichtbaar als de klas een familie wordt: wie ontbreekt wordt gemist, wie verkoelt wordt bezocht."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Insight",
+        "en": "Insight",
+        "nl": "Inzicht"
+      },
+      "title": {
+        "pt": "Uma classe que não sente falta de ninguém\nvirou lista de presença.",
+        "en": "A class that misses no one\nhas become an attendance list.",
+        "nl": "Een klas die niemand mist,\nis een presentielijst geworden."
+      },
+      "notes": {
+        "pt": "Frequência não é comunhão. O irmão que perdeu alguém, o recém-batizado que ninguém procurou, quem sai antes da oração final.",
+        "en": "Attendance is not fellowship. The member who lost someone, the newly baptized nobody called, the one who leaves before the closing prayer.",
+        "nl": "Aanwezigheid is geen gemeenschap. Het lid dat iemand verloor, de pas gedoopte die niemand belde, wie vertrekt voor het slotgebed."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Pergunta",
+        "en": "Question",
+        "nl": "Vraag"
+      },
+      "title": {
+        "pt": "Quem da nossa igreja\nestá sozinho na ilha?",
+        "en": "Who in our church\nis alone on the island?",
+        "nl": "Wie in onze kerk\nis alleen op het eiland?"
+      },
+      "notes": {
+        "pt": "Pense em um nome. Até terça-feira, ligue para essa pessoa.",
+        "en": "Think of one name. Call that person by Tuesday.",
+        "nl": "Denk aan één naam. Bel die persoon vóór dinsdag."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Para levar para casa",
+        "en": "Take home",
+        "nl": "Neem mee naar huis"
+      },
+      "title": {
+        "pt": "Na ilha da espera, ninguém deveria ter\nsó um Wilson para conversar.",
+        "en": "On the island of waiting, no one should have\nonly a Wilson to talk to.",
+        "nl": "Op het eiland van het wachten zou niemand\nalleen een Wilson moeten hebben om mee te praten."
+      },
+      "notes": {
+        "pt": "Leia uma vez.",
+        "en": "Read it once.",
+        "nl": "Lees het één keer."
+      }
+    },
+    {
+      "layout": "cover",
+      "eyebrow": "04",
+      "subtitle": {
+        "pt": "Servir: por que ele não abriu a caixa.",
+        "en": "Serve: why he didn't open the box.",
+        "nl": "Dienen: waarom hij de doos niet opende."
+      },
+      "title": {
+        "pt": "Entrega",
+        "en": "Delivery",
+        "nl": "Bezorging"
+      },
+      "image": "/images/slide31.jpg",
+      "notes": {
+        "pt": "IMAGEM: mãos segurando uma caixa de papelão fechada. Caminhe até a caixa física antes de falar.",
+        "en": "IMAGE: hands holding a closed cardboard box. Walk to the physical box before speaking.",
+        "nl": "AFBEELDING: handen die een gesloten kartonnen doos vasthouden. Loop naar de echte doos voordat je spreekt."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Pergunta",
+        "en": "Question",
+        "nl": "Vraag"
+      },
+      "title": {
+        "pt": "Por que ele não abriu a caixa?",
+        "en": "Why didn't he open the box?",
+        "nl": "Waarom opende hij de doos niet?"
+      },
+      "notes": {
+        "pt": "Ele abriu as outras para sobreviver. Esta não era dele: tinha remetente e destino.",
+        "en": "He opened the others to survive. This one was not his: it had a sender and a destination.",
+        "nl": "Hij opende de andere om te overleven. Deze was niet van hem: ze had een afzender en een bestemming."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Mateus 24:48",
+        "en": "Matthew 24:48 (KJV)",
+        "nl": "Matteüs 24:48"
+      },
+      "title": {
+        "pt": "Meu senhor demora-se",
+        "en": "My lord delayeth his coming",
+        "nl": "Mijn heer blijft lang weg"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Mas, se aquele servo, sendo mau, disser consigo mesmo: Meu senhor demora-se…",
+        "en": "But and if that evil servant shall say in his heart, My lord delayeth his coming…",
+        "nl": "Maar als die slechte dienaar in zijn hart zegt: Mijn heer blijft lang weg…"
+      },
+      "notes": {
+        "pt": "Abrir seria dizer: ninguém vai voltar, agora tudo é meu. Quem acha que o dono não volta começa a viver como dono.",
+        "en": "Opening it would mean: no one is coming back, now everything is mine. Whoever thinks the owner won't return starts living as the owner.",
+        "nl": "Openen zou betekenen: niemand komt terug, nu is alles van mij. Wie denkt dat de eigenaar niet terugkomt, gaat leven als eigenaar."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "A frase central",
+        "en": "The central line",
+        "nl": "De kernzin"
+      },
+      "title": {
+        "pt": "Ele abriu quase tudo para sobreviver.\nMas nunca abriu mão da entrega.",
+        "en": "He opened almost everything to survive.\nBut he never gave up the delivery.",
+        "nl": "Hij opende bijna alles om te overleven.\nMaar hij gaf de bezorging nooit op."
+      },
+      "notes": {
+        "pt": "O slide mais importante. Diga devagar. Repita se sentir que a igreja precisa.",
+        "en": "The most important slide. Say it slowly. Repeat it if the church needs it.",
+        "nl": "De belangrijkste dia. Zeg het langzaam. Herhaal het als de kerk het nodig heeft."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Insight",
+        "en": "Insight",
+        "nl": "Inzicht"
+      },
+      "title": {
+        "pt": "Fidelidade não é guardar a caixa.\nÉ levar a caixa até o destino.",
+        "en": "Faithfulness is not keeping the box.\nIt is carrying the box to its destination.",
+        "nl": "Trouw is niet de doos bewaren.\nHet is de doos naar haar bestemming brengen."
+      },
+      "notes": {
+        "pt": "Ele não enterrou a caixa na areia: atravessou a tempestade e levou até a porta. Em Mateus 25, quem enterrou o talento foi chamado de infiel.",
+        "en": "He didn't bury the box in the sand: he crossed the storm and carried it to the door. In Matthew 25, the one who buried the talent was called unfaithful.",
+        "nl": "Hij begroef de doos niet in het zand: hij trotseerde de storm en bracht haar tot aan de deur. In Matteüs 25 werd wie het talent begroef ontrouw genoemd."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Lucas 19:10",
+        "en": "Luke 19:10 (KJV)",
+        "nl": "Lucas 19:10"
+      },
+      "title": {
+        "pt": "Buscar e salvar",
+        "en": "To seek and to save",
+        "nl": "Zoeken en redden"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Porque o Filho do Homem veio buscar e salvar o que se havia perdido.",
+        "en": "For the Son of man is come to seek and to save that which was lost.",
+        "nl": "Want de Zoon des mensen is gekomen om te zoeken en te redden wat verloren was."
+      },
+      "notes": {
+        "pt": "A missão não é um departamento da igreja. É a razão de ela existir.",
+        "en": "Mission is not a church department. It is the reason the church exists.",
+        "nl": "De missie is geen afdeling van de kerk. Het is de reden dat de kerk bestaat."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Ellen G. White · O Desejado de Todas as Nações, cap. 19",
+        "en": "Ellen G. White · The Desire of Ages, p. 195",
+        "nl": "Ellen G. White · The Desire of Ages, p. 195"
+      },
+      "title": {
+        "pt": "Como missionário",
+        "en": "As a missionary",
+        "nl": "Als zendeling"
+      },
+      "subtitle": {
+        "pt": "Citação",
+        "en": "Quote",
+        "nl": "Citaat (vertaald)"
+      },
+      "body": {
+        "pt": "Todo verdadeiro discípulo nasce no reino de Deus como missionário.",
+        "en": "Every true disciple is born into the kingdom of God as a missionary.",
+        "nl": "Iedere ware discipel wordt in het koninkrijk van God geboren als zendeling."
+      },
+      "notes": {
+        "pt": "Ninguém vira missionário depois. Nasce assim. Receber a caixa já é receber a entrega.",
+        "en": "No one becomes a missionary later. You are born that way. Receiving the box is receiving the delivery.",
+        "nl": "Niemand wordt later zendeling. Je wordt zo geboren. De doos ontvangen is de bezorging ontvangen."
+      }
+    },
+    {
+      "layout": "cover",
+      "title": {
+        "pt": "1852 → 2026\n174 anos de entrega",
+        "en": "1852 → 2026\n174 years of delivery",
+        "nl": "1852 → 2026\n174 jaar bezorging"
+      },
+      "image": "/images/slide38.jpg",
+      "notes": {
+        "pt": "IMAGEM: mão idosa passando uma Bíblia para mão jovem, preto e branco. Em 1852, um punhado de crentes. Hoje, uma comunidade mundial. Alguém entregou a caixa para alguém.",
+        "en": "IMAGE: an elderly hand passing a Bible to a young hand, black and white. In 1852, a handful of believers. Today, a worldwide community. Someone delivered the box to someone.",
+        "nl": "AFBEELDING: een oude hand die een Bijbel aan een jonge hand geeft, zwart-wit. In 1852 een handvol gelovigen. Nu een wereldwijde gemeenschap. Iemand bezorgde de doos bij iemand."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Pergunta",
+        "en": "Question",
+        "nl": "Vraag"
+      },
+      "title": {
+        "pt": "Quem entregou essa caixa para você?",
+        "en": "Who delivered this box to you?",
+        "nl": "Wie heeft deze doos bij jou bezorgd?"
+      },
+      "notes": {
+        "pt": "Uma professora, uma avó, um amigo com um estudo bíblico. Pausa. Depois: '174 anos de uma entrega que ainda não terminou.'",
+        "en": "A teacher, a grandmother, a friend with a Bible study. Pause. Then: '174 years of a delivery that isn't finished yet.'",
+        "nl": "Een lerares, een oma, een vriend met een Bijbelstudie. Pauze. Dan: '174 jaar van een bezorging die nog niet af is.'"
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Ellen G. White · Conselhos sobre a Escola Sabatina, p. 10",
+        "en": "Ellen G. White · Counsels on Sabbath School Work",
+        "nl": "Ellen G. White · Counsels on Sabbath School Work"
+      },
+      "title": {
+        "pt": "Levar almas a Cristo",
+        "en": "Bringing souls to Christ",
+        "nl": "Zielen tot Christus brengen"
+      },
+      "subtitle": {
+        "pt": "Citação",
+        "en": "Quote (translated)",
+        "nl": "Citaat (vertaald)"
+      },
+      "body": {
+        "pt": "A Escola Sabatina deve ser um dos maiores instrumentos, e o mais eficaz, em levar almas a Cristo.",
+        "en": "The Sabbath school should be one of the greatest instrumentalities, and the most effectual, in bringing souls to Christ.",
+        "nl": "De Sabbatschool moet een van de grootste en meest doeltreffende middelen zijn om zielen tot Christus te brengen."
+      },
+      "notes": {
+        "pt": "O propósito da Escola Sabatina, citado no sermão oficial.",
+        "en": "The purpose of Sabbath School, quoted in the official sermon.",
+        "nl": "Het doel van de Sabbatschool, geciteerd in de officiële preek."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Para levar para casa",
+        "en": "Take home",
+        "nl": "Neem mee naar huis"
+      },
+      "title": {
+        "pt": "A caixa não parou em você.\nEla passou por você.",
+        "en": "The box did not stop with you.\nIt passed through you.",
+        "nl": "De doos stopte niet bij jou.\nZe ging door jou heen."
+      },
+      "notes": {
+        "pt": "Leia uma vez.",
+        "en": "Read it once.",
+        "nl": "Lees het één keer."
+      }
+    },
+    {
+      "layout": "cover",
+      "title": {
+        "pt": "O bilhete",
+        "en": "The note",
+        "nl": "Het briefje"
+      },
+      "image": "/images/slide42.jpg",
+      "notes": {
+        "pt": "IMAGEM: caixa deixada na porta de uma casa, com bilhete escrito à mão. Ele é resgatado, a vida de antes não existe mais, e mesmo assim leva a caixa até a porta de quem a enviou.",
+        "en": "IMAGE: a box left at a front door with a handwritten note. He is rescued, his old life is gone, and still he takes the box to the door of the one who sent it.",
+        "nl": "AFBEELDING: een doos voor een voordeur met een handgeschreven briefje. Hij wordt gered, zijn oude leven is weg, en toch brengt hij de doos naar de deur van wie haar stuurde."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": "",
+      "title": {
+        "pt": "\"Este pacote salvou\na minha vida.\"",
+        "en": "\"This package saved\nmy life.\"",
+        "nl": "\"Dit pakket heeft\nmijn leven gered.\""
+      },
+      "notes": {
+        "pt": "Pausa longa antes e depois. Segure a caixa com as duas mãos. 'Nos dias mais escuros, a caixa lembrava: você ainda tem uma entrega para fazer.'",
+        "en": "Long pause before and after. Hold the box with both hands. 'On the darkest days, the box reminded him: you still have a delivery to make.'",
+        "nl": "Lange pauze ervoor en erna. Houd de doos met beide handen vast. 'Op de donkerste dagen herinnerde de doos hem: je moet nog iets bezorgen.'"
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Para levar para casa",
+        "en": "Take home",
+        "nl": "Neem mee naar huis"
+      },
+      "title": {
+        "pt": "Ele achava que carregava a caixa.\nEra a caixa que carregava ele.",
+        "en": "He thought he was carrying the box.\nThe box was carrying him.",
+        "nl": "Hij dacht dat hij de doos droeg.\nHet was de doos die hem droeg."
+      },
+      "notes": {
+        "pt": "A esperança da volta de Jesus não é olhar o horizonte da praia. É viver com a caixa na mão.",
+        "en": "The hope of Jesus' return is not staring at the horizon from the beach. It is living with the box in your hands.",
+        "nl": "De hoop op Jezus' terugkomst is niet vanaf het strand naar de horizon staren. Het is leven met de doos in je handen."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Tito 2:13",
+        "en": "Titus 2:13 (KJV)",
+        "nl": "Titus 2:13"
+      },
+      "title": {
+        "pt": "A bendita esperança",
+        "en": "That blessed hope",
+        "nl": "De zalige hoop"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Aguardando a bendita esperança e a manifestação da glória do nosso grande Deus e Salvador Cristo Jesus.",
+        "en": "Looking for that blessed hope, and the glorious appearing of the great God and our Saviour Jesus Christ.",
+        "nl": "Terwijl wij de zalige hoop verwachten en de verschijning van de heerlijkheid van onze grote God en Zaligmaker, Jezus Christus."
+      },
+      "notes": {
+        "pt": "A esperança como força que nos move. (Imagem opcional: horizonte do mar ao amanhecer.)",
+        "en": "Hope as the force that moves us. (Optional image: sea horizon at sunrise.)",
+        "nl": "Hoop als de kracht die ons in beweging zet. (Optionele afbeelding: zeehorizon bij zonsopgang.)"
+      }
+    },
+    {
+      "layout": "cover",
+      "title": {
+        "pt": "As asas na estrada",
+        "en": "The wings on the road",
+        "nl": "De vleugels op de weg"
+      },
+      "image": "/images/slide46.jpg",
+      "notes": {
+        "pt": "IMAGEM: cruzamento de estradas de terra no campo, vista de cima. Ele vê as mesmas asas na caminhonete: era a dona da caixa. Um dia o Dono da nossa caixa também vai aparecer no caminho.",
+        "en": "IMAGE: a crossroads of dirt roads in the countryside, aerial view. He sees the same wings on the truck: it was the owner of the box. One day the Owner of our box will also appear on the road.",
+        "nl": "AFBEELDING: een kruising van zandwegen op het platteland, van bovenaf. Hij ziet dezelfde vleugels op de pick-up: het was de eigenaar van de doos. Op een dag verschijnt ook de Eigenaar van onze doos op de weg."
+      }
+    },
+    {
+      "layout": "statement",
+      "eyebrow": {
+        "pt": "Mateus 24:46",
+        "en": "Matthew 24:46 (KJV)",
+        "nl": "Matteüs 24:46"
+      },
+      "title": {
+        "pt": "Achar servindo assim",
+        "en": "Shall find so doing",
+        "nl": "Zo bezig zal vinden"
+      },
+      "subtitle": {
+        "pt": "Bíblia",
+        "en": "Bible",
+        "nl": "Bijbel"
+      },
+      "body": {
+        "pt": "Bem-aventurado aquele servo que o Senhor, quando vier, achar servindo assim.",
+        "en": "Blessed is that servant, whom his lord when he cometh shall find so doing.",
+        "nl": "Gelukkig is die dienaar die zijn heer, wanneer hij komt, zo bezig zal vinden."
+      },
+      "notes": {
+        "pt": "A pergunta não será há quantos anos você frequenta. Será: eu te encontrei fazendo assim?",
+        "en": "The question won't be how many years you've attended. It will be: did I find you doing this?",
+        "nl": "De vraag zal niet zijn hoeveel jaar je al komt. Maar: heb Ik je zo bezig gevonden?"
+      }
+    },
+    {
+      "layout": "services",
+      "eyebrow": {
+        "pt": "Apelo",
+        "en": "Appeal",
+        "nl": "Oproep"
+      },
+      "items": [
+        {
+          "label": {
+            "pt": "Fogo",
+            "en": "Fire",
+            "nl": "Vuur"
+          },
+          "value": "1",
+          "text": {
+            "pt": "A hora do dia para alimentar a fogueira",
+            "en": "The time of day to feed the fire",
+            "nl": "Het moment van de dag om het vuur te voeden"
+          }
+        },
+        {
+          "label": "Wilson",
+          "value": "2",
+          "text": {
+            "pt": "Alguém sozinho na ilha para ligar",
+            "en": "Someone alone on the island to call",
+            "nl": "Iemand die alleen is op het eiland om te bellen"
+          }
+        },
+        {
+          "label": {
+            "pt": "Entrega",
+            "en": "Delivery",
+            "nl": "Bezorging"
+          },
+          "value": "3",
+          "text": {
+            "pt": "Alguém para passar a caixa adiante",
+            "en": "Someone to pass the box on to",
+            "nl": "Iemand aan wie je de doos doorgeeft"
+          }
+        }
+      ],
+      "notes": {
+        "pt": "Explique os três espaços do cartão. Um minuto de silêncio com música suave. Depois o convite para ficar de pé e a oração.",
+        "en": "Explain the three spaces on the card. One minute of silence with soft music. Then the invitation to stand and the prayer.",
+        "nl": "Leg de drie vakjes op de kaart uit. Een minuut stilte met zachte muziek. Dan de uitnodiging om te gaan staan en het gebed."
+      }
+    },
+    {
+      "layout": "cover",
+      "eyebrow": {
+        "pt": "Escola Sabatina · 174 anos",
+        "en": "Sabbath School · 174 years",
+        "nl": "Sabbatschool · 174 jaar"
+      },
+      "subtitle": {
+        "pt": "Feliz aniversário, Escola Sabatina",
+        "en": "Happy anniversary, Sabbath School",
+        "nl": "Gefeliciteerd, Sabbatschool"
+      },
+      "title": {
+        "pt": "A caixa não é nossa.\nMas a entrega é.",
+        "en": "The box is not ours.\nBut the delivery is.",
+        "nl": "De doos is niet van ons.\nMaar de bezorging wel."
+      },
+      "image": "/images/slide49.jpg",
+      "notes": {
+        "pt": "IMAGEM (opcional): a mesma foto da caixa do slide de título. Diga a frase, 'Amém', e deixe o slide na tela.",
+        "en": "IMAGE (optional): the same box photo as the title slide. Say the line, 'Amen', and leave the slide up.",
+        "nl": "AFBEELDING (optioneel): dezelfde foto van de doos als de titeldia. Zeg de zin, 'Amen', en laat de dia staan."
+      }
+    }
+  ],
+  "template": "editorial"
+}
