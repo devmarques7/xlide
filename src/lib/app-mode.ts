@@ -64,7 +64,10 @@ export function useFullscreenState() {
 export function useImmersive() {
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.add("immersive");
+    // iPhone Safari has no fullscreen API for pages. Letting the page scroll a
+    // little allows a swipe up to collapse Safari's bars instead.
+    const mode = isIOS() && !canFullscreen() && !isStandalone() ? "immersive-ios" : "immersive";
+    root.classList.add(mode);
 
     const first = () => {
       if (isTouch() && !isStandalone() && canFullscreen() && !isFullscreen()) enterFullscreen();
@@ -85,7 +88,8 @@ export function useImmersive() {
     document.addEventListener("visibilitychange", wake);
 
     return () => {
-      root.classList.remove("immersive");
+      root.classList.remove(mode);
+      setBrowserTint(getComputedStyle(document.body).backgroundColor);
       window.removeEventListener("pointerup", first);
       document.removeEventListener("visibilitychange", wake);
       lock?.release().catch(() => {});
@@ -117,4 +121,9 @@ export function useInstallPrompt() {
     setAvailable(false);
   }, []);
   return { available, install };
+}
+
+/** Tint the browser's own bars (Safari, Chrome on Android) with the slide colour. */
+export function setBrowserTint(color: string) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", color));
 }

@@ -180,3 +180,15 @@ html.immersive, html.immersive body {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* iPhone Safari: the slide stays fixed, but the page is a bit taller than the
+   screen so a swipe up collapses Safari's toolbars (no install needed). */
+html.immersive-ios {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+html.immersive-ios body {
+  min-height: calc(100lvh + 120px);
+  -webkit-user-select: none;
+  user-select: none;
+}

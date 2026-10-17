@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { InstallHint } from "@/components/install-hint";
-import { useImmersive } from "@/lib/app-mode";
+import { setBrowserTint, useImmersive } from "@/lib/app-mode";
 import type { Locale, Presentation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { SlideView } from "@/slides/SlideView";
@@ -22,10 +22,20 @@ export function Stage({
   children?: ReactNode;
 }) {
   useImmersive();
+  const root = useRef<HTMLDivElement>(null);
   const slide = deck.slides[index];
+
+  // Browser bars take the colour of the current slide so they blend in.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const el = root.current?.querySelector(".xs");
+      if (el) setBrowserTint(getComputedStyle(el).backgroundColor);
+    });
+    return () => cancelAnimationFrame(id);
+  });
   const progress = deck.slides.length > 1 ? index / (deck.slides.length - 1) : 1;
   return (
-    <div className="fixed inset-0 h-dvh overflow-hidden bg-background select-none">
+    <div ref={root} className="fixed inset-0 h-dvh overflow-hidden bg-background select-none">
       <div
         className="absolute inset-0"
         onClick={(e) => {
