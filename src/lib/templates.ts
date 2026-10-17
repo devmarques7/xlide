@@ -1,13 +1,12 @@
 import { exportPresentation } from "./importer";
 import { samplePresentations } from "./samples";
-import type { Presentation, Template } from "./types";
+import { SHIPPED_AT, type Presentation, type Template } from "./types";
 import { uid } from "./utils";
 
 const img = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=70`;
 
 /** "Investor Pitch" template, filled with example content in EN / PT / NL. */
 export function pitchDeck(): Presentation {
-  const now = Date.now();
   return {
     id: "p_pitch",
     title: { en: "Investor Pitch Deck", pt: "Pitch para Investidores", nl: "Investeerderspitch" },
@@ -22,8 +21,8 @@ export function pitchDeck(): Presentation {
     defaultLanguage: "en",
     template: "pitch",
     accent: "#1F4BD8",
-    createdAt: now - 3600000,
-    updatedAt: now - 60000,
+    createdAt: SHIPPED_AT,
+    updatedAt: SHIPPED_AT,
     slides: [
       {
         id: "t1",

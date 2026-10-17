@@ -22,7 +22,8 @@ function snippetOf(text: string, q: string) {
 /** Search title, description, tags and every slide field in every language. */
 export function searchPresentations(list: Presentation[], query: string, lang: Locale): SearchHit[] {
   const q = norm(query.trim());
-  const sorted = [...list].sort((a, b) => b.updatedAt - a.updatedAt);
+  const recency = (p: Presentation) => Math.max(p.updatedAt, p.addedAt ?? 0);
+  const sorted = [...list].sort((a, b) => recency(b) - recency(a));
   if (!q) return sorted.map((p) => ({ p, score: 0 }));
   const terms = q.split(/\s+/);
   const hits: SearchHit[] = [];

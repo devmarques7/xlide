@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePrefs } from "@/lib/prefs";
-import { usePresentation } from "@/lib/store";
+import { isBuiltin, restoreBuiltin, usePresentation } from "@/lib/store";
 import { appUrl, usePublicOrigin, useSync, type SyncMessage } from "@/lib/sync";
 import { tx, type Locale } from "@/lib/types";
 import { canFullscreen, toggleFullscreen, useFullscreenState } from "@/lib/app-mode";
@@ -21,6 +21,9 @@ import { ACCESS_CODE, cn } from "@/lib/utils";
 export default function Present() {
   const { id } = useParams();
   const deck = usePresentation(id);
+  useEffect(() => {
+    if (!deck && id) restoreBuiltin(id);
+  }, [deck, id]);
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { t, locale, fontScale, bumpFont, resolvedTheme, toggleTheme } = usePrefs();
@@ -90,6 +93,7 @@ export default function Present() {
     enabled: !remoteOpen && !shareOpen,
   });
 
+  if (!deck && id && isBuiltin(id)) return null;
   if (!deck) {
     return (
       <div className="grid min-h-dvh place-items-center p-6 text-center text-muted-foreground">

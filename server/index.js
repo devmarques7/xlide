@@ -6,6 +6,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import { WebSocketServer } from "ws";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,6 +59,24 @@ app.delete("/api/presentations/:id", (req, res) => {
   delete db[req.params.id];
   persist();
   res.json({ ok: true });
+});
+
+// Images uploaded from the editor, stored as files next to data.json.
+const IMG_DIR = path.join(__dirname, "images");
+fs.mkdirSync(IMG_DIR, { recursive: true });
+app.post("/api/images", (req, res) => {
+  const { data, type } = req.body ?? {};
+  if (typeof data !== "string") return res.status(400).json({ error: "invalid_image" });
+  const id = createHash("sha1").update(data).digest("hex").slice(0, 20);
+  fs.writeFileSync(path.join(IMG_DIR, id), JSON.stringify({ type: type || "image/jpeg", data }));
+  res.json({ url: `/api/images/${id}` });
+});
+app.get("/api/images/:id", (req, res) => {
+  const file = path.join(IMG_DIR, req.params.id.replace(/[^a-f0-9]/g, ""));
+  if (!fs.existsSync(file)) return res.status(404).end();
+  const { type, data } = JSON.parse(fs.readFileSync(file, "utf8"));
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  res.type(type).send(Buffer.from(data, "base64"));
 });
 
 if (PROD) {

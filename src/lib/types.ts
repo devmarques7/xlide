@@ -76,7 +76,12 @@ export interface Presentation {
   slides: Slide[];
   createdAt: number;
   updatedAt: number;
+  /** When this browser added the deck (shipped decks); used only to sort Recent. */
+  addedAt?: number;
 }
+
+/** Fixed edit date for decks that ship with the app: any real edit is newer. */
+export const SHIPPED_AT = Date.UTC(2026, 9, 17);
 
 export function tx(v: LText | undefined, lang: Locale, fallback?: Locale): string {
   if (v == null) return "";

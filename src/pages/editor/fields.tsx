@@ -1,4 +1,5 @@
 import { Link2, Languages, Plus, Trash2 } from "lucide-react";
+import { ImageInput } from "@/components/image-input";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { ICON_NAMES, ICONS } from "@/lib/icons";
@@ -244,7 +245,7 @@ export function SlideContentForm({
         ) : f.key === "image" ? (
           <div key="image" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
-            <Input value={slide.image ?? ""} onChange={(e) => onChange({ image: e.target.value || undefined })} placeholder="https://…" />
+            <ImageInput value={slide.image} onChange={(image) => onChange({ image })} />
           </div>
         ) : (
           <LTextField
@@ -292,7 +293,7 @@ export function SlideContentForm({
                   return (
                     <div key={k} className="flex flex-col gap-1">
                       <Label>{t("editor.fields.image")}</Label>
-                      <Input className="h-9" value={it.image ?? ""} onChange={(e) => setItem(it.id, { image: e.target.value })} placeholder="https://…" />
+                      <ImageInput compact value={it.image} onChange={(image) => setItem(it.id, { image })} />
                     </div>
                   );
                 }

@@ -1,5 +1,7 @@
-import { ArrowLeft, BarChart3, Braces, ChevronLeft, ChevronRight, FileText, Palette, Play, Plus, Settings2, Share2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, BarChart3, Braces, ChevronLeft, ChevronRight, FileText, ImagePlus, Loader2, Palette, Play, Plus, Settings2, Share2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { matchImages, uploadImage } from "@/lib/images";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { LogoMark } from "@/components/logo";
 import { FontSizeControl, PrefsMenu } from "@/components/prefs-controls";
@@ -13,7 +15,7 @@ import { analyzeDeck } from "@/lib/analysis";
 import { LOCALE_SHORT } from "@/lib/i18n";
 import { blankSlide } from "@/lib/importer";
 import { usePrefs } from "@/lib/prefs";
-import { updatePresentation, usePresentation } from "@/lib/store";
+import { isBuiltin, restoreBuiltin, updatePresentation, usePresentation } from "@/lib/store";
 import { EDITORIAL_LAYOUTS, PITCH_LAYOUTS, tx, type Locale, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
 import { DeckLook } from "@/slides/look";
@@ -27,6 +29,10 @@ export default function Editor() {
   const deck = usePresentation(id);
   const { t, locale } = usePrefs();
 
+  useEffect(() => {
+    if (!deck && id) restoreBuiltin(id);
+  }, [deck, id]);
+  if (!deck && id && isBuiltin(id)) return null;
   if (!deck) {
     return (
       <div className="grid min-h-dvh place-items-center p-6 text-center">
@@ -49,6 +55,35 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
   const [lang, setLang] = useState<Locale>(initialLang);
   const [tab, setTab] = useState("content");
   const [shareOpen, setShareOpen] = useState(false);
+  const bulkInput = useRef<HTMLInputElement>(null);
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+
+  /* Import many images at once; each lands on the slide with the same name/number. */
+  const importImages = async (files: File[]) => {
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (!images.length) return;
+    const matches = matchImages(deck.slides, images);
+    const unmatched = images.filter((f) => !matches.has(f)).map((f) => f.name);
+    setBulk({ done: 0, total: matches.size });
+    const urls = new Map<number, string>();
+    let localOnly = false;
+    let done = 0;
+    for (const [f, i] of matches) {
+      try {
+        const r = await uploadImage(f);
+        urls.set(i, r.url);
+        localOnly ||= !r.shared;
+      } catch {
+        unmatched.push(f.name);
+      }
+      setBulk({ done: ++done, total: matches.size });
+    }
+    updatePresentation(deck.id, (p) => ({ ...p, slides: p.slides.map((s, i) => (urls.has(i) ? { ...s, image: urls.get(i) } : s)) }));
+    setBulk(null);
+    if (urls.size) toast.success(t("editor.imagesLinked", { n: urls.size }));
+    if (unmatched.length) toast(t("editor.imagesUnmatched", { names: unmatched.join(", ") }));
+    if (localOnly) toast(t("editor.imageLocalOnly"));
+  };
 
   const editLang = deck.languages.includes(lang) ? lang : deck.defaultLanguage;
   const index = Math.max(0, deck.slides.findIndex((s) => s.id === selected));
@@ -144,6 +179,29 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
             <span className="label-xs text-muted-foreground">
               {t("editor.slides")} · {deck.slides.length}
             </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto"
+              onClick={() => bulkInput.current?.click()}
+              disabled={!!bulk}
+              aria-label={t("editor.importImages")}
+              title={t("editor.importImagesHint")}
+            >
+              {bulk ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+              <span className="lg:hidden xl:inline">{bulk ? t("editor.importingImages", bulk) : t("editor.importImages")}</span>
+            </Button>
+            <input
+              ref={bulkInput}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                importImages([...(e.target.files ?? [])]);
+                e.target.value = "";
+              }}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" aria-label={t("editor.addSlide")}>

@@ -8,11 +8,27 @@ import { uid } from "./utils";
 const KEY = "xlide.presentations";
 type Listener = () => void;
 
-let cache: Presentation[] = read();
-const listeners = new Set<Listener>();
 
-const SEED_KEY = "xlide.seeded";
-const SEEDS = ["p_pitch", ...Object.keys(SHIPPED_DECKS)];
+/* Decks that ship with the app. They are always present unless the user
+   deleted them on purpose, so an older tab rewriting the list cannot lose them. */
+const DELETED_KEY = "xlide.deletedBuiltins";
+const BUILTINS: Record<string, () => Presentation> = { ...SHIPPED_DECKS, p_pitch: pitchDeck };
+export const isBuiltin = (id: string) => id in BUILTINS;
+
+function deletedBuiltins(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function withBuiltins(list: Presentation[]) {
+  const deleted = deletedBuiltins();
+  const missing = Object.keys(BUILTINS).filter((id) => !deleted.includes(id) && !list.some((p) => p.id === id));
+  const now = Date.now();
+  return missing.length ? [...missing.map((id) => ({ ...BUILTINS[id](), addedAt: now })), ...list] : list;
+}
 
 function read(): Presentation[] {
   let list: Presentation[] | null = null;
@@ -22,24 +38,24 @@ function read(): Presentation[] {
   } catch {
     /* ignore */
   }
-  if (!list) return [...Object.values(SHIPPED_DECKS).map((f) => f()), pitchDeck(), ...samplePresentations()];
-  // Add example decks shipped after this browser first ran XLIDE (once each).
-  try {
-    const seeded: string[] = JSON.parse(localStorage.getItem(SEED_KEY) || "[]");
-    const missing = SEEDS.filter((id) => !seeded.includes(id));
-    if (missing.length) {
-      for (const id of missing) {
-        if (list.some((p) => p.id === id)) continue;
-        const make = id === "p_pitch" ? pitchDeck : SHIPPED_DECKS[id];
-        if (make) list = [make(), ...list];
-      }
-      localStorage.setItem(SEED_KEY, JSON.stringify([...seeded, ...missing]));
-      localStorage.setItem(KEY, JSON.stringify(list));
+  const full = withBuiltins(list ?? samplePresentations());
+  if (full !== list) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(full));
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore */
   }
-  return list;
+  return full;
+}
+
+// Loaded after BUILTINS above is defined.
+let cache: Presentation[] = read();
+const listeners = new Set<Listener>();
+
+/** A shipped deck opened by link before it was added to this browser's list. */
+export function builtinDeck(id: string) {
+  return BUILTINS[id]?.();
 }
 
 function write(next: Presentation[]) {
@@ -72,6 +88,18 @@ export function usePresentations() {
 export function usePresentation(id: string | undefined) {
   const all = usePresentations();
   return all.find((p) => p.id === id);
+}
+
+/** Re-adds a shipped deck the user deleted, when they open its link again. */
+export function restoreBuiltin(id: string) {
+  const make = BUILTINS[id];
+  if (!make || cache.some((p) => p.id === id)) return;
+  try {
+    localStorage.setItem(DELETED_KEY, JSON.stringify(deletedBuiltins().filter((x) => x !== id)));
+  } catch {
+    /* ignore */
+  }
+  write([{ ...make(), addedAt: Date.now() }, ...cache]);
 }
 
 export function getPresentation(id: string) {
@@ -126,7 +154,7 @@ export async function fetchPresentation(id: string): Promise<Presentation | unde
   } catch {
     /* fall through */
   }
-  return getPresentation(id);
+  return getPresentation(id) ?? builtinDeck(id);
 }
 
 /* ───── mutations ───── */
@@ -145,6 +173,13 @@ export function updatePresentation(id: string, fn: (p: Presentation) => Presenta
 }
 
 export function deletePresentation(id: string) {
+  if (isBuiltin(id)) {
+    try {
+      localStorage.setItem(DELETED_KEY, JSON.stringify([...new Set([...deletedBuiltins(), id])]));
+    } catch {
+      /* ignore */
+    }
+  }
   write(cache.filter((p) => p.id !== id));
   fetch(`/api/presentations/${id}`, { method: "DELETE" }).catch(() => {});
 }
