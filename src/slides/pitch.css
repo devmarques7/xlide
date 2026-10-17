@@ -161,6 +161,31 @@
 .pt-person figcaption { display: flex; flex-direction: column; gap: 0.2cqmin; font-size: var(--pt-small); line-height: 1.15; }
 .pt-person figcaption span { color: var(--mute); font-size: calc(var(--pt-small) * 0.85); }
 
+/* statement (question / insight / quote) */
+.pt-statement .pt-statement-lead {
+  left: 17%;
+  top: 33%;
+  width: 70%;
+  font-size: calc(6cqmin * var(--k));
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.pt-statement .pt-statement-lead > span { display: block; }
+.pt-statement.pt-has-body .pt-statement-lead { width: 44%; font-size: calc(4.2cqmin * var(--k)); }
+.pt-statement.pt-solo .pt-statement-lead { left: var(--px); top: auto; bottom: 18%; width: 80%; font-size: calc(8cqmin * var(--k)); font-weight: 700; line-height: 0.92; text-transform: uppercase; letter-spacing: -0.045em; }
+.pt-statement .pt-statement-body {
+  left: 66%;
+  top: 33%;
+  width: 29%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqmin;
+  font-size: max(var(--min-body), calc(1.6cqmin * var(--k)));
+  line-height: 1.35;
+}
+
 /* ───── portrait: everything flows in one column ───── */
 @container slide (aspect-ratio < 1) {
   .xs.tpl-pitch { --pt-small: max(var(--min-label), calc(3.2cqw * var(--k))); --pt-lead: calc(7cqw * var(--k)); }
@@ -189,4 +214,7 @@
   .pt-people { grid-template-columns: 1fr 1fr !important; gap: 4cqw !important; }
   .pt-person .pt-photo { aspect-ratio: 3 / 4; flex: none; }
   .pt-brand { font-size: calc(9cqw * var(--k)); }
+  .pt-statement .pt-statement-lead, .pt-statement.pt-has-body .pt-statement-lead { font-size: calc(9cqw * var(--k)); }
+  .pt-statement.pt-solo .pt-statement-lead { font-size: calc(13cqw * var(--k)); margin-top: auto; }
+  .pt-statement .pt-statement-body { font-size: max(var(--min-body), calc(4cqw * var(--k))); }
 }

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { samplePresentations } from "./samples";
+import { SHIPPED_DECKS } from "./decks";
 import { pitchDeck } from "./templates";
 import type { Presentation } from "./types";
 import { uid } from "./utils";
@@ -11,7 +12,7 @@ let cache: Presentation[] = read();
 const listeners = new Set<Listener>();
 
 const SEED_KEY = "xlide.seeded";
-const SEEDS = ["p_pitch"];
+const SEEDS = ["p_pitch", ...Object.keys(SHIPPED_DECKS)];
 
 function read(): Presentation[] {
   let list: Presentation[] | null = null;
@@ -21,13 +22,17 @@ function read(): Presentation[] {
   } catch {
     /* ignore */
   }
-  if (!list) return [pitchDeck(), ...samplePresentations()];
+  if (!list) return [...Object.values(SHIPPED_DECKS).map((f) => f()), pitchDeck(), ...samplePresentations()];
   // Add example decks shipped after this browser first ran XLIDE (once each).
   try {
     const seeded: string[] = JSON.parse(localStorage.getItem(SEED_KEY) || "[]");
     const missing = SEEDS.filter((id) => !seeded.includes(id));
     if (missing.length) {
-      if (missing.includes("p_pitch") && !list.some((p) => p.id === "p_pitch")) list = [pitchDeck(), ...list];
+      for (const id of missing) {
+        if (list.some((p) => p.id === id)) continue;
+        const make = id === "p_pitch" ? pitchDeck : SHIPPED_DECKS[id];
+        if (make) list = [make(), ...list];
+      }
       localStorage.setItem(SEED_KEY, JSON.stringify([...seeded, ...missing]));
       localStorage.setItem(KEY, JSON.stringify(list));
     }

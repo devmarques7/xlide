@@ -5,7 +5,7 @@ export type Locale = (typeof LOCALES)[number];
 export type LText = string | Partial<Record<Locale, string>>;
 
 export const EDITORIAL_LAYOUTS = ["cover", "stats", "services", "gallery", "split", "statement", "contact", "image"] as const;
-export const PITCH_LAYOUTS = ["pitch-cover", "pitch-numbers", "pitch-feature", "pitch-toc", "pitch-split", "pitch-team"] as const;
+export const PITCH_LAYOUTS = ["pitch-cover", "pitch-statement", "pitch-numbers", "pitch-feature", "pitch-toc", "pitch-split", "pitch-team"] as const;
 export const LAYOUTS = [...EDITORIAL_LAYOUTS, ...PITCH_LAYOUTS] as const;
 
 export const TEMPLATES = ["editorial", "pitch"] as const;

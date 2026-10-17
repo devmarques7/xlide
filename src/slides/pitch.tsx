@@ -197,3 +197,35 @@ export function PitchTeam({ s, T }: PitchProps) {
     </div>
   );
 }
+
+/** Statement: heavy label title, one big sentence, optional side text (e.g. a Bible verse). */
+export function PitchStatement({ s, T }: PitchProps) {
+  const title = T(s.title).trim();
+  const lead = T(s.subtitle);
+  const body = T(s.body);
+  // Nothing to show: an intentionally blank (e.g. dark) pause slide.
+  if (!title && !lead.trim() && !body) return <div className="pt" />;
+  return (
+    <div className={cn("pt pt-statement", !title && "pt-solo", body && "pt-has-body")}>
+      <Meta />
+      <Title text={title} />
+      {lead.trim() && (
+        <p className="pt-statement-lead pt-a">
+          {lead.split("\n").map((l, i) => (
+            <span key={i}>
+              <Rich text={l} />
+            </span>
+          ))}
+        </p>
+      )}
+      {body && (
+        <p className="pt-statement-body pt-a">
+          <ArrowDownRight className="pt-arrow" strokeWidth={1.6} />
+          <span><Rich text={body} /></span>
+        </p>
+      )}
+      <Corner />
+      <Footnote text={T(s.cta)} />
+    </div>
+  );
+}

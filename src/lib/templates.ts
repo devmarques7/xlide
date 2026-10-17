@@ -210,6 +210,7 @@ export function templateJson(id: Template) {
       tone: "Per slide background: light | dark | accent.",
       layouts: {
         "pitch-cover": "title, body (top-right description), subtitle (short tagline), eyebrow (brand), image",
+        "pitch-statement": "title (short label, e.g. QUESTION), subtitle (the big sentence), body (side text, e.g. a verse), cta (footnote/source)",
         "pitch-numbers": "title, items[{ value: '01', text }], cta (footnote)",
         "pitch-feature": "title, subtitle, image, images[], items[{ label }], cta; variant: side | collage | row",
         "pitch-toc": "title, items[{ label }] (numbered automatically)",

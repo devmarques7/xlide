@@ -95,6 +95,14 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
       { key: "image", label: "editor.fields.image" },
     ],
   },
+  "pitch-statement": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "cta", label: "editor.fields.footnote" },
+    ],
+  },
   "pitch-numbers": {
     fields: [
       { key: "title", label: "editor.fields.title", multiline: true },

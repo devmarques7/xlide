@@ -5,7 +5,7 @@ import { ICONS } from "@/lib/icons";
 import { tx, type Locale, type LText, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { onAccent, useLook } from "./look";
-import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchTeam, PitchToc } from "./pitch";
+import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchStatement, PitchTeam, PitchToc } from "./pitch";
 import { Rich } from "./rich";
 import { SlideImage } from "./slide-image";
 import "./slides.css";
@@ -283,6 +283,7 @@ const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.React
   contact: Contact,
   image: ImageLayout,
   "pitch-cover": PitchCover,
+  "pitch-statement": PitchStatement,
   "pitch-numbers": PitchNumbers,
   "pitch-feature": PitchFeature,
   "pitch-toc": PitchToc,
