@@ -184,6 +184,7 @@ export async function findLyrics(title, author) {
       if (!isArtist(a)) artist = a.split(/,|&/)[0].trim();
     }
   }
+  song = songName(song);
   if (!song) return null;
   const matches = (name) => norm(name).includes(norm(song)) || norm(song).includes(norm(name));
 
