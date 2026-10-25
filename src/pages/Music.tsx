@@ -27,6 +27,10 @@ interface Fetched {
   author?: string;
   lines?: string[];
   auto?: boolean;
+  /** Set when the words came from a lyrics database instead of the captions. */
+  song?: string;
+  artist?: string;
+  source?: string;
   error?: string;
 }
 
@@ -79,14 +83,15 @@ export default function Music() {
     try {
       const res = await fetch(`/api/music/lyrics?url=${encodeURIComponent(url)}`);
       const data: Fetched = await res.json();
-      if (data.title) setSong(cleanTitle(data.title));
-      if (data.author) setArtist(data.author.replace(/\s*-\s*Topic$/, ""));
+      if (data.song || data.title) setSong(data.song || cleanTitle(data.title!));
+      if (data.artist || data.author) setArtist(data.artist || data.author!.replace(/\s*-\s*Topic$/, ""));
       if (data.lines?.length) {
         setLyrics(data.lines.join("\n"));
         setTranslation("");
       }
       setAuto(!!data.auto);
       if (data.error) setNotice(errorText(data.error));
+      else if (data.source) setNotice(t("music.found", { source: data.source }));
     } catch {
       setNotice(errorText("youtube_failed"));
     } finally {

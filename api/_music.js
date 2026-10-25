@@ -98,13 +98,19 @@ export async function getLyrics(input, lang) {
       tried.push({ client: c.name, error: String(e?.message ?? e) });
     }
   }
-  const title = data?.videoDetails?.title ?? "";
-  const author = data?.videoDetails?.author ?? "";
+  let title = data?.videoDetails?.title ?? "";
+  let author = data?.videoDetails?.author ?? "";
+  // YouTube refuses data-centre servers (Vercel) the player data, but oEmbed still names the video.
+  if (!title) ({ title = "", author = "" } = await oembed(id).catch(() => ({})));
   const tracks = captionTracks(data);
-  // Nothing at all (not even a title) means YouTube refused this server.
-  if (!tracks.length) return { id, title, author, error: title ? "no_captions" : "youtube_failed", tracks: [], tried };
   const rank = (t) => (t.kind === "asr" ? 2 : 0) + (lang && !t.languageCode.startsWith(lang) ? 1 : 0);
   const track = [...tracks].sort((a, b) => rank(a) - rank(b))[0];
+  // No captions, or only automatic ones: a lyrics database has the real words, with stanzas.
+  if (title && (!track || track.kind === "asr")) {
+    const found = await findLyrics(title, author).catch(() => null);
+    if (found) return { id, title, author, ...found, tracks: tracks.map((t) => ({ lang: t.languageCode, auto: t.kind === "asr" })) };
+  }
+  if (!track) return { id, title, author, error: title ? "no_captions" : "youtube_failed", tracks: [], tried };
   const lines = toLines(await trackCues(track.baseUrl));
   return {
     id,
@@ -116,6 +122,91 @@ export async function getLyrics(input, lang) {
     lines,
     error: lines.length ? undefined : "empty_captions",
   };
+}
+
+/** Title and channel of a video; oEmbed answers where the player API refuses. */
+async function oembed(id) {
+  const res = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`, { headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`oembed_${res.status}`);
+  const d = await res.json();
+  return { title: d.title ?? "", author: d.author_name ?? "" };
+}
+
+/** "Song (Official Video) | Live from X" → "Song"; "Song with A & B" → "Song". */
+export function songName(title) {
+  return String(title)
+    .replace(/\s*[([](official|lyric|lyrics|live|audio|video|clipe|ao vivo|letra|feat|ft)[^)\]]*[)\]]/gi, "")
+    .split(/\s+[|•]\s+|\s+-\s+(?=(official|live|ao vivo|lyric))/i)[0]
+    .replace(/\s+(with|feat\.?|ft\.?|part\.?)\s+.*$/i, "")
+    .trim();
+}
+
+/** "Artist - Topic" / "ArtistVEVO" → "Artist". */
+const artistName = (author) => String(author).replace(/\s*-\s*Topic$/i, "").replace(/VEVO$/i, "").trim();
+
+const norm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Lyric text into rows: one blank row between stanzas, none at the ends. */
+function lyricRows(text) {
+  return String(text)
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((l) => l.replace(/\[[^\]]*\]/g, "").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .split("\n");
+}
+
+async function getJson(url) {
+  const res = await fetch(url, { headers: { "User-Agent": "XLIDE (https://xlide.vercel.app)" }, signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`${new URL(url).host}_${res.status}`);
+  return res.json();
+}
+
+/**
+ * Lyrics of a song from free databases, by the video's title and channel:
+ * LRCLIB first, then lyrics.ovh (whose suggestions also find the real artist
+ * when the channel is a label or a church). Returns null when neither knows it.
+ */
+export async function findLyrics(title, author) {
+  let song = songName(title);
+  let artist = artistName(author);
+  // "Artist - Song" or "Song - Artist": the part that names the channel is the artist.
+  const parts = song.split(/\s+[-–—]\s+/);
+  if (parts.length === 2) {
+    const [a, b] = parts;
+    const isArtist = (x) => artist && (norm(x).includes(norm(artist)) || norm(artist).includes(norm(x)));
+    if (isArtist(b)) song = a;
+    else {
+      song = b;
+      if (!isArtist(a)) artist = a.split(/,|&/)[0].trim();
+    }
+  }
+  if (!song) return null;
+  const matches = (name) => norm(name).includes(norm(song)) || norm(song).includes(norm(name));
+
+  try {
+    const hits = await getJson(`https://lrclib.net/api/search?${new URLSearchParams({ q: `${song} ${artist}`.trim() })}`);
+    const hit = (hits ?? []).filter((h) => h.plainLyrics && matches(h.trackName)).sort((a, b) => Number(norm(b.artistName).includes(norm(artist))) - Number(norm(a.artistName).includes(norm(artist))))[0];
+    if (hit) return { lines: lyricRows(hit.plainLyrics), song, artist: artist || hit.artistName, source: "LRCLIB" };
+  } catch {}
+
+  try {
+    const { data = [] } = await getJson(`https://api.lyrics.ovh/suggest/${encodeURIComponent(`${song} ${artist}`.trim())}`);
+    const cands = [{ title: song, artist: { name: artist } }, ...data.filter((d) => matches(d.title_short ?? d.title))].filter((c) => c.artist?.name);
+    const seen = new Set();
+    for (const c of cands) {
+      const t = c.title_short ?? c.title;
+      const key = norm(`${c.artist.name}/${t}`);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (seen.size > 4) break;
+      const d = await getJson(`https://api.lyrics.ovh/v1/${encodeURIComponent(c.artist.name)}/${encodeURIComponent(t)}`).catch(() => null);
+      if (d?.lyrics?.trim()) return { lines: lyricRows(d.lyrics), song: t, artist: c.artist.name, source: "lyrics.ovh" };
+    }
+  } catch {}
+  return null;
 }
 
 /** Translates lines with Google's free endpoint; keeps one output line per input line. */
