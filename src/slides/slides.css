@@ -175,6 +175,8 @@
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(to bottom, rgb(0 0 0 / 0.5), rgb(0 0 0 / 0.18) 55%, rgb(0 0 0 / 0.3));
 }
+/* Color: same as full, but the photo keeps its colours. */
+.xs-cover.is-color .xs-img img { filter: none; }
 /* Dim: the photo stays far back, the words carry the slide. */
 .xs-cover.is-dim > .xs-cover-img::after { background: rgb(6 6 6 / 0.8); }
 

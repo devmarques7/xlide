@@ -19,6 +19,6 @@ export const SHIPPED_DECKS: Record<string, () => Presentation> = {
   // v2: aura cover. v3: full-screen photos on 2, 12, 13. v4: photo backgrounds on 18, 24.
   // v5: full-screen 38, 42, 46; dark background on 49.
   p_caixa_editorial: () => shippedDeck("p_caixa_editorial", caixaEditorial, Date.UTC(2026, 9, 17, 4)),
-  // v2: sessions (chapters), question tables and image slots.
-  p_ensaio_outono: () => shippedDeck("p_ensaio_outono", ensaioOutono, Date.UTC(2026, 9, 25)),
+  // v2: sessions (chapters), question tables and image slots. v3: photos in every slot, colour cover.
+  p_ensaio_outono: () => shippedDeck("p_ensaio_outono", ensaioOutono, Date.UTC(2026, 9, 25, 12)),
 };

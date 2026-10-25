@@ -105,7 +105,7 @@ function Cover({ s, T }: LayoutProps) {
   // An empty string in the JSON keeps a placeholder for a photo to add later.
   const slot = s.image !== undefined;
   return (
-    <div className={cn("xs-pad xs-cover", slot && "has-img", slot && (s.variant === "full" || s.variant === "dim") && "is-full", s.variant === "dim" && "is-dim")}>
+    <div className={cn("xs-pad xs-cover", slot && "has-img", slot && (s.variant === "full" || s.variant === "dim" || s.variant === "color") && "is-full", s.variant === "dim" && "is-dim", s.variant === "color" && "is-color")}>
       <div className="xs-meta3 xs-label">
         <span>{T(s.eyebrow)}</span>
         <span>{T(s.subtitle)}</span>
