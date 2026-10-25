@@ -91,6 +91,7 @@ export default function Music() {
       }
       setAuto(!!data.auto);
       if (data.error) setNotice(errorText(data.error));
+      else if (data.source === "description") setNotice(t("music.foundDescription"));
       else if (data.source) setNotice(t("music.found", { source: data.source }));
     } catch {
       setNotice(errorText("youtube_failed"));

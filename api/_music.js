@@ -100,15 +100,42 @@ export async function getLyrics(input, lang) {
   }
   let title = data?.videoDetails?.title ?? "";
   let author = data?.videoDetails?.author ?? "";
-  // YouTube refuses data-centre servers (Vercel) the player data, but oEmbed still names the video.
-  if (!title) ({ title = "", author = "" } = await oembed(id).catch(() => ({})));
   const tracks = captionTracks(data);
   const rank = (t) => (t.kind === "asr" ? 2 : 0) + (lang && !t.languageCode.startsWith(lang) ? 1 : 0);
   const track = [...tracks].sort((a, b) => rank(a) - rank(b))[0];
-  // No captions, or only automatic ones: a lyrics database has the real words, with stanzas.
-  if (title && (!track || track.kind === "asr")) {
-    const found = await findLyrics(title, author).catch(() => null);
-    if (found) return { id, title, author, ...found, tracks: tracks.map((t) => ({ lang: t.languageCode, auto: t.kind === "asr" })) };
+  const trackList = tracks.map((t) => ({ lang: t.languageCode, auto: t.kind === "asr" }));
+
+  // Captions written by people are the words as sung: use them.
+  // Otherwise (none, only automatic ones, or YouTube refusing this server) look for real lyrics.
+  if (!track || track.kind === "asr") {
+    // YouTube refuses data-centre servers (Vercel) the player data, but the watch data and oEmbed still name the video.
+    let description = "";
+    const info = await videoInfo(id).catch(() => null);
+    if (info) {
+      title ||= info.title;
+      author ||= info.author;
+      description = info.description;
+    }
+    if (!title) ({ title = "", author = "" } = await oembed(id).catch(() => ({})));
+    const done = (found) => ({ id, title, author, ...found, tracks: trackList, tried });
+
+    // 1. The lyrics YouTube Music has for this very video.
+    const own = await musicLyrics(id).catch(() => null);
+    if (own) return done(own);
+    if (title) {
+      const { song, artist } = songAndArtist(title, author);
+      // 2. Lyrics databases by song and artist.
+      const db = await findLyrics(title, author).catch(() => null);
+      if (db) return done(db);
+      // 3. The studio song on YouTube Music (live videos often have no lyrics tab).
+      for (const songId of await musicSongs(`${song} ${artist}`.trim()).catch(() => [])) {
+        const found = await musicLyrics(songId).catch(() => null);
+        if (found) return done({ ...found, song, artist });
+      }
+    }
+    // 4. Lyrics typed into the video description.
+    const typed = descriptionLyrics(description);
+    if (typed) return done({ lines: typed, source: "description" });
   }
   if (!track) return { id, title, author, error: title ? "no_captions" : "youtube_failed", tracks: [], tried };
   const lines = toLines(await trackCues(track.baseUrl));
@@ -122,6 +149,85 @@ export async function getLyrics(input, lang) {
     lines,
     error: lines.length ? undefined : "empty_captions",
   };
+}
+
+/** POST to the innertube API. Unlike the player endpoint, these answer data-centre servers too. */
+async function innertube(endpoint, client, body, host = "www.youtube.com") {
+  const res = await fetch(`https://${host}/youtubei/v1/${endpoint}?prettyPrint=false`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "User-Agent": UA, Origin: `https://${host}` },
+    body: JSON.stringify({ context: { client: { ...client, hl: "en", gl: "US" } }, ...body }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`${endpoint}_${res.status}`);
+  return res.json();
+}
+
+const WEB = { clientName: "WEB", clientVersion: "2.20250312.04.00" };
+const MUSIC = { clientName: "WEB_REMIX", clientVersion: "1.20250310.01.00" };
+
+/** Every value under key `k`, anywhere in a nested innertube response. */
+function dig(o, k, out = []) {
+  if (o && typeof o === "object") {
+    if (k in o) out.push(o[k]);
+    for (const v of Object.values(o)) dig(v, k, out);
+  }
+  return out;
+}
+
+/** Lyrics YouTube Music shows for a video (licensed from Musixmatch / LyricFind), or null. */
+async function musicLyrics(id) {
+  const next = await innertube("next", MUSIC, { videoId: id }, "music.youtube.com");
+  const tab = dig(next, "tabRenderer").find((t) => t.endpoint?.browseEndpoint?.browseId?.startsWith("MPLY"));
+  if (!tab) return null;
+  const page = await innertube("browse", MUSIC, { browseId: tab.endpoint.browseEndpoint.browseId }, "music.youtube.com");
+  const shelf = dig(page, "musicDescriptionShelfRenderer")[0];
+  const text = (shelf?.description?.runs ?? []).map((r) => r.text).join("");
+  if (!text.trim()) return null;
+  const credit = (shelf?.footer?.runs ?? []).map((r) => r.text).join("").replace(/^Source:\s*/i, "");
+  return { lines: lyricRows(text), source: `YouTube Music${credit ? ` · ${credit}` : ""}` };
+}
+
+/** Songs on YouTube Music matching a query (video ids), for live videos that have no lyrics tab. */
+async function musicSongs(query) {
+  // params = the "Songs" filter.
+  const d = await innertube("search", MUSIC, { query, params: "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D" }, "music.youtube.com");
+  return [...new Set(dig(d, "videoId"))].slice(0, 3);
+}
+
+/** Title, channel and description from the watch-page data, which data-centre servers still get. */
+async function videoInfo(id) {
+  const d = await innertube("next", WEB, { videoId: id });
+  const primary = dig(d, "videoPrimaryInfoRenderer")[0];
+  const owner = dig(d, "videoOwnerRenderer")[0];
+  return {
+    title: (primary?.title?.runs ?? []).map((r) => r.text).join(""),
+    author: (owner?.title?.runs ?? []).map((r) => r.text).join(""),
+    description: dig(d, "attributedDescription")[0]?.content ?? "",
+  };
+}
+
+/**
+ * Lyrics pasted in a video description: the longest block of short lines with
+ * no links, handles or hashtags. Needs 8+ lines so a credits list does not pass.
+ */
+function descriptionLyrics(text) {
+  const junk = /https?:|www\.|@|#|\b(instagram|facebook|spotify|tiktok|youtube|subscribe|inscreva|ouça|ouca|listen|stream|download|booking|contato|contact|produ[cç][aã]o|produced|mix|master|direção|direction|filmed|copyright|℗|©)\b/i;
+  let best = [];
+  let run = [];
+  const close = () => {
+    const lines = run.join("\n").replace(/\n{3,}/g, "\n\n").trim().split("\n");
+    if (lines.filter(Boolean).length > best.filter(Boolean).length) best = lines;
+    run = [];
+  };
+  for (const raw of String(text).replace(/\r/g, "").split("\n")) {
+    const l = raw.trim();
+    if (!l) run.push("");
+    else if (l.length <= 80 && !junk.test(l) && !/:$/.test(l)) run.push(l);
+    else close();
+  }
+  close();
+  return best.filter(Boolean).length >= 8 ? best : null;
 }
 
 /** Title and channel of a video; oEmbed answers where the player API refuses. */
@@ -165,12 +271,8 @@ async function getJson(url) {
   return res.json();
 }
 
-/**
- * Lyrics of a song from free databases, by the video's title and channel:
- * LRCLIB first, then lyrics.ovh (whose suggestions also find the real artist
- * when the channel is a label or a church). Returns null when neither knows it.
- */
-export async function findLyrics(title, author) {
+/** Song and artist from a video title and channel. */
+export function songAndArtist(title, author) {
   let song = songName(title);
   let artist = artistName(author);
   // "Artist - Song" or "Song - Artist": the part that names the channel is the artist.
@@ -184,7 +286,16 @@ export async function findLyrics(title, author) {
       if (!isArtist(a)) artist = a.split(/,|&/)[0].trim();
     }
   }
-  song = songName(song);
+  return { song: songName(song), artist };
+}
+
+/**
+ * Lyrics of a song from free databases, by the video's title and channel:
+ * LRCLIB first, then lyrics.ovh (whose suggestions also find the real artist
+ * when the channel is a label or a church). Returns null when neither knows it.
+ */
+export async function findLyrics(title, author) {
+  const { song, artist } = songAndArtist(title, author);
   if (!song) return null;
   const matches = (name) => norm(name).includes(norm(song)) || norm(song).includes(norm(name));
 
