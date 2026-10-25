@@ -28,6 +28,7 @@ async function playerData(id, c) {
     method: "POST",
     headers: { "Content-Type": "application/json", "User-Agent": c.ua, Origin: "https://www.youtube.com" },
     body: JSON.stringify({ videoId: id, context: { client: { ...c.client, hl: "en" }, ...(c.thirdParty ? { thirdParty: c.thirdParty } : {}) } }),
+    signal: AbortSignal.timeout(6000),
   });
   if (!res.ok) throw new Error(`youtube_${res.status}`);
   return res.json();
@@ -35,7 +36,7 @@ async function playerData(id, c) {
 
 /** Watch page fallback: the player data embedded in the HTML. */
 async function watchPageData(id) {
-  const res = await fetch(`https://www.youtube.com/watch?v=${id}&hl=en`, { headers: { "User-Agent": UA, "Accept-Language": "en" } });
+  const res = await fetch(`https://www.youtube.com/watch?v=${id}&hl=en`, { headers: { "User-Agent": UA, "Accept-Language": "en" }, signal: AbortSignal.timeout(6000) });
   const html = await res.text();
   const m = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});(?:var|<\/script>)/s);
   return m ? JSON.parse(m[1]) : {};
