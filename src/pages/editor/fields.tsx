@@ -50,6 +50,7 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
   services: {
     fields: [
       { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "title", label: "editor.fields.title", multiline: true },
       { key: "cta", label: "editor.fields.cta" },
     ],
     items: ["label", "text", "meta", "value", "image"],
@@ -95,6 +96,33 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
       { key: "eyebrow", label: "editor.fields.eyebrow" },
       { key: "subtitle", label: "editor.fields.subtitle" },
       { key: "body", label: "editor.fields.body", multiline: true },
+    ],
+  },
+  chapter: {
+    fields: [
+      { key: "eyebrow", label: "editor.fields.chapterNumber" },
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+    ],
+    items: ["value", "label"],
+  },
+  questions: {
+    fields: [
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.columns" },
+      { key: "images", label: "editor.fields.imageSlots" },
+      { key: "cta", label: "editor.fields.footnote" },
+    ],
+    items: ["value", "label", "text", "meta"],
+  },
+  reel: {
+    fields: [
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "images", label: "editor.fields.imageSlots" },
     ],
   },
   "pitch-cover": {
@@ -244,13 +272,31 @@ export function SlideContentForm({
         f.key === "images" ? (
           <div key="images" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
-            <Textarea
-              rows={3}
-              className="font-mono text-xs"
-              value={(slide.images ?? []).join("\n")}
-              onChange={(e) => onChange({ images: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean) })}
-              placeholder="https://…"
-            />
+            {/* One input per slot; an emptied slot stays as a placeholder until removed. */}
+            {(slide.images ?? []).map((src, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="label-xs w-5 shrink-0 text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                <div className="min-w-0 flex-1">
+                  <ImageInput
+                    compact
+                    value={src || undefined}
+                    onChange={(url) => onChange({ images: slide.images!.map((x, j) => (j === i ? url ?? "" : x)) })}
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("editor.removeSlot")}
+                  title={t("editor.removeSlot")}
+                  onClick={() => onChange({ images: slide.images!.filter((_, j) => j !== i) })}
+                >
+                  <Trash2 />
+                </Button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => onChange({ images: [...(slide.images ?? []), ""] })}>
+              <Plus /> {t("editor.addSlot")}
+            </Button>
           </div>
         ) : f.key === "image" ? (
           <div key="image" className="flex flex-col gap-1.5">

@@ -1,6 +1,6 @@
 {
   "title": "Ensaio de Outono — Primeira Produção",
-  "description": "Aula de orientação: conceito, papéis, paleta e o que cada aluna precisa entregar antes da primeira produção juntas.",
+  "description": "Aula de orientação: conceito, paleta, papéis e o que cada aluna precisa entregar antes da primeira produção juntas.",
   "author": "Marques | Mentorship",
   "tags": ["mentoria", "produção", "outono", "retrato"],
   "languages": ["pt"],
@@ -10,60 +10,151 @@
   "slides": [
     {
       "layout": "cover",
+      "variant": "full",
       "tone": "dark",
       "eyebrow": "Marques | Mentorship",
-      "title": "Ensaio\nde *Outono*",
-      "subtitle": "Primeira produção\njuntas",
+      "title": "Ensaio\nde Outono",
+      "subtitle": "Primeira produção juntas",
       "body": "vocês produzem,\neu dirijo",
       "cta": "Outubro 2026",
-      "notes": "Abrir com energia: hoje não é aula teórica, é o briefing da nossa primeira produção real. Ao final, cada uma sai sabendo exatamente o que fazer."
+      "image": "",
+      "notes": "IMAGEM: retrato de outono, luz suave, tons ferrugem e musgo. Abrir com energia: hoje não é aula teórica, é o briefing da nossa primeira produção real. Ao final, cada uma sai sabendo exatamente o que fazer."
     },
     {
-      "layout": "statement",
-      "tone": "light",
-      "eyebrow": "01",
-      "subtitle": "O conceito",
-      "title": "Uma foto boa começa\nmuito antes\ndo *clique*.",
-      "body": "Na última aula vocês aprenderam a mirar: intenção, referência, luz, moodboard e roteiro de poses. Agora vão usar tudo isso para produzir um ensaio de verdade.",
+      "layout": "reel",
+      "tone": "dark",
+      "eyebrow": "0.0",
+      "title": "Vamos falar disso:\nnossa primeira *produção real*.",
+      "subtitle": "Conceito — Paleta — Produção — Exercício",
+      "images": ["", "", ""],
+      "notes": "IMAGENS: três retratos de outono que resumem o clima do ensaio (um largo, dois verticais). Apresentar o mapa da aula: três sessões e um exercício final. Dizer que no fim ninguém sai com dúvida do que fazer amanhã."
+    },
+    {
+      "layout": "chapter",
+      "tone": "accent",
+      "eyebrow": "1",
+      "title": "O conceito",
+      "body": "Na última aula vocês aprenderam a mirar: intenção, referência, luz, moodboard e roteiro de poses. *Agora vão usar tudo isso para produzir um ensaio de verdade.*",
+      "items": [
+        { "value": "1.1", "label": "A intenção do ensaio" },
+        { "value": "1.2", "label": "A direção: outono editorial" },
+        { "value": "1.3", "label": "A luz do dia nublado" }
+      ],
       "notes": "Ligar com a Sessão 2. Perguntar: 'o que separa uma foto bonita de uma foto com intenção?' Deixar responderem antes de seguir."
     },
     {
-      "layout": "statement",
-      "tone": "accent",
-      "eyebrow": "02",
-      "subtitle": "A direção do ensaio",
-      "title": "Outono\n*editorial*",
-      "body": "Luz suave de dia nublado, tons profundos, introspecção e elegância. Retratos no parque, sem pressa. Se abrir sol no fim da tarde, a golden hour é bônus.",
-      "cta": "Horário de trabalho: 14h30 – 16h45",
-      "notes": "Explicar por que nublado é aliado na Holanda: luz difusa, pele bonita, sem sombra dura. O sol se põe por volta das 17h, por isso a janela curta."
+      "layout": "questions",
+      "tone": "light",
+      "eyebrow": "1.1",
+      "title": "Em intenção —\na decisão que vem antes\ndo *clique*.",
+      "subtitle": "Número / Pergunta / Neste ensaio",
+      "items": [
+        { "label": "O quê?", "text": "*Retratos de uma pessoa real* no parque, em clima de outono. Ela é o centro; o resto é cenário." },
+        { "label": "Por quê?", "text": "Transmitir *introspecção e elegância*: calma, sem pressa, olhar para dentro." },
+        { "label": "Para quem?", "text": "*O portfólio de cada uma*: prova que vocês sabem produzir um editorial do início ao fim." },
+        { "label": "Como?", "text": "*Luz difusa, paleta quente e profunda*, poses lentas, planos médios e fechados." }
+      ],
+      "images": ["", "", "", ""],
+      "notes": "IMAGENS: quatro referências de retrato com intenção clara. Ler pergunta por pergunta e mostrar que a resposta já decide luz, pose e enquadramento."
     },
     {
-      "layout": "pitch-numbers",
+      "layout": "reel",
+      "tone": "dark",
+      "eyebrow": "1.2",
+      "title": "Outono editorial: luz suave,\ntons profundos, *sem pressa*.",
+      "subtitle": "Introspecção — Elegância — Parque",
+      "body": "Trabalhamos das 14h30 às 16h45. Se abrir sol no fim da tarde, a golden hour é bônus.",
+      "images": ["", "", ""],
+      "notes": "IMAGENS: referências de editorial de outono (um plano aberto no parque, dois retratos). Descrever o clima: elegante, contido, nada de pose forçada."
+    },
+    {
+      "layout": "questions",
       "tone": "light",
-      "title": "A *paleta*",
+      "eyebrow": "1.3",
+      "title": "A luz —\npor que o dia nublado\né *nosso aliado*.",
+      "subtitle": "Número / Princípio / Como aplicar",
       "items": [
-        { "value": "01", "text": "Ferrugem · #A4502C — a cor de destaque. Uma peça, nunca o look inteiro." },
-        { "value": "02", "text": "Mostarda queimada · #B8892E — apoio quente, conversa com as folhas." },
-        { "value": "03", "text": "Verde musgo · #4F5A34 — a ponte com o parque." },
-        { "value": "04", "text": "Chocolate · #3E2A20 — base e profundidade." },
-        { "value": "05", "text": "Aveia / creme · #E4D6BE — respiro, ilumina o rosto." }
+        { "label": "Difusa", "text": "Nublado é um softbox gigante: *pele bonita, sem sombra dura*." },
+        { "label": "Direção", "text": "Mesmo sem sol, a luz vem de algum lado. *Virem o rosto para a claridade.*" },
+        { "label": "Fundo", "text": "Árvores e folhas escuras dão profundidade. *Evitem céu branco atrás da pessoa.*" },
+        { "label": "Janela", "text": "O sol se põe por volta das 17h: *14h30 – 16h45 é a nossa janela*." },
+        { "label": "Bônus", "text": "Se abrir sol no fim: *contraluz pelas folhas*, golden hour." }
       ],
-      "cta": "Regra: no máximo 3 cores por look, 1 de destaque. Fora: preto total, branco puro, neon, estampas grandes e logos. Valem texturas: tricô, lã, couro, camurça, linho.",
-      "notes": "A paleta é o que dá unidade ao ensaio. Cada uma traz uma pessoa diferente, mas o conjunto precisa parecer um editorial só."
+      "images": ["", "", "", ""],
+      "notes": "IMAGENS: dois retratos com luz de dia nublado, um com fundo escuro de árvores, um contraluz de fim de tarde. Explicar por que nublado é aliado na Holanda."
+    },
+    {
+      "layout": "chapter",
+      "tone": "accent",
+      "eyebrow": "2",
+      "title": "A paleta",
+      "body": "Cada uma traz uma pessoa diferente. *A paleta é o que faz o conjunto parecer um editorial só.*",
+      "items": [
+        { "value": "2.1", "label": "As cinco cores" },
+        { "value": "2.2", "label": "O figurino e a regra das 3 cores" }
+      ],
+      "notes": "A paleta é o que dá unidade ao ensaio."
+    },
+    {
+      "layout": "questions",
+      "tone": "light",
+      "eyebrow": "2.1",
+      "title": "Cinco cores,\num *editorial só*.",
+      "subtitle": "Número / Cor / Como usar",
+      "items": [
+        { "label": "Ferrugem", "meta": "#A4502C", "text": "*A cor de destaque.* Uma peça, nunca o look inteiro." },
+        { "label": "Mostarda", "meta": "#B8892E", "text": "Apoio quente: *conversa com as folhas*." },
+        { "label": "Musgo", "meta": "#4F5A34", "text": "*A ponte com o parque.* Calças, casacos, acessórios." },
+        { "label": "Chocolate", "meta": "#3E2A20", "text": "*Base e profundidade.* Couro, sapatos, sobretudo." },
+        { "label": "Aveia", "meta": "#E4D6BE", "text": "*Respiro*: perto do rosto, ilumina a pele." }
+      ],
+      "images": ["", "", "", ""],
+      "notes": "IMAGENS: referências de looks dentro da paleta. Mostrar como cada cor aparece numa peça só, sem pintar o look inteiro."
+    },
+    {
+      "layout": "questions",
+      "tone": "light",
+      "eyebrow": "2.2",
+      "title": "O figurino —\na regra das *3 cores*.",
+      "subtitle": "Número / Regra / Na prática",
+      "items": [
+        { "label": "Máximo 3", "text": "*No máximo 3 cores por look*, sempre dentro da paleta." },
+        { "label": "1 destaque", "text": "*Uma só cor de destaque*: ferrugem ou mostarda." },
+        { "label": "Texturas", "text": "Valem *tricô, lã, couro, camurça e linho*: dão profundidade." },
+        { "label": "Fora", "text": "*Preto total, branco puro e neon* — e estampas grandes e logos." },
+        { "label": "Prova", "text": "Montem o look com a pessoa e *mandem foto antes do dia*." }
+      ],
+      "images": ["", "", "", "", "", ""],
+      "notes": "IMAGENS: seis referências de figurino (texturas, sobreposições, detalhes). Mostrar um look que funciona e um que quebra a regra."
+    },
+    {
+      "layout": "chapter",
+      "tone": "accent",
+      "eyebrow": "3",
+      "title": "A produção",
+      "body": "Vocês não estão ajudando: *vocês são as produtoras do próprio ensaio*, como numa produção profissional.",
+      "items": [
+        { "value": "3.1", "label": "Uma produção profissional" },
+        { "value": "3.2", "label": "O que vocês precisam fazer" },
+        { "value": "3.3", "label": "O moodboard é um roteiro" },
+        { "value": "3.4", "label": "Os três portões" }
+      ],
+      "notes": "Virar a chave: daqui em diante elas assumem a produção."
     },
     {
       "layout": "services",
       "tone": "dark",
-      "eyebrow": "Quem faz o quê",
+      "eyebrow": "3.1 · Uma produção profissional",
+      "title": "Cada etapa tem um *dono*.",
       "items": [
         {
           "label": "Vocês\nproduzem",
-          "text": "Pessoa, figurino, moodboard, roteiro de poses e briefing. Vocês também fotografam no dia.",
-          "meta": "Produtoras",
+          "text": "Pessoa, figurino, moodboard, roteiro de poses e briefing. No dia, vocês também fotografam.",
+          "meta": "Pré-produção",
           "value": "Antes"
         },
         {
-          "label": "Eu\naprovo",
+          "label": "Eu dirijo\ne aprovo",
           "text": "Reviso cada entrega em três portões. Nada avança sem o meu ok.",
           "meta": "Direção",
           "value": "Portões"
@@ -71,66 +162,114 @@
         {
           "label": "Juntas\nfotografamos",
           "text": "No parque eu dirijo luz, pose e técnica ao vivo enquanto vocês fotografam.",
-          "meta": "Set",
+          "meta": "Produção",
           "value": "Dia D"
         }
       ],
-      "notes": "Deixar claro: elas não estão 'ajudando'. Elas são as produtoras do próprio ensaio, como numa produção profissional."
+      "notes": "Deixar claro: elas não estão 'ajudando'. Elas são as produtoras do próprio ensaio, como numa produção profissional: pré-produção, direção e set."
     },
     {
-      "layout": "pitch-numbers",
+      "layout": "questions",
       "tone": "light",
-      "title": "O que vocês\nprecisam *fazer*",
+      "eyebrow": "3.2",
+      "title": "O que vocês\nprecisam *fazer*.",
+      "subtitle": "Número / Tarefa / Como fazer",
       "items": [
-        { "value": "01", "text": "Convidar 1 pessoa: amiga, familiar ou parceiro. Confortável na câmera e de acordo com o uso das fotos no portfólio." },
-        { "value": "02", "text": "Escrever a ficha de intenção: 3 a 4 frases sobre o que a foto deve dizer." },
-        { "value": "03", "text": "Montar o moodboard: 6 a 9 imagens, sempre dentro da paleta." },
-        { "value": "04", "text": "Definir o figurino com a pessoa, seguindo a regra das 3 cores." },
-        { "value": "05", "text": "Criar o roteiro de 5 a 8 poses para aquela pessoa, naquele parque." },
-        { "value": "06", "text": "Enviar o briefing para a pessoa: local, horário, roupa e o que esperar." }
+        { "label": "A pessoa", "text": "Convidar 1 pessoa: amiga, familiar ou parceiro. *Confortável na câmera e de acordo com o uso no portfólio.*" },
+        { "label": "A intenção", "text": "*3 a 4 frases* respondendo: o quê, por quê, para quem, como." },
+        { "label": "O moodboard", "text": "*6 a 9 imagens* dentro da paleta, cada uma com uma frase." },
+        { "label": "O figurino", "text": "Definir com a pessoa, *seguindo a regra das 3 cores*." },
+        { "label": "As poses", "text": "*5 a 8 poses* para aquela pessoa, naquele parque." },
+        { "label": "O briefing", "text": "Enviar à pessoa: *local, horário, roupa e o que esperar*." }
       ],
-      "cta": "Plano B: se alguém não conseguir uma pessoa, vocês posam umas para as outras.",
+      "cta": "Plano B: se alguém não conseguir uma pessoa, *vocês posam umas para as outras*.",
       "notes": "Ler item por item e confirmar que cada uma entendeu. A ficha em PDF segue exatamente esta ordem."
     },
     {
-      "layout": "stats",
-      "tone": "dark",
-      "eyebrow": "As imagens",
-      "title": "O moodboard\né um *roteiro*",
-      "body": "Não é colagem de fotos bonitas. Cada referência precisa responder: que luz, que pose, que enquadramento. Separem por esses três eixos e justifiquem cada escolha em uma frase.",
+      "layout": "questions",
+      "tone": "light",
+      "eyebrow": "3.3",
+      "title": "Em referências —\no moodboard é um *roteiro*,\nnão uma colagem.",
+      "subtitle": "Número / Eixo / Cada imagem responde",
       "items": [
-        { "value": "6–9", "label": "Referências" },
-        { "value": "3", "label": "Eixos: luz, pose, enquadramento" },
-        { "value": "5", "label": "Cores da paleta" },
-        { "value": "1", "label": "Frase por imagem" }
+        { "label": "Luz", "text": "*De onde vem?* Suave ou dura? Lateral, frontal ou contraluz?" },
+        { "label": "Pose", "text": "*Ombros e quadril*, para onde vai o olhar, o que as mãos fazem?" },
+        { "label": "Enquadramento", "text": "*Plano fechado, médio ou aberto?* Altura da câmera?" },
+        { "label": "Cor", "text": "*Está dentro da paleta?* Quente ou fria, saturada ou não?" },
+        { "label": "A frase", "text": "*Uma frase* dizendo por que esta imagem está aqui." }
       ],
-      "notes": "Retomar o exercício de desconstrução da Sessão 2. Mostrar uma referência de outono e desconstruir ao vivo: de onde vem a luz, qual a pose, qual o plano."
+      "images": ["", "", "", "", "", "", "", "", ""],
+      "notes": "IMAGENS: nove referências de outono para o moodboard modelo. Retomar o exercício de desconstrução da Sessão 2: escolher uma e desconstruir ao vivo."
     },
     {
       "layout": "services",
       "tone": "light",
-      "eyebrow": "Os três portões",
+      "eyebrow": "3.4 · Os três portões",
+      "title": "Nada avança\nsem *aprovação*.",
       "items": [
         {
           "label": "Portão 1\nPessoa",
           "text": "Pessoa confirmada, com data, plano B e autorização de imagem.",
-          "meta": "Itens 01",
+          "meta": "Tarefa 01",
           "value": "Até [data]"
         },
         {
           "label": "Portão 2\nMoodboard",
           "text": "Ficha de intenção, moodboard e figurino aprovados.",
-          "meta": "Itens 02 – 04",
+          "meta": "Tarefas 02 – 04",
           "value": "Até [data]"
         },
         {
           "label": "Portão 3\nRoteiro",
           "text": "Roteiro de poses e briefing enviados 3 dias antes do ensaio.",
-          "meta": "Itens 05 – 06",
+          "meta": "Tarefas 05 – 06",
           "value": "Até [data]"
         }
       ],
       "notes": "Combinar as datas ali mesmo com elas e preencher. Cada portão é uma mensagem rápida para mim com a parte correspondente da ficha."
+    },
+    {
+      "layout": "chapter",
+      "tone": "accent",
+      "eyebrow": "4",
+      "title": "Exercício",
+      "body": "Antes de sair da sala, cada uma começa a própria produção. *Ninguém vai embora sem o primeiro passo dado.*",
+      "items": [
+        { "value": "4.1", "label": "O exercício, agora" },
+        { "value": "4.2", "label": "Como vai ser o Dia D" },
+        { "value": "4.3", "label": "Entrega e próximos passos" }
+      ],
+      "notes": "Mudar o ritmo: agora é mão na massa."
+    },
+    {
+      "layout": "questions",
+      "tone": "light",
+      "eyebrow": "4.1",
+      "title": "O exercício —\nantes de sair *da sala*.",
+      "subtitle": "Tempo / Etapa / O que fazer",
+      "items": [
+        { "value": "10′", "label": "A pessoa", "text": "Escrevam o nome de quem vão convidar e *mandem a mensagem ainda hoje*." },
+        { "value": "15′", "label": "A intenção", "text": "Rascunho da ficha: *o quê, por quê, para quem, como*." },
+        { "value": "10′", "label": "Em dupla", "text": "Troquem a ficha e *desconstruam uma referência*: luz, pose, enquadramento." },
+        { "value": "5′", "label": "Em voz alta", "text": "Cada uma diz *qual é o primeiro passo dela amanhã*." }
+      ],
+      "images": ["", "", "", ""],
+      "notes": "IMAGENS: quatro referências de outono para a desconstrução em dupla. Controlar o tempo de cada etapa."
+    },
+    {
+      "layout": "questions",
+      "tone": "dark",
+      "eyebrow": "4.2",
+      "title": "O Dia D —\ncomo vai ser *no parque*.",
+      "subtitle": "Hora / Momento / O que acontece",
+      "items": [
+        { "value": "14h15", "label": "Encontro", "text": "Checar figurino, *baterias carregadas e cartões vazios*." },
+        { "value": "14h30", "label": "Aquecimento", "text": "Primeiras fotos sem pressão: *a pessoa relaxa*." },
+        { "value": "15h00", "label": "Roteiro", "text": "Cada uma conduz as suas poses; *eu dirijo luz e técnica*." },
+        { "value": "16h15", "label": "Variações", "text": "Detalhes, movimento, *plano aberto no parque*." },
+        { "value": "16h45", "label": "Fim", "text": "Golden hour se abrir sol. *Agradecer e combinar a entrega.*" }
+      ],
+      "notes": "Contar o dia como um filme, para tirar a ansiedade. Reforçar: chegar 15 minutos antes."
     },
     {
       "layout": "contact",

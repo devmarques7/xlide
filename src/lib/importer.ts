@@ -149,6 +149,12 @@ export function blankSlide(layout: Layout): Slide {
   if (["stats"].includes(layout)) base.items = [0, 1, 2, 3].map(() => ({ id: uid("i_"), value: "", label: "" }));
   if (layout.startsWith("pitch-") && layout !== "pitch-cover") base.items = [0, 1, 2].map(() => ({ id: uid("i_"), label: "", text: "" }));
   if (layout === "pitch-cover") base.tone = "dark";
+  if (layout === "chapter") base.items = [0, 1, 2].map((i) => ({ id: uid("i_"), value: `1.${i + 1}`, label: "" }));
+  if (layout === "questions") {
+    base.items = [0, 1, 2, 3].map(() => ({ id: uid("i_"), label: "", text: "" }));
+    base.images = ["", "", "", ""];
+  }
+  if (layout === "reel") base.images = ["", "", ""];
   if (["services", "gallery", "split", "contact"].includes(layout))
     base.items = [0, 1].map(() => ({ id: uid("i_"), label: "", text: "" }));
   return base;
