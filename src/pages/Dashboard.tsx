@@ -1,4 +1,4 @@
-import { Copy, FileJson, FileText, LayoutTemplate, MoreHorizontal, Pencil, Play, Plus, Search, Trash2, X } from "lucide-react";
+import { Copy, FileJson, FileText, LayoutTemplate, MoreHorizontal, Music2, Pencil, Play, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -124,6 +124,9 @@ export default function Dashboard() {
             </DropdownMenu>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <FileJson /> {t("dash.import")}
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/music")}>
+              <Music2 /> {t("music.new")}
             </Button>
           </div>
         </section>

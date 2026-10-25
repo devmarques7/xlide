@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { onAccent, useLook } from "./look";
 import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchStatement, PitchTeam, PitchToc } from "./pitch";
 import { FillImage, FillText } from "./fill";
+import { Lyrics } from "./lyrics";
 import { Rich } from "./rich";
 import { SlideImage } from "./slide-image";
 import "./slides.css";
@@ -481,6 +482,7 @@ const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.React
   questions: Questions,
   reel: Reel,
   moodboard: Moodboard,
+  lyrics: Lyrics,
   "pitch-cover": PitchCover,
   "pitch-statement": PitchStatement,
   "pitch-numbers": PitchNumbers,

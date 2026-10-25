@@ -1,5 +1,6 @@
 import { Link2, Languages, Plus, Trash2 } from "lucide-react";
 import { ImageInput } from "@/components/image-input";
+import { BackgroundPicker, FontPicker } from "@/components/lyrics-controls";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { ICON_NAMES, ICONS } from "@/lib/icons";
@@ -12,7 +13,7 @@ type SlideKey = "eyebrow" | "title" | "subtitle" | "body" | "cta" | "notes";
 type ItemKey = "label" | "value" | "text" | "meta";
 
 interface FieldDef {
-  key: SlideKey | "image" | "images";
+  key: SlideKey | "image" | "images" | "bg" | "font";
   label: TKey;
   multiline?: boolean;
 }
@@ -132,6 +133,16 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
       { key: "subtitle", label: "editor.fields.subtitle" },
       { key: "body", label: "editor.fields.body", multiline: true },
       { key: "images", label: "editor.fields.imageSlots" },
+    ],
+  },
+  lyrics: {
+    fields: [
+      { key: "title", label: "editor.fields.lyricLines", multiline: true },
+      { key: "subtitle", label: "editor.fields.translation", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "cta", label: "editor.fields.footnote" },
+      { key: "font", label: "editor.fields.font" },
+      { key: "bg", label: "editor.fields.bg" },
     ],
   },
   "pitch-cover": {
@@ -306,6 +317,16 @@ export function SlideContentForm({
             <Button variant="outline" size="sm" onClick={() => onChange({ images: [...(slide.images ?? []), ""] })}>
               <Plus /> {t("editor.addSlot")}
             </Button>
+          </div>
+        ) : f.key === "bg" ? (
+          <div key="bg" className="flex flex-col gap-1.5">
+            <Label>{t(f.label)}</Label>
+            <BackgroundPicker value={slide.bg} onChange={(bg) => onChange({ bg })} />
+          </div>
+        ) : f.key === "font" ? (
+          <div key="font" className="flex flex-col gap-1.5">
+            <Label>{t(f.label)}</Label>
+            <FontPicker value={slide.font} onChange={(font) => onChange({ font })} />
           </div>
         ) : f.key === "image" ? (
           <div key="image" className="flex flex-col gap-1.5">

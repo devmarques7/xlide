@@ -15,6 +15,7 @@ const CAPACITY: Record<Layout, number> = {
   questions: 120,
   reel: 40,
   moodboard: 50,
+  lyrics: 30,
   "pitch-cover": 30,
   "pitch-statement": 70,
   "pitch-numbers": 40,

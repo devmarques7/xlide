@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { WebSocketServer } from "ws";
+import { getLyrics, searchBackgrounds, translateLines } from "../api/_music.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.env.NODE_ENV === "production";
@@ -77,6 +78,27 @@ app.get("/api/images/:id", (req, res) => {
   const { type, data } = JSON.parse(fs.readFileSync(file, "utf8"));
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   res.type(type).send(Buffer.from(data, "base64"));
+});
+
+// Music slides: same handlers as the Vercel functions in api/music.
+app.get("/api/music/lyrics", async (req, res) => {
+  try {
+    res.json(await getLyrics(req.query.url, req.query.lang));
+  } catch (e) {
+    res.status(502).json({ error: "youtube_failed", detail: String(e?.message ?? e) });
+  }
+});
+app.post("/api/music/translate", async (req, res) => {
+  const { lines, target, source } = req.body ?? {};
+  if (!Array.isArray(lines) || typeof target !== "string") return res.status(400).json({ error: "bad_request" });
+  try {
+    res.json({ lines: await translateLines(lines.map(String).slice(0, 400), target, source || "auto") });
+  } catch (e) {
+    res.status(502).json({ error: "translate_failed", detail: String(e?.message ?? e) });
+  }
+});
+app.get("/api/music/backgrounds", async (req, res) => {
+  res.json(await searchBackgrounds(req.query.q, process.env.PEXELS_API_KEY));
 });
 
 if (PROD) {

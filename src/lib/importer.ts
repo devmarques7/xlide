@@ -46,6 +46,8 @@ export function asSlide(raw: unknown): Slide {
     variant: typeof r.variant === "string" ? r.variant : undefined,
     items: Array.isArray(r.items) ? r.items.map(asItem) : undefined,
     notes: asLText(r.notes),
+    bg: typeof r.bg === "string" ? r.bg : undefined,
+    font: typeof r.font === "string" ? r.font : undefined,
   };
 }
 
@@ -156,6 +158,7 @@ export function blankSlide(layout: Layout): Slide {
   }
   if (layout === "reel") base.images = ["", "", ""];
   if (layout === "moodboard") base.images = Array(9).fill("");
+  if (layout === "lyrics") Object.assign(base, { tone: "dark", bg: "wash:ember", font: "grotesk" });
   if (["services", "gallery", "split", "contact"].includes(layout))
     base.items = [0, 1].map(() => ({ id: uid("i_"), label: "", text: "" }));
   return base;

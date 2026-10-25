@@ -4,7 +4,7 @@ export type Locale = (typeof LOCALES)[number];
 /** A text value: plain string (same for every language) or one per language. */
 export type LText = string | Partial<Record<Locale, string>>;
 
-export const EDITORIAL_LAYOUTS = ["aura", "cover", "stats", "services", "gallery", "split", "statement", "contact", "image", "chapter", "questions", "reel", "moodboard"] as const;
+export const EDITORIAL_LAYOUTS = ["aura", "cover", "stats", "services", "gallery", "split", "statement", "contact", "image", "chapter", "questions", "reel", "moodboard", "lyrics"] as const;
 export const PITCH_LAYOUTS = ["pitch-cover", "pitch-statement", "pitch-numbers", "pitch-feature", "pitch-toc", "pitch-split", "pitch-team"] as const;
 export const LAYOUTS = [...EDITORIAL_LAYOUTS, ...PITCH_LAYOUTS] as const;
 
@@ -60,6 +60,10 @@ export interface Slide {
   variant?: string;
   items?: SlideItem[];
   notes?: LText;
+  /** Lyrics slides: "wash:<id>" or a video/image URL behind the words. */
+  bg?: string;
+  /** Lyrics slides: grotesk | serif | condensed | mono. */
+  font?: string;
 }
 
 export interface Presentation {

@@ -490,6 +490,49 @@
 .xs-fill-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 @media print { .xs-fill-img:not(:has(img)) .xs-label { display: none; } }
 
+
+/* ── lyrics (worship) ── */
+.xs-lyrics { position: absolute; inset: 0; overflow: hidden; background: #050505; color: var(--ly-ink); --mute: color-mix(in oklab, var(--ly-ink) 70%, transparent); }
+.xs-wash { position: absolute; inset: 0; overflow: hidden; background: var(--w0); }
+.xs-wash span { position: absolute; border-radius: 50% !important; filter: blur(10cqmin); will-change: transform; }
+.xs-wash span:nth-child(1) { width: 75%; height: 80%; left: 40%; top: 25%; background: radial-gradient(closest-side, var(--w1), transparent); --dx: -24%; --dy: 8%; }
+.xs-wash span:nth-child(2) { width: 60%; height: 70%; left: -5%; top: 40%; background: radial-gradient(closest-side, var(--w2), transparent); --dx: 28%; --dy: -12%; }
+.xs-wash span:nth-child(3) { width: 50%; height: 55%; left: 55%; top: -10%; background: radial-gradient(closest-side, var(--w3), transparent); --dx: -30%; --dy: 18%; }
+.xs-wash span:nth-child(4) { width: 70%; height: 60%; left: 10%; top: -20%; background: radial-gradient(closest-side, var(--w4), transparent); --dx: 16%; --dy: 22%; }
+/* Lens streak: a soft diagonal band of light sliding back and forth. */
+.xs-wash i {
+  position: absolute; inset: -30% -10%; transform: rotate(-24deg);
+  background: linear-gradient(90deg, transparent 38%, color-mix(in oklab, var(--ws) 70%, transparent) 47%, color-mix(in oklab, var(--ws) 25%, #fff) 50%, transparent 58%);
+  filter: blur(5cqmin); opacity: 0.75; mix-blend-mode: screen;
+}
+.xs[data-animate] .xs-wash span { animation: aura-drift 16s ease-in-out infinite alternate; }
+.xs[data-animate] .xs-wash span:nth-child(2) { animation-duration: 19s; animation-delay: -7s; }
+.xs[data-animate] .xs-wash span:nth-child(3) { animation-duration: 13s; animation-delay: -4s; }
+.xs[data-animate] .xs-wash span:nth-child(4) { animation-duration: 22s; animation-delay: -11s; }
+.xs[data-animate] .xs-wash i { animation: wash-streak 18s ease-in-out infinite alternate; }
+@keyframes wash-streak { from { transform: rotate(-24deg) translateX(-22%); } to { transform: rotate(-20deg) translateX(22%); } }
+@media (prefers-reduced-motion: reduce) { .xs .xs-wash span, .xs .xs-wash i { animation: none !important; } }
+.xs-wash-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.xs-ly-grain {
+  position: absolute; inset: 0; opacity: 0.14; mix-blend-mode: overlay; pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.xs-ly-content { align-items: center; justify-content: space-between; text-align: center; z-index: 1; }
+.xs-ly-top, .xs-ly-foot { color: var(--mute); letter-spacing: 0.14em; min-height: 1em; }
+.xs-ly-words { display: flex; flex-direction: column; align-items: center; gap: 3cqmin; max-width: 86%; }
+.xs-ly-lines {
+  font-family: var(--ly-font); font-weight: 500; letter-spacing: -0.02em; line-height: 1.08;
+  font-size: calc(min(7.2cqmin, 30cqh / var(--n, 2)) * var(--k)); text-wrap: balance;
+  text-shadow: 0 0.4cqmin 3cqmin rgb(0 0 0 / 0.35);
+}
+.xs-ly-lines > span, .xs-ly-trans > span { display: block; }
+.font-serif .xs-ly-lines { font-weight: 400; letter-spacing: -0.01em; font-size: calc(min(8.4cqmin, 34cqh / var(--n, 2)) * var(--k)); }
+.font-condensed .xs-ly-lines { font-weight: 400; letter-spacing: 0.01em; line-height: 0.98; font-size: calc(min(10cqmin, 38cqh / var(--n, 2)) * var(--k)); }
+.font-mono .xs-ly-lines { font-weight: 400; letter-spacing: -0.03em; font-size: calc(min(5.6cqmin, 26cqh / var(--n, 2)) * var(--k)); text-transform: uppercase; }
+.xs-ly-trans { font-family: var(--ly-font); font-size: calc(3.2cqmin * var(--k)); line-height: 1.25; color: var(--mute); }
+.font-serif .xs-ly-trans { font-style: italic; font-size: calc(3.8cqmin * var(--k)); }
+.font-condensed .xs-ly-trans { font-family: var(--font-sans); }
+
 /* ───────── portrait (phones) ───────── */
 @container slide (aspect-ratio < 1) {
   .xs { --pad: 6cqw; }
@@ -578,4 +621,7 @@
   .xs-moodboard .xs-mb-grid { flex: none; grid-template-columns: 1fr 1fr; grid-template-rows: none; grid-auto-rows: 36cqw; }
   .xs-moodboard .xs-slot:nth-child(n) { grid-area: auto; }
   .xs-moodboard .xs-slot:first-child { grid-column: 1 / -1; }
+  .xs-ly-words { max-width: 100%; }
+  .xs-ly-lines { font-size: calc(min(9cqw, 40cqh / var(--n, 2)) * var(--k)); }
+  .xs-ly-trans { font-size: calc(5cqw * var(--k)); }
 }
