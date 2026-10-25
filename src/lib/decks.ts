@@ -24,5 +24,6 @@ export const SHIPPED_DECKS: Record<string, () => Presentation> = {
   // v4: keeps the edits made in the app on 25 Oct (newer than v3, so they had hidden it).
   p_ensaio_outono: () => shippedDeck("p_ensaio_outono", ensaioOutono, Date.UTC(2026, 9, 25, 14)),
   // Worksheet for the Ensaio de Outono class; students fill it in at /fill/p_ficha_outono.
-  p_ficha_outono: () => shippedDeck("p_ficha_outono", fichaProducao),
+  // v2: "Baixar PDF" wording; keeps the two moodboard photos swapped in the app.
+  p_ficha_outono: () => shippedDeck("p_ficha_outono", fichaProducao, Date.UTC(2026, 9, 25, 15, 45)),
 };

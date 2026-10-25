@@ -1,7 +1,9 @@
-import { ArrowLeft, Printer } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Download, Loader2, Printer } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { downloadPdf } from "@/lib/pdf";
 import { usePrefs } from "@/lib/prefs";
 import { builtinDeck, usePresentation } from "@/lib/store";
 import { LOCALES, tx, type Locale } from "@/lib/types";
@@ -18,7 +20,7 @@ function loadAnswers(key: string): Record<string, string> {
 }
 
 /**
- * Every slide on its own 16:9 page, for "Save as PDF" in the print dialog.
+ * Every slide on its own 1600×900 page: "Download PDF" builds the file directly; Print stays as a fallback.
  * `fill` (public /fill/:id): empty answer cells and image slots can be filled
  * in first; answers stay in this browser only.
  */
@@ -49,6 +51,22 @@ export default function Print({ fill = false }: { fill?: boolean }) {
   );
   const fillApi = useMemo(() => (fill ? { get: (k: string) => answers[k] ?? "", set } : null), [fill, answers, set]);
 
+  const pagesRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const exportPdf = async () => {
+    if (!deck || progress) return;
+    const pages = [...(pagesRef.current?.querySelectorAll<HTMLElement>(".print-page > .xs") ?? [])];
+    setProgress(`0/${pages.length}`);
+    try {
+      await downloadPdf(pages, `${tx(deck.title, lang, deck.defaultLanguage)}.pdf`, (n, total) => setProgress(`${n}/${total}`));
+    } catch (e) {
+      console.error(e);
+      toast.error(t("print.failed"));
+    } finally {
+      setProgress(null);
+    }
+  };
+
   useEffect(() => {
     if (deck) document.title = tx(deck.title, lang, deck.defaultLanguage);
   }, [deck, lang]);
@@ -68,10 +86,17 @@ export default function Print({ fill = false }: { fill?: boolean }) {
           </Button>
         )}
         <span className="text-sm text-muted-foreground">{t(fill ? "fill.hint" : "print.hint")}</span>
-        <Button size="sm" onClick={() => window.print()}>
-          <Printer /> {t("print.save")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => window.print()} aria-label={t("print.print")}>
+            <Printer /> <span className="hidden sm:inline">{t("print.print")}</span>
+          </Button>
+          <Button size="sm" onClick={exportPdf} disabled={!!progress}>
+            {progress ? <Loader2 className="animate-spin" /> : <Download />}
+            {progress ? t("print.working", { n: progress }) : t("print.save")}
+          </Button>
+        </div>
       </div>
+      <div ref={pagesRef}>
       <FillProvider value={fillApi}>
         <DeckLook deck={deck} lang={lang}>
           {deck.slides.map((s, i) => (
@@ -83,6 +108,7 @@ export default function Print({ fill = false }: { fill?: boolean }) {
           ))}
         </DeckLook>
       </FillProvider>
+      </div>
     </div>
   );
 }

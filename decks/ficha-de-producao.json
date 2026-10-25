@@ -2,8 +2,15 @@
   "title": "Ficha de Produção — Ensaio de Outono",
   "description": "Exercício da aula Ensaio de Outono: pessoa, intenção, palavras-chave, moodboard, desconstrução das referências, figurino, poses, briefing e checklist dos portões. Preencha em /fill e salve em PDF.",
   "author": "Marques | Mentorship",
-  "tags": ["mentoria", "exercício", "outono", "moodboard"],
-  "languages": ["pt"],
+  "tags": [
+    "mentoria",
+    "exercício",
+    "outono",
+    "moodboard"
+  ],
+  "languages": [
+    "pt"
+  ],
   "defaultLanguage": "pt",
   "template": "editorial",
   "accent": "#A4502C",
@@ -27,12 +34,30 @@
       "title": "Como preencher\nesta *ficha*.",
       "subtitle": "Passo / Regra / Como fazer",
       "items": [
-        { "label": "Em ordem", "text": "Preencham *página por página*: a ordem é a mesma das tarefas da aula." },
-        { "label": "Escrever", "text": "Escrevam *nas linhas*. Frases curtas, concretas — nada de “bonito” ou “legal”." },
-        { "label": "Imagens", "text": "Toquem no *+* para pôr uma foto. Os exemplos ao lado servem de guia." },
-        { "label": "Paleta", "text": "Tudo dentro das *5 cores*: ferrugem, mostarda, musgo, chocolate, aveia." },
-        { "label": "Portões", "text": "Enviem a página do portão *no prazo*. Nada avança sem o meu ok." },
-        { "label": "Salvar", "text": "No fim: *Salvar como PDF* e enviar o arquivo para mim." }
+        {
+          "label": "Em ordem",
+          "text": "Preencham *página por página*: a ordem é a mesma das tarefas da aula."
+        },
+        {
+          "label": "Escrever",
+          "text": "Escrevam *nas linhas*. Frases curtas, concretas — nada de “bonito” ou “legal”."
+        },
+        {
+          "label": "Imagens",
+          "text": "Toquem no *+* para pôr uma foto. Os exemplos ao lado servem de guia."
+        },
+        {
+          "label": "Paleta",
+          "text": "Tudo dentro das *5 cores*: ferrugem, mostarda, musgo, chocolate, aveia."
+        },
+        {
+          "label": "Portões",
+          "text": "Enviem a página do portão *no prazo*. Nada avança sem o meu ok."
+        },
+        {
+          "label": "Salvar",
+          "text": "No fim: *Baixar PDF* (botão no topo) e enviar o arquivo para mim."
+        }
       ],
       "cta": "Dica: as respostas ficam guardadas *neste navegador*. Usem sempre o mesmo aparelho até salvar o PDF.",
       "notes": "Instruções gerais. Mostrar a página /fill ao vivo antes de começar."
@@ -44,8 +69,14 @@
       "title": "A pessoa\ne a intenção",
       "body": "Quem vocês vão fotografar e o que a foto precisa dizer. *Tudo o resto decorre daqui.*",
       "items": [
-        { "value": "1.1", "label": "A pessoa · Portão 1" },
-        { "value": "1.2", "label": "A ficha de intenção" }
+        {
+          "value": "1.1",
+          "label": "A pessoa · Portão 1"
+        },
+        {
+          "value": "1.2",
+          "label": "A ficha de intenção"
+        }
       ]
     },
     {
@@ -55,14 +86,30 @@
       "title": "A pessoa —\nquem vamos *fotografar*.",
       "subtitle": "Número / Campo / Resposta",
       "items": [
-        { "label": "Nome" },
-        { "label": "Contato" },
-        { "label": "Por que ela?" },
-        { "label": "Data" },
-        { "label": "Plano B" },
-        { "label": "Autorização", "text": "□ Sim, ela concorda com o uso das fotos no portfólio." }
+        {
+          "label": "Nome"
+        },
+        {
+          "label": "Contato"
+        },
+        {
+          "label": "Por que ela?"
+        },
+        {
+          "label": "Data"
+        },
+        {
+          "label": "Plano B"
+        },
+        {
+          "label": "Autorização",
+          "text": "□ Sim, ela concorda com o uso das fotos no portfólio."
+        }
       ],
-      "images": ["", ""],
+      "images": [
+        "",
+        ""
+      ],
       "cta": "Dica: escolham alguém *confortável na câmera*. Coloquem duas fotos dela ao lado (rosto e corpo inteiro).",
       "notes": "Portão 1: esta página inteira preenchida."
     },
@@ -73,12 +120,25 @@
       "title": "A ficha de intenção —\no que a foto deve *dizer*.",
       "subtitle": "Número / Pergunta / A sua resposta",
       "items": [
-        { "label": "O quê?" },
-        { "label": "Por quê?" },
-        { "label": "Para quem?" },
-        { "label": "Como?" }
+        {
+          "label": "O quê?"
+        },
+        {
+          "label": "Por quê?"
+        },
+        {
+          "label": "Para quem?"
+        },
+        {
+          "label": "Como?"
+        }
       ],
-      "images": ["/images/outono/outono02.jpg", "/images/outono/outono10.jpg", "/images/outono/outono05.jpg", "/images/outono/outono14.jpg"],
+      "images": [
+        "/images/outono/outono02.jpg",
+        "/images/outono/outono10.jpg",
+        "/images/outono/outono05.jpg",
+        "/images/outono/outono14.jpg"
+      ],
       "cta": "Exemplo: “Retratos de uma pessoa real no parque, calma e elegante, para o meu portfólio, com luz difusa e planos fechados.”",
       "notes": "As referências ao lado têm intenção clara: usar como guia, não como cópia."
     },
@@ -89,10 +149,22 @@
       "title": "Referências\ne moodboard",
       "body": "O moodboard é *um roteiro, não uma colagem*. Cada imagem responde: que luz, que pose, que enquadramento.",
       "items": [
-        { "value": "2.1", "label": "Palavras-chave" },
-        { "value": "2.2", "label": "Moodboard — exemplo" },
-        { "value": "2.3", "label": "O seu moodboard" },
-        { "value": "2.4", "label": "Desconstrução das referências" }
+        {
+          "value": "2.1",
+          "label": "Palavras-chave"
+        },
+        {
+          "value": "2.2",
+          "label": "Moodboard — exemplo"
+        },
+        {
+          "value": "2.3",
+          "label": "O seu moodboard"
+        },
+        {
+          "value": "2.4",
+          "label": "Desconstrução das referências"
+        }
       ]
     },
     {
@@ -102,14 +174,33 @@
       "title": "Palavras-chave —\no ensaio em *seis palavras*.",
       "subtitle": "Número / Eixo / As suas palavras",
       "items": [
-        { "label": "Sensação" },
-        { "label": "Luz" },
-        { "label": "Cor" },
-        { "label": "Textura" },
-        { "label": "Lugar" },
-        { "label": "Gesto" }
+        {
+          "label": "Sensação"
+        },
+        {
+          "label": "Luz"
+        },
+        {
+          "label": "Cor"
+        },
+        {
+          "label": "Textura"
+        },
+        {
+          "label": "Lugar"
+        },
+        {
+          "label": "Gesto"
+        }
       ],
-      "images": ["/images/outono/outono16.jpg", "/images/outono/outono03.jpg", "/images/outono/outono13.jpg", "/images/outono/outono11.jpg", "/images/outono/outono01.jpg", "/images/outono/outono15.jpg"],
+      "images": [
+        "/images/outono/outono16.jpg",
+        "/images/outono/outono03.jpg",
+        "/images/outono/outono13.jpg",
+        "/images/outono/outono11.jpg",
+        "/images/outono/outono01.jpg",
+        "/images/outono/outono15.jpg"
+      ],
       "cta": "Exemplo: silêncio · difusa · ferrugem · lã · parque · olhar baixo. *Uma ou duas palavras por linha.*",
       "notes": "As palavras-chave viram o filtro do moodboard: imagem que não combina com elas, sai."
     },
@@ -120,7 +211,17 @@
       "title": "Assim se monta\num *roteiro visual*.",
       "subtitle": "Como ler este exemplo",
       "body": "Uma imagem âncora grande (01), retratos que definem pose e luz, detalhes de textura e cor, e um plano aberto do lugar (09). Tudo na mesma paleta.",
-      "images": ["/images/outono/outono13.jpg", "/images/outono/outono02.jpg", "/images/outono/outono17.jpg", "/images/outono/outono06.jpg", "/images/outono/outono10.jpg", "/images/outono/outono16.jpg", "/images/outono/outono14.jpg", "/images/outono/outono11.jpg", "/images/outono/outono05.jpg"],
+      "images": [
+        "/images/outono/outono13.jpg",
+        "/images/outono/outono02.jpg",
+        "/images/outono/outono17.jpg",
+        "/api/images/35db131768b8f4fbfbd8",
+        "/images/outono/outono10.jpg",
+        "/images/outono/outono16.jpg",
+        "/images/outono/outono14.jpg",
+        "/images/outono/outono11.jpg",
+        "/api/images/4f873a519c9d2bf5e871"
+      ],
       "notes": "Explicar a hierarquia: âncora, retratos, detalhes, lugar."
     },
     {
@@ -130,7 +231,17 @@
       "title": "6 a 9 imagens,\n*dentro da paleta*.",
       "subtitle": "Como montar",
       "body": "01 é a sua âncora: a foto que resume o ensaio. 09 é o lugar. Os outros espaços: poses, luz, detalhes de figurino. Toque no + para pôr cada imagem.",
-      "images": ["", "", "", "", "", "", "", "", ""],
+      "images": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
       "notes": "Portão 2: moodboard completo, com a página 2.4 preenchida."
     },
     {
@@ -140,11 +251,26 @@
       "title": "Desconstrução —\nreferências *01 a 05*.",
       "subtitle": "Ref. / Luz · Pose · Enquadramento / A frase",
       "items": [
-        { "value": "01", "label": "" },
-        { "value": "02", "label": "" },
-        { "value": "03", "label": "" },
-        { "value": "04", "label": "" },
-        { "value": "05", "label": "" }
+        {
+          "value": "01",
+          "label": ""
+        },
+        {
+          "value": "02",
+          "label": ""
+        },
+        {
+          "value": "03",
+          "label": ""
+        },
+        {
+          "value": "04",
+          "label": ""
+        },
+        {
+          "value": "05",
+          "label": ""
+        }
       ],
       "cta": "Escrevam na mesma linha: *de onde vem a luz, qual a pose, qual o plano* — e uma frase dizendo por que a imagem está no moodboard.",
       "notes": "Uma linha por referência do moodboard (mesma numeração)."
@@ -156,10 +282,22 @@
       "title": "Desconstrução —\nreferências *06 a 09*.",
       "subtitle": "Ref. / Luz · Pose · Enquadramento / A frase",
       "items": [
-        { "value": "06", "label": "" },
-        { "value": "07", "label": "" },
-        { "value": "08", "label": "" },
-        { "value": "09", "label": "" }
+        {
+          "value": "06",
+          "label": ""
+        },
+        {
+          "value": "07",
+          "label": ""
+        },
+        {
+          "value": "08",
+          "label": ""
+        },
+        {
+          "value": "09",
+          "label": ""
+        }
       ],
       "cta": "Exemplo: “Luz lateral suave, sentada com o olhar baixo, plano médio — mostra a calma que quero.”",
       "notes": "Continuação da desconstrução."
@@ -171,9 +309,18 @@
       "title": "Figurino, poses\ne briefing",
       "body": "A parte prática: *o que ela veste, como ela se move e o que ela precisa saber* antes do dia.",
       "items": [
-        { "value": "3.1", "label": "O figurino · regra das 3 cores" },
-        { "value": "3.2", "label": "O roteiro de poses" },
-        { "value": "3.3", "label": "O briefing · Portão 3" }
+        {
+          "value": "3.1",
+          "label": "O figurino · regra das 3 cores"
+        },
+        {
+          "value": "3.2",
+          "label": "O roteiro de poses"
+        },
+        {
+          "value": "3.3",
+          "label": "O briefing · Portão 3"
+        }
       ]
     },
     {
@@ -183,14 +330,34 @@
       "title": "O figurino —\na regra das *3 cores*.",
       "subtitle": "Número / Peça / O que ela vai usar",
       "items": [
-        { "label": "Destaque", "meta": "#A4502C" },
-        { "label": "Cor 2", "meta": "#B8892E" },
-        { "label": "Cor 3", "meta": "#4F5A34" },
-        { "label": "Textura" },
-        { "label": "Sapatos" },
-        { "label": "Acessórios" }
+        {
+          "label": "Destaque",
+          "meta": "#A4502C"
+        },
+        {
+          "label": "Cor 2",
+          "meta": "#B8892E"
+        },
+        {
+          "label": "Cor 3",
+          "meta": "#4F5A34"
+        },
+        {
+          "label": "Textura"
+        },
+        {
+          "label": "Sapatos"
+        },
+        {
+          "label": "Acessórios"
+        }
       ],
-      "images": ["", "", "", ""],
+      "images": [
+        "",
+        "",
+        "",
+        ""
+      ],
       "cta": "Fora: *preto total, branco puro, neon, estampas grandes e logos*. Coloquem ao lado as fotos do look provado.",
       "notes": "Portão 2: figurino aprovado. As cores dos quadrados são sugestões da paleta."
     },
@@ -201,16 +368,47 @@
       "title": "O roteiro de poses —\n*5 a 8* para ela, aqui.",
       "subtitle": "Pose / Nome / Plano + direção que vou dar",
       "items": [
-        { "value": "01", "label": "" },
-        { "value": "02", "label": "" },
-        { "value": "03", "label": "" },
-        { "value": "04", "label": "" },
-        { "value": "05", "label": "" },
-        { "value": "06", "label": "" },
-        { "value": "07", "label": "" },
-        { "value": "08", "label": "" }
+        {
+          "value": "01",
+          "label": ""
+        },
+        {
+          "value": "02",
+          "label": ""
+        },
+        {
+          "value": "03",
+          "label": ""
+        },
+        {
+          "value": "04",
+          "label": ""
+        },
+        {
+          "value": "05",
+          "label": ""
+        },
+        {
+          "value": "06",
+          "label": ""
+        },
+        {
+          "value": "07",
+          "label": ""
+        },
+        {
+          "value": "08",
+          "label": ""
+        }
       ],
-      "images": ["/images/outono/outono12.jpg", "/images/outono/outono11.jpg", "/images/outono/outono03.jpg", "/images/outono/outono17.jpg", "/images/outono/outono15.jpg", "/images/outono/outono01.jpg"],
+      "images": [
+        "/images/outono/outono12.jpg",
+        "/images/outono/outono11.jpg",
+        "/images/outono/outono03.jpg",
+        "/images/outono/outono17.jpg",
+        "/images/outono/outono15.jpg",
+        "/images/outono/outono01.jpg"
+      ],
       "cta": "Exemplo: “Sentada no banco · plano médio · ‘olha para a árvore e respira’”.",
       "notes": "As referências ao lado mostram poses de outono: sentada, de pé, encostada, caminhando."
     },
@@ -221,12 +419,25 @@
       "title": "O briefing —\no que ela precisa *saber*.",
       "subtitle": "Número / Campo / O que vou enviar",
       "items": [
-        { "label": "Local" },
-        { "label": "Data e hora", "text": "Encontro às 14h15 · ensaio das 14h30 às 16h45" },
-        { "label": "Roupa" },
-        { "label": "O que levar" },
-        { "label": "O que esperar" },
-        { "label": "Enviado em" }
+        {
+          "label": "Local"
+        },
+        {
+          "label": "Data e hora",
+          "text": "Encontro às 14h15 · ensaio das 14h30 às 16h45"
+        },
+        {
+          "label": "Roupa"
+        },
+        {
+          "label": "O que levar"
+        },
+        {
+          "label": "O que esperar"
+        },
+        {
+          "label": "Enviado em"
+        }
       ],
       "cta": "Portão 3: briefing enviado *3 dias antes do ensaio*. Mandem por mensagem e guardem o print.",
       "notes": "O briefing tira a ansiedade da pessoa e garante que ela chega pronta."
@@ -238,15 +449,43 @@
       "title": "Checklist —\norganize e *entregue*.",
       "subtitle": "OK / Item / Portão · data",
       "items": [
-        { "value": "□", "label": "Pessoa", "text": "Portão 1 · até ____ / ____" },
-        { "value": "□", "label": "Intenção", "text": "Portão 2 · até ____ / ____" },
-        { "value": "□", "label": "Moodboard", "text": "Portão 2 · 6–9 imagens + frases" },
-        { "value": "□", "label": "Figurino", "text": "Portão 2 · look provado com foto" },
-        { "value": "□", "label": "Poses", "text": "Portão 3 · 5 a 8 poses" },
-        { "value": "□", "label": "Briefing", "text": "Portão 3 · enviado 3 dias antes" },
-        { "value": "□", "label": "Dia D", "text": "Bateria carregada · cartões vazios · 14h15" }
+        {
+          "value": "□",
+          "label": "Pessoa",
+          "text": "Portão 1 · até ____ / ____"
+        },
+        {
+          "value": "□",
+          "label": "Intenção",
+          "text": "Portão 2 · até ____ / ____"
+        },
+        {
+          "value": "□",
+          "label": "Moodboard",
+          "text": "Portão 2 · 6–9 imagens + frases"
+        },
+        {
+          "value": "□",
+          "label": "Figurino",
+          "text": "Portão 2 · look provado com foto"
+        },
+        {
+          "value": "□",
+          "label": "Poses",
+          "text": "Portão 3 · 5 a 8 poses"
+        },
+        {
+          "value": "□",
+          "label": "Briefing",
+          "text": "Portão 3 · enviado 3 dias antes"
+        },
+        {
+          "value": "□",
+          "label": "Dia D",
+          "text": "Bateria carregada · cartões vazios · 14h15"
+        }
       ],
-      "cta": "Ao terminar: *Salvar como PDF* e enviar para mim.",
+      "cta": "Ao terminar: *Baixar PDF* e enviar o arquivo para mim.",
       "notes": "Página para organizar tudo antes de cada portão."
     }
   ]
