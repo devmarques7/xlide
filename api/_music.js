@@ -138,6 +138,7 @@ export function songName(title) {
     .replace(/\s*[([](official|lyric|lyrics|live|audio|video|clipe|ao vivo|letra|feat|ft)[^)\]]*[)\]]/gi, "")
     .split(/\s+[|•]\s+|\s+-\s+(?=(official|live|ao vivo|lyric))/i)[0]
     .replace(/\s+(with|feat\.?|ft\.?|part\.?)\s+.*$/i, "")
+    .replace(/\s+(official\s+)?(lyric|lyrics|music)?\s*video$/i, "")
     .trim();
 }
 
