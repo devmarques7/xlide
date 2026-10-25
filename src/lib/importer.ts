@@ -155,6 +155,7 @@ export function blankSlide(layout: Layout): Slide {
     base.images = ["", "", "", ""];
   }
   if (layout === "reel") base.images = ["", "", ""];
+  if (layout === "moodboard") base.images = Array(9).fill("");
   if (["services", "gallery", "split", "contact"].includes(layout))
     base.items = [0, 1].map(() => ({ id: uid("i_"), label: "", text: "" }));
   return base;

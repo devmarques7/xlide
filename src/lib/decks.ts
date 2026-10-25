@@ -1,6 +1,7 @@
 import caixa from "../../decks/a-caixa-com-asas.json";
 import caixaEditorial from "../../decks/a-caixa-com-asas.editorial.json";
 import ensaioOutono from "../../decks/ensaio-de-outono.json";
+import fichaProducao from "../../decks/ficha-de-producao.json";
 import { parseImport, presentationFromImport } from "./importer";
 import { SHIPPED_AT, type Presentation } from "./types";
 
@@ -22,4 +23,6 @@ export const SHIPPED_DECKS: Record<string, () => Presentation> = {
   // v2: sessions (chapters), question tables and image slots. v3: photos in every slot, colour cover.
   // v4: keeps the edits made in the app on 25 Oct (newer than v3, so they had hidden it).
   p_ensaio_outono: () => shippedDeck("p_ensaio_outono", ensaioOutono, Date.UTC(2026, 9, 25, 14)),
+  // Worksheet for the Ensaio de Outono class; students fill it in at /fill/p_ficha_outono.
+  p_ficha_outono: () => shippedDeck("p_ficha_outono", fichaProducao),
 };

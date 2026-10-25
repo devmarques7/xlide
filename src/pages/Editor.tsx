@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Braces, ChevronLeft, ChevronRight, FileText, ImagePlus, Loader2, Palette, Play, Plus, Settings2, Share2 } from "lucide-react";
+import { ArrowLeft, BarChart3, Braces, ChevronLeft, ChevronRight, FileText, ImagePlus, Loader2, Palette, Play, Plus, Printer, Settings2, Share2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { matchImages, uploadImage } from "@/lib/images";
@@ -148,6 +148,9 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
           <PrefsMenu />
           <Button variant="outline" size="sm" className="h-10" onClick={() => setShareOpen(true)} aria-label={t("editor.share")}>
             <Share2 /> <span className="hidden sm:inline">{t("editor.share")}</span>
+          </Button>
+          <Button variant="outline" size="sm" className="h-10" onClick={() => navigate(`/print/${deck.id}?lang=${editLang}`)} aria-label={t("print.save")}>
+            <Printer /> <span className="hidden sm:inline">PDF</span>
           </Button>
           <Button size="sm" className="h-10" onClick={() => navigate(`/present/${deck.id}?lang=${editLang}&slide=${index}`)}>
             <Play /> <span className="hidden sm:inline">{t("editor.present")}</span>

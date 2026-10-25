@@ -3,9 +3,9 @@ import type { Slide } from "./types";
 const MAX_SIDE = 1920;
 
 /** Resize to at most 1920px and re-encode as JPEG (keeps uploads small). */
-async function compress(file: File): Promise<{ data: string; type: string }> {
+export async function compress(file: File, maxSide = MAX_SIDE): Promise<{ data: string; type: string }> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);

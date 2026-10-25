@@ -435,6 +435,61 @@
 .xs-reel .xs-body { font-size: calc(var(--t-body) * 1.2); max-width: 64ch; }
 .xs-reel .xs-reel-imgs { flex: 1 1 0; min-height: 18cqmin; display: grid; gap: 1.2cqmin; margin-top: auto; }
 
+
+/* Worksheet answer space: ruled lines filling the cell. */
+.xs-questions .xs-q-blank {
+  align-self: stretch; min-height: 3.4cqmin;
+  background: repeating-linear-gradient(to bottom, transparent 0 calc(3.4cqmin - 1px), var(--line) calc(3.4cqmin - 1px) 3.4cqmin);
+  background-position: 0 0.6cqmin;
+}
+
+/* ── moodboard ── */
+.xs-moodboard { gap: 1.6cqmin; }
+.xs-moodboard .xs-mb-head { display: grid; grid-template-columns: 1fr 1fr; gap: 4cqmin; }
+.xs-moodboard .xs-mb-col { display: flex; flex-direction: column; gap: 1.2cqmin; }
+.xs-moodboard .xs-mb-title { font-size: calc(4cqmin * var(--k)); line-height: 1.02; font-weight: 400; letter-spacing: -0.02em; text-transform: uppercase; }
+.xs-moodboard .xs-mb-title > span { display: block; }
+.xs-moodboard .xs-mb-title .xs-hl { font-weight: inherit; }
+.xs-moodboard .xs-body { font-size: calc(var(--t-body) * 1.1); max-width: 54ch; }
+.xs-moodboard .xs-mb-grid {
+  flex: 1 1 0; min-height: 0; display: grid; gap: 0.9cqmin;
+  grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+.xs-moodboard .xs-slot { position: relative; gap: 0; }
+.xs-moodboard .xs-slot figcaption {
+  position: absolute; z-index: 1; left: 0.8cqmin; top: 0.6cqmin; padding: 0; border: 0;
+  color: var(--mute); mix-blend-mode: difference;
+}
+/* Mosaic tiles: 6 × 3 cells, nine pieces of mixed size. */
+.xs-moodboard .xs-slot:nth-child(1) { grid-area: 1 / 1 / 3 / 3; }
+.xs-moodboard .xs-slot:nth-child(2) { grid-area: 1 / 3 / 2 / 4; }
+.xs-moodboard .xs-slot:nth-child(3) { grid-area: 1 / 4 / 3 / 5; }
+.xs-moodboard .xs-slot:nth-child(4) { grid-area: 1 / 5 / 2 / 7; }
+.xs-moodboard .xs-slot:nth-child(5) { grid-area: 2 / 3 / 3 / 4; }
+.xs-moodboard .xs-slot:nth-child(6) { grid-area: 2 / 5 / 3 / 6; }
+.xs-moodboard .xs-slot:nth-child(7) { grid-area: 2 / 6 / 4 / 7; }
+.xs-moodboard .xs-slot:nth-child(8) { grid-area: 3 / 1 / 4 / 2; }
+.xs-moodboard .xs-slot:nth-child(9) { grid-area: 3 / 2 / 4 / 6; }
+
+
+/* Worksheet mode: writing on the ruled lines, photo picker in empty slots. */
+.xs-questions .xs-q-blank { display: flex; }
+.xs-questions .xs-q-label:has(> .xs-q-blank) { align-self: stretch; }
+.xs-questions .xs-q-label > .xs-q-blank { flex: 1; align-self: stretch; }
+.xs-fill-text {
+  flex: 1; width: 100%; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink);
+  font: inherit; font-size: calc(var(--t-body) * 1.1); line-height: 3.4cqmin; padding: 0 0.4cqmin; overflow: hidden;
+  margin-top: -0.25cqmin;
+}
+.xs-fill-text:focus { background: color-mix(in oklab, var(--accent) 8%, transparent); }
+.xs-fill-img {
+  position: absolute; inset: 0; display: grid; place-items: center; width: 100%; height: 100%;
+  border: 0; padding: 0; background: transparent; color: var(--mute); cursor: pointer;
+}
+.xs-fill-img .xs-label { font-size: calc(4cqmin * var(--k)); font-family: var(--font-sans); }
+.xs-fill-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+@media print { .xs-fill-img:not(:has(img)) .xs-label { display: none; } }
+
 /* ───────── portrait (phones) ───────── */
 @container slide (aspect-ratio < 1) {
   .xs { --pad: 6cqw; }
@@ -518,4 +573,9 @@
   .xs-reel .xs-reel-call { font-size: calc(6cqw * var(--k)); }
   .xs-reel .xs-reel-imgs { flex: none; grid-template-columns: 1fr 1fr !important; grid-auto-rows: 40cqw; }
   .xs-reel .xs-reel-imgs > :first-child { grid-column: 1 / -1; }
+  .xs-moodboard .xs-mb-head { grid-template-columns: 1fr; }
+  .xs-moodboard .xs-mb-title { font-size: calc(8cqw * var(--k)); }
+  .xs-moodboard .xs-mb-grid { flex: none; grid-template-columns: 1fr 1fr; grid-template-rows: none; grid-auto-rows: 36cqw; }
+  .xs-moodboard .xs-slot:nth-child(n) { grid-area: auto; }
+  .xs-moodboard .xs-slot:first-child { grid-column: 1 / -1; }
 }

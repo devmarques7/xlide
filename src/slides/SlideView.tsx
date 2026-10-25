@@ -6,6 +6,7 @@ import { tx, type Locale, type LText, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { onAccent, useLook } from "./look";
 import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchStatement, PitchTeam, PitchToc } from "./pitch";
+import { FillImage, FillText } from "./fill";
 import { Rich } from "./rich";
 import { SlideImage } from "./slide-image";
 import "./slides.css";
@@ -342,7 +343,7 @@ function Slots({ images, className, style }: { images: string[]; className: stri
       {images.map((src, i) => (
         <figure className="xs-slot" key={i}>
           <figcaption className="xs-label xs-mute">↓ {pad2(i)}</figcaption>
-          <SlideImage src={src || undefined} />
+          <SlideImage src={src || undefined}>{!src && <FillImage name={`img${i}`} />}</SlideImage>
         </figure>
       ))}
     </div>
@@ -378,7 +379,7 @@ function Chapter({ s, T }: LayoutProps) {
 
 /** Questions: numbered table (number, question, answer) with an optional image grid on the right. */
 function Questions({ s, T }: LayoutProps) {
-  const items = (s.items ?? []).slice(0, 7);
+  const items = (s.items ?? []).slice(0, 8);
   const images = s.images ?? [];
   const heads = T(s.subtitle).split("/").map((x) => x.trim()).filter(Boolean);
   return (
@@ -403,9 +404,10 @@ function Questions({ s, T }: LayoutProps) {
                 <span className="xs-q-n">{T(it.value) || i + 1}</span>
                 <span className="xs-q-label">
                   {isHex(meta) && <i className="xs-swatch" style={{ background: meta }} />}
-                  {T(it.label)}
+                  {T(it.label) || <span className="xs-q-blank"><FillText name={`l${i}`} /></span>}
                 </span>
-                <p className="xs-q-text"><Rich text={T(it.text)} /></p>
+                {/* No answer yet: ruled lines to write on (worksheets). */}
+                {T(it.text) ? <p className="xs-q-text"><Rich text={T(it.text)} /></p> : <span className="xs-q-blank"><FillText name={`q${i}`} /></span>}
               </div>
             );
           })}
@@ -444,6 +446,27 @@ function Reel({ s, T }: LayoutProps) {
   );
 }
 
+/** Moodboard: dense mosaic of up to 9 photos (fixed tiles), labels and a short brief on top. */
+function Moodboard({ s, T }: LayoutProps) {
+  const images = (s.images ?? []).slice(0, 9);
+  return (
+    <div className="xs-pad xs-moodboard">
+      <div className="xs-mb-head">
+        <div className="xs-mb-col">
+          <span className="xs-label xs-mute">↓ {T(s.eyebrow)}</span>
+          <RichTitle text={T(s.title)} className="xs-mb-title" />
+        </div>
+        <div className="xs-mb-col">
+          <span className="xs-label xs-mute">↓ {T(s.subtitle)}</span>
+          {T(s.body) && <p className="xs-body"><Rich text={T(s.body)} /></p>}
+        </div>
+      </div>
+      <div className="xs-rule" />
+      <Slots images={images} className="xs-mb-grid" />
+    </div>
+  );
+}
+
 const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.ReactElement> = {
   aura: Aura,
   cover: Cover,
@@ -457,6 +480,7 @@ const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.React
   chapter: Chapter,
   questions: Questions,
   reel: Reel,
+  moodboard: Moodboard,
   "pitch-cover": PitchCover,
   "pitch-statement": PitchStatement,
   "pitch-numbers": PitchNumbers,

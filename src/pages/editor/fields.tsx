@@ -125,6 +125,15 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
       { key: "images", label: "editor.fields.imageSlots" },
     ],
   },
+  moodboard: {
+    fields: [
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle" },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "images", label: "editor.fields.imageSlots" },
+    ],
+  },
   "pitch-cover": {
     fields: [
       { key: "title", label: "editor.fields.title", multiline: true },
