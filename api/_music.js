@@ -11,19 +11,37 @@ export function videoId(input) {
   return m ? m[1] : null;
 }
 
-/** Player data from the Android client: its caption URLs work without a page token. */
-async function playerData(id) {
+/**
+ * YouTube clients to ask for player data, in order. Servers in data centres are
+ * often refused by one client and served by another, so each is tried in turn.
+ */
+const CLIENTS = [
+  { name: "ANDROID", ua: "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip", client: { clientName: "ANDROID", clientVersion: "20.10.38", androidSdkVersion: 34 } },
+  { name: "IOS", ua: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)", client: { clientName: "IOS", clientVersion: "20.10.4", deviceMake: "Apple", deviceModel: "iPhone16,2", osName: "iPhone", osVersion: "18.3.2.22D82" } },
+  { name: "TV_EMBED", ua: UA, client: { clientName: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", clientVersion: "2.0" }, thirdParty: { embedUrl: "https://www.youtube.com/" } },
+  { name: "WEB_EMBED", ua: UA, client: { clientName: "WEB_EMBEDDED_PLAYER", clientVersion: "1.20250310.01.00" }, thirdParty: { embedUrl: "https://www.youtube.com/" } },
+  { name: "MWEB", ua: UA, client: { clientName: "MWEB", clientVersion: "2.20250311.03.00" } },
+];
+
+async function playerData(id, c) {
   const res = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "User-Agent": "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip" },
-    body: JSON.stringify({
-      videoId: id,
-      context: { client: { clientName: "ANDROID", clientVersion: "20.10.38", androidSdkVersion: 34, hl: "en" } },
-    }),
+    headers: { "Content-Type": "application/json", "User-Agent": c.ua, Origin: "https://www.youtube.com" },
+    body: JSON.stringify({ videoId: id, context: { client: { ...c.client, hl: "en" }, ...(c.thirdParty ? { thirdParty: c.thirdParty } : {}) } }),
   });
   if (!res.ok) throw new Error(`youtube_${res.status}`);
   return res.json();
 }
+
+/** Watch page fallback: the player data embedded in the HTML. */
+async function watchPageData(id) {
+  const res = await fetch(`https://www.youtube.com/watch?v=${id}&hl=en`, { headers: { "User-Agent": UA, "Accept-Language": "en" } });
+  const html = await res.text();
+  const m = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});(?:var|<\/script>)/s);
+  return m ? JSON.parse(m[1]) : {};
+}
+
+const captionTracks = (d) => d?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
 
 /** Caption cues of a track: [{ start, text }] (seconds). Handles json3 and srv3/xml. */
 async function trackCues(baseUrl) {
@@ -64,11 +82,27 @@ function toLines(cues) {
 export async function getLyrics(input, lang) {
   const id = videoId(input);
   if (!id) return { error: "bad_url" };
-  const data = await playerData(id);
+  // First client that returns caption tracks wins; keep why the others failed.
+  const tried = [];
+  let data = {};
+  for (const c of [...CLIENTS, { name: "WATCH" }]) {
+    try {
+      const d = c.name === "WATCH" ? await watchPageData(id) : await playerData(id, c);
+      tried.push({ client: c.name, status: d?.playabilityStatus?.status, reason: d?.playabilityStatus?.reason, tracks: captionTracks(d).length });
+      if (!data.videoDetails && d?.videoDetails) data = d;
+      if (captionTracks(d).length) {
+        data = d;
+        break;
+      }
+    } catch (e) {
+      tried.push({ client: c.name, error: String(e?.message ?? e) });
+    }
+  }
   const title = data?.videoDetails?.title ?? "";
   const author = data?.videoDetails?.author ?? "";
-  const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
-  if (!tracks.length) return { id, title, author, error: "no_captions", tracks: [] };
+  const tracks = captionTracks(data);
+  // Nothing at all (not even a title) means YouTube refused this server.
+  if (!tracks.length) return { id, title, author, error: title ? "no_captions" : "youtube_failed", tracks: [], tried };
   const rank = (t) => (t.kind === "asr" ? 2 : 0) + (lang && !t.languageCode.startsWith(lang) ? 1 : 0);
   const track = [...tracks].sort((a, b) => rank(a) - rank(b))[0];
   const lines = toLines(await trackCues(track.baseUrl));
