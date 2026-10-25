@@ -20,5 +20,6 @@ export const SHIPPED_DECKS: Record<string, () => Presentation> = {
   // v5: full-screen 38, 42, 46; dark background on 49.
   p_caixa_editorial: () => shippedDeck("p_caixa_editorial", caixaEditorial, Date.UTC(2026, 9, 17, 4)),
   // v2: sessions (chapters), question tables and image slots. v3: photos in every slot, colour cover.
-  p_ensaio_outono: () => shippedDeck("p_ensaio_outono", ensaioOutono, Date.UTC(2026, 9, 25, 12)),
+  // v4: keeps the edits made in the app on 25 Oct (newer than v3, so they had hidden it).
+  p_ensaio_outono: () => shippedDeck("p_ensaio_outono", ensaioOutono, Date.UTC(2026, 9, 25, 14)),
 };

@@ -271,7 +271,6 @@
       "layout": "services",
       "tone": "dark",
       "eyebrow": "3.1 · Uma produção profissional",
-      "title": "Cada etapa tem um *dono*.",
       "items": [
         {
           "label": "Vocês\nproduzem",
@@ -333,7 +332,7 @@
       "layout": "questions",
       "tone": "light",
       "eyebrow": "3.3",
-      "title": "Em referências —\no moodboard é um *roteiro*,\nnão uma colagem.",
+      "title": "o moodboard é um *roteiro*,\nnão uma colagem.",
       "subtitle": "Número / Eixo / Cada imagem responde",
       "items": [
         {
@@ -374,7 +373,6 @@
       "layout": "services",
       "tone": "light",
       "eyebrow": "3.4 · Os três portões",
-      "title": "Nada avança\nsem *aprovação*.",
       "items": [
         {
           "label": "Portão 1\nPessoa",
@@ -402,7 +400,7 @@
       "tone": "accent",
       "eyebrow": "4",
       "title": "Exercício",
-      "body": "Antes de sair da sala, cada uma começa a própria produção. *Ninguém vai embora sem o primeiro passo dado.*",
+      "body": "Antes de concluir, cada uma começa a própria produção. *Ninguém vai embora sem o primeiro passo dado.*",
       "items": [
         {
           "value": "4.1",
