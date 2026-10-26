@@ -44,7 +44,10 @@ async function watchPageData(id) {
 
 const captionTracks = (d) => d?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
 
-/** Caption cues of a track: [{ start, text }] (seconds). Handles json3 and srv3/xml. */
+/**
+ * Caption cues of a track: [{ start, dur, text, words? }] (seconds). Automatic
+ * captions (json3) time every word: `words` keeps those offsets. Handles json3 and srv3/xml.
+ */
 async function trackCues(baseUrl) {
   const url = baseUrl.replace(/&fmt=[^&]*/, "") + "&fmt=json3";
   const res = await fetch(url, { headers: { "User-Agent": UA } });
@@ -54,7 +57,16 @@ async function trackCues(baseUrl) {
     const data = JSON.parse(body);
     return (data.events ?? [])
       .filter((e) => e.segs)
-      .map((e) => ({ start: (e.tStartMs ?? 0) / 1000, text: e.segs.map((s) => s.utf8 ?? "").join("") }));
+      .map((e) => {
+        const start = (e.tStartMs ?? 0) / 1000;
+        const timedWords = e.segs.length > 1 || e.segs.some((x) => x.tOffsetMs != null);
+        return {
+          start,
+          dur: (e.dDurationMs ?? 0) / 1000,
+          text: e.segs.map((x) => x.utf8 ?? "").join(""),
+          words: timedWords ? e.segs.map((x) => ({ text: x.utf8 ?? "", t: start + (x.tOffsetMs ?? 0) / 1000 })) : undefined,
+        };
+      });
   }
   const decode = (t) =>
     t.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">");
@@ -89,6 +101,104 @@ function toLines(cues) {
 }
 
 const round = (n) => Math.round(n * 100) / 100;
+
+const normWord = (w) => String(w).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+const normWords = (s) => String(s).split(/\s+/).map(normWord).filter(Boolean);
+
+/**
+ * Every word of a video with the second it is sung: [{ w, t }]. Automatic captions
+ * time each word; other cues (people's captions, transcript services) spread
+ * their words over the cue by length, which is within a fraction of a second.
+ */
+export function wordTimeline(cues) {
+  const out = [];
+  cues.forEach((c, i) => {
+    if (c.words?.length) {
+      for (const x of c.words) for (const w of normWords(x.text)) out.push({ w, t: x.t });
+      return;
+    }
+    const ws = String(c.text).split(/\s+/).filter(Boolean);
+    if (!ws.length) return;
+    const end = c.dur > 0 ? c.start + c.dur : (cues[i + 1]?.start ?? c.start + ws.length * 0.4);
+    const span = Math.max(0.2, Math.min(end - c.start, ws.length * 0.8));
+    const total = ws.reduce((n, w) => n + w.length + 1, 0);
+    let at = 0;
+    for (const raw of ws) {
+      const w = normWord(raw);
+      if (w) out.push({ w, t: c.start + (at / total) * span });
+      at += raw.length + 1;
+    }
+  });
+  return out.sort((a, b) => a.t - b.t);
+}
+
+/** Same word, allowing the small slips of automatic captions ("senhor"/"senhora", "tu"/"tú"). */
+const sameWord = (a, b) => !!a && !!b && (a === b || (a.length > 3 && b.length > 3 && a.slice(0, 4) === b.slice(0, 4)));
+
+/**
+ * Times each lyric row by finding its words, in order, in the video's word
+ * timeline: the row starts when its first words are sung. Rows that cannot be
+ * found (sung differently, or not at all) are placed between their neighbours.
+ * Returns { times, matched } — matched is the share of rows found by their words.
+ */
+export function alignRows(lines, timeline) {
+  const times = lines.map(() => null);
+  let p = 0;
+  let found = 0;
+  let rows = 0;
+  lines.forEach((line, i) => {
+    const lw = normWords(line);
+    if (!lw.length) return;
+    rows++;
+    const k = Math.min(lw.length, 5);
+    let best = -1;
+    let bestScore = 0;
+    // Search ahead of the last match only, so a chorus sung again lands on its next repeat.
+    for (let s = p; s < Math.min(timeline.length, p + 120); s++) {
+      let hit = 0;
+      // Each word may sit one place early or late (a word the captions missed or added).
+      for (let j = 0; j < k; j++) if ([0, -1, 1].some((d) => sameWord(timeline[s + j + d]?.w, lw[j]))) hit++;
+      if (!sameWord(timeline[s]?.w, lw[0]) && !sameWord(timeline[s]?.w, lw[1])) continue;
+      const score = hit / k - (s - p) * 0.001;
+      if (score > bestScore) {
+        bestScore = score;
+        best = s;
+      }
+    }
+    if (best >= 0 && bestScore >= 0.6) {
+      times[i] = round(timeline[best].t);
+      p = best + Math.max(1, lw.length - 1);
+      found++;
+    }
+  });
+  // Rows not found sit evenly between the found rows around them.
+  const idx = lines.map((l, i) => i).filter((i) => normWords(lines[i]).length);
+  for (let a = 0; a < idx.length; a++) {
+    if (times[idx[a]] != null) continue;
+    let b = a;
+    while (b < idx.length && times[idx[b]] == null) b++;
+    const left = a > 0 ? times[idx[a - 1]] : Math.max(0, (times[idx[b]] ?? 0) - 3 * (b - a));
+    const right = b < idx.length ? times[idx[b]] : left + 3 * (b - a + 1);
+    for (let c = a; c < b; c++) times[idx[c]] = round(left + ((right - left) * (c - a + 1)) / (b - a + 1));
+    a = b;
+  }
+  return { times, matched: rows ? found / rows : 0 };
+}
+
+/**
+ * Timed transcript from Supadata (supadata.ai) when YouTube refuses this server
+ * the captions. Optional: only with SUPADATA_API_KEY. Returns cues or null.
+ */
+async function transcriptService(id, lang) {
+  const key = process.env.SUPADATA_API_KEY;
+  if (!key) return null;
+  const params = new URLSearchParams({ url: `https://www.youtube.com/watch?v=${id}`, ...(lang ? { lang } : {}) });
+  const res = await fetch(`https://api.supadata.ai/v1/transcript?${params}`, { headers: { "x-api-key": key }, signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`supadata_${res.status}`);
+  const data = await res.json();
+  const content = Array.isArray(data.content) ? data.content : [];
+  return content.map((c) => ({ start: (c.offset ?? 0) / 1000, dur: (c.duration ?? 0) / 1000, text: c.text ?? "" }));
+}
 
 /** LRC ("[01:02.50] words") into rows and their times; an empty timed row closes a stanza. */
 function lrcRows(lrc) {
@@ -139,8 +249,27 @@ export async function getLyrics(input, lang) {
   let author = data?.videoDetails?.author ?? "";
   const tracks = captionTracks(data);
   const rank = (t) => (t.kind === "asr" ? 2 : 0) + (lang && !t.languageCode.startsWith(lang) ? 1 : 0);
-  const track = [...tracks].sort((a, b) => rank(a) - rank(b))[0];
+  // The automatic track is in the language sung; captions by people in another language are a translation.
+  const asr = tracks.find((t) => t.kind === "asr");
+  const base = (code) => String(code).split("-")[0];
+  const sung = (t) => !asr || base(t.languageCode) === base(asr.languageCode);
+  const track = [...tracks].filter((t) => t.kind === "asr" || sung(t)).sort((a, b) => rank(a) - rank(b))[0] ?? asr;
   const trackList = tracks.map((t) => ({ lang: t.languageCode, auto: t.kind === "asr" }));
+
+  // The words of this very video with their times: its captions, or a transcript
+  // service where YouTube refuses this server. Lyrics from elsewhere are timed by it.
+  let cues = track ? await trackCues(track.baseUrl).catch(() => []) : [];
+  let cueSource = track ? "youtube" : null;
+  if (!cues.length && !track) {
+    cues = (await transcriptService(id, lang).catch(() => null)) ?? [];
+    if (cues.length) cueSource = "supadata";
+  }
+  // Other caption tracks (another language, the automatic one) are loaded only if the first does not fit.
+  const timelines = [cues.length ? wordTimeline(cues) : null, ...tracks.filter((x) => x !== track).slice(0, 3).map((x) => x.baseUrl)];
+  const timelineAt = async (i) => {
+    if (typeof timelines[i] === "string") timelines[i] = wordTimeline(await trackCues(timelines[i]).catch(() => []));
+    return timelines[i];
+  };
 
   // Captions written by people are the words as sung: use them.
   // Otherwise (none, only automatic ones, or YouTube refusing this server) look for real lyrics.
@@ -154,7 +283,20 @@ export async function getLyrics(input, lang) {
       description = info.description;
     }
     if (!title) ({ title = "", author = "" } = await oembed(id).catch(() => ({})));
-    const done = (found) => ({ id, title, author, ...found, tracks: trackList, tried });
+    const done = async (found) => {
+      // Re-time the lyrics on this video's own words: exact for live versions too.
+      let best = null;
+      for (let i = 0; i < timelines.length && !(best?.matched >= 0.6); i++) {
+        const tl = await timelineAt(i);
+        if (!tl?.length) continue;
+        const a = alignRows(found.lines, tl);
+        if (!best || a.matched > best.matched) best = a;
+      }
+      if (best && best.matched >= 0.4) {
+        return { id, title, author, ...found, times: best.times, timing: "video", matched: round(best.matched), cues: cueSource, tracks: trackList, tried };
+      }
+      return { id, title, author, ...found, timing: found.times ? "studio" : undefined, tracks: trackList, tried };
+    };
 
     // 1. Lyrics synced to the song (LRCLIB), so slides can follow the music.
     const synced = title ? await findLyrics(title, author, { synced: true }).catch(() => null) : null;
@@ -177,17 +319,18 @@ export async function getLyrics(input, lang) {
     const typed = descriptionLyrics(description);
     if (typed) return done({ lines: typed, source: "description" });
   }
-  if (!track) return { id, title, author, error: title ? "no_captions" : "youtube_failed", tracks: [], tried };
-  const { lines, times } = toLines(await trackCues(track.baseUrl));
+  if (!track && !cues.length) return { id, title, author, error: title ? "no_captions" : "youtube_failed", tracks: [], tried };
+  const { lines, times } = toLines(cues);
   return {
     id,
     title,
     author,
-    lang: track.languageCode,
-    auto: track.kind === "asr",
+    lang: track?.languageCode ?? lang,
+    auto: track ? track.kind === "asr" : true,
     tracks: trackList,
     lines,
     times,
+    timing: "video",
     error: lines.length ? undefined : "empty_captions",
   };
 }

@@ -30,6 +30,8 @@ interface Fetched {
   lines?: string[];
   /** Second each line is sung (null for stanza breaks), when the source is synced. */
   times?: (number | null)[];
+  /** "video": timed on this video's own words; "studio": synced to the album version. */
+  timing?: "video" | "studio";
   auto?: boolean;
   /** Set when the words came from a lyrics database instead of the captions. */
   song?: string;
@@ -78,6 +80,7 @@ export default function Music() {
   const [font, setFont] = useState("grotesk");
   const [notice, setNotice] = useState<string | null>(null);
   const [mood, setMood] = useState<string | null>(null);
+  const [timing, setTiming] = useState<"video" | "studio" | "none" | null>(null);
 
   /** Background and font that suit the song's words. */
   const applyStyle = (title: string, text: string) => {
@@ -108,6 +111,7 @@ export default function Music() {
       if (data.artist || data.author) setArtist(data.artist || data.author!.replace(/\s*-\s*Topic$/, ""));
       if (data.lines?.length) {
         applyStyle(data.song || data.title || "", data.lines.join(" "));
+        setTiming(data.times?.some((x) => x != null) ? (data.timing ?? "studio") : "none");
         // Synced lyrics keep their time in front of each row, so edits keep them in place.
         setLyrics(data.lines.map((l, i) => (data.times?.[i] != null && l ? `${stamp(data.times[i]!)} ${l}` : l)).join("\n"));
         setTranslation("");
@@ -244,6 +248,7 @@ export default function Music() {
                 {t("music.lyricsHint")}
                 {/^\s*\[\d+:/m.test(lyrics) ? " " + t("music.timedHint") : ""}
               </p>
+              {timing && <p className="text-xs font-medium">{t(`music.timing.${timing}`)}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="trans">{t("music.translation")}</Label>
