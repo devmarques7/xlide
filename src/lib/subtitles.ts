@@ -96,11 +96,19 @@ export function importTimed(text: string): string {
   return out.join("\n");
 }
 
+/** Cues as an SRT file (text may span lines). */
+export function cuesToSrt(cues: { start: number; end: number; text: string }[]): string {
+  return cues.map((c, i) => `${i + 1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text}\n`).join("\n");
+}
+
 /** The timed rows as an SRT file. */
-export function toSrt(lyrics: string): string {
-  return toCues(lyrics)
-    .map((c, i) => `${i + 1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text}\n`)
-    .join("\n");
+export const toSrt = (lyrics: string) => cuesToSrt(toCues(lyrics));
+
+/** Cues as an LRC file: one row per line, each line of a cue at the cue's time. */
+export function cuesToLrc(cues: { start: number; text: string }[], title?: string, artist?: string): string {
+  const head = [title && `[ti:${title}]`, artist && `[ar:${artist}]`].filter(Boolean);
+  const rows = cues.flatMap((c) => c.text.split("\n").map((l) => `${lrcStamp(c.start)}${l}`));
+  return [...head, ...rows].join("\n") + "\n";
 }
 
 /** The lyrics as an LRC file (timed rows only). */

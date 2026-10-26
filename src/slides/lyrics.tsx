@@ -2,9 +2,10 @@ import "@fontsource/bebas-neue/400.css";
 import "@fontsource/instrument-serif/400.css";
 import "@fontsource/instrument-serif/400-italic.css";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { LText, Slide } from "@/lib/types";
+import type { LText, Slide, SongSection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { loopEmbed, thumbnail, youtubeId } from "@/lib/youtube";
+import { useLook } from "./look";
 
 /* Worship lyrics: words centred over a slow colour wash or a looping video. */
 
@@ -135,16 +136,31 @@ export function BackdropLayer({ bg, children }: { bg?: string; children?: ReactN
   );
 }
 
+/** Section names on the screen, in the deck's language. */
+const SECTION_NAMES: Record<string, Record<SongSection, string>> = {
+  en: { intro: "Intro", verse: "Verse", prechorus: "Pre-chorus", chorus: "Chorus", bridge: "Bridge", tag: "Tag", instrumental: "Instrumental", outro: "Outro" },
+  pt: { intro: "Intro", verse: "Verso", prechorus: "Pré-refrão", chorus: "Refrão", bridge: "Ponte", tag: "Tag", instrumental: "Instrumental", outro: "Final" },
+  nl: { intro: "Intro", verse: "Couplet", prechorus: "Pre-refrein", chorus: "Refrein", bridge: "Bridge", tag: "Tag", instrumental: "Instrumentaal", outro: "Outro" },
+};
+export const sectionName = (section: SongSection, lang = "en") => (SECTION_NAMES[lang] ?? SECTION_NAMES.en)[section];
+
 export function Lyrics({ s, T }: { s: Slide; T: (v: LText | undefined) => string }) {
+  const { music, lang } = useLook();
   const wash = washOf(s.bg || DEFAULT_BG);
   const font = FONTS.find((f) => f.id === s.font) ?? FONTS[0];
   const lines = T(s.title).split("\n");
+  // The chorus can stand out in its own colour, so the room knows where it is.
+  const ink = (s.section === "chorus" && music?.chorusInk) || music?.ink || wash?.ink || "#f7f5f0";
+  const top = T(s.eyebrow) || (music?.sections && s.section ? sectionName(s.section, lang) : "");
   return (
-    <div className={cn("xs-lyrics", `font-${font.id}`)} style={{ "--ly-font": font.family, "--ly-ink": wash?.ink ?? "#f7f5f0" } as CSSProperties}>
+    <div
+      className={cn("xs-lyrics", `font-${font.id}`, s.section && `is-${s.section}`)}
+      style={{ "--ly-font": font.family, "--ly-ink": ink, "--ly-trans": music?.transInk } as CSSProperties}
+    >
       <Backdrop bg={s.bg} />
       <div className="xs-ly-grain" aria-hidden />
       <div className="xs-pad xs-ly-content">
-        <span className="xs-label xs-ly-top">{T(s.eyebrow)}</span>
+        <span className="xs-label xs-ly-top">{top}</span>
         <div className="xs-ly-words">
           <p className="xs-ly-lines" style={{ "--n": lines.length } as CSSProperties}>
             {lines.map((l, i) => (
@@ -161,7 +177,10 @@ export function Lyrics({ s, T }: { s: Slide; T: (v: LText | undefined) => string
             </p>
           )}
         </div>
-        <span className="xs-label xs-ly-foot">{T(s.cta)}</span>
+        <span className="xs-label xs-ly-foot">
+          {T(s.cta)}
+          {s.repeat && s.repeat > 1 && <b className="xs-ly-repeat">×{s.repeat}</b>}
+        </span>
       </div>
     </div>
   );

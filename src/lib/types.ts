@@ -66,14 +66,31 @@ export interface Slide {
   font?: string;
   /** Music decks: second of the song at which this slide appears. */
   at?: number;
+  /** Music decks: part of the song (verse, chorus…), shown and coloured on screen. */
+  section?: SongSection;
+  /** Music decks: how many times these lines are sung in a row (shown as ×2). */
+  repeat?: number;
 }
 
-/** The song a lyrics deck plays along with. */
+export const SONG_SECTIONS = ["intro", "verse", "prechorus", "chorus", "bridge", "tag", "instrumental", "outro"] as const;
+export type SongSection = (typeof SONG_SECTIONS)[number];
+
+/** The song a lyrics deck plays along with, and how its words look on the screen. */
 export interface MusicTrack {
   /** YouTube video id. */
-  video: string;
+  video?: string;
   /** Seconds added to the clock when matching slide times (+ shows lyrics earlier). */
   offset?: number;
+  /** Playback speed in Play mode (1 = normal). */
+  speed?: number;
+  /** Colour of the lyrics. */
+  ink?: string;
+  /** Colour of chorus lines, so everyone sees where the chorus is. */
+  chorusInk?: string;
+  /** Colour of the translation line. */
+  transInk?: string;
+  /** Show the section name (Verse, Chorus…) above the words. */
+  sections?: boolean;
 }
 
 export interface Presentation {

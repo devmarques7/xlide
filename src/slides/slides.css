@@ -542,7 +542,11 @@
 .font-serif .xs-ly-lines { font-weight: 400; letter-spacing: -0.01em; font-size: calc(min(8.4cqmin, 34cqh / var(--n, 2)) * var(--k)); }
 .font-condensed .xs-ly-lines { font-weight: 400; letter-spacing: 0.01em; line-height: 0.98; font-size: calc(min(10cqmin, 38cqh / var(--n, 2)) * var(--k)); }
 .font-mono .xs-ly-lines { font-weight: 400; letter-spacing: -0.03em; font-size: calc(min(5.6cqmin, 26cqh / var(--n, 2)) * var(--k)); text-transform: uppercase; }
-.xs-ly-trans { font-family: var(--ly-font); font-size: calc(3.2cqmin * var(--k)); line-height: 1.25; color: var(--mute); }
+.xs-ly-trans { font-family: var(--ly-font); font-size: calc(3.2cqmin * var(--k)); line-height: 1.25; color: var(--ly-trans, var(--mute)); }
+.xs-ly-lines { color: var(--ly-ink); }
+.xs-ly-repeat { margin-left: 1.2em; padding: 0.15em 0.5em; border: 1px solid currentColor; font-weight: 500; letter-spacing: 0.06em; }
+/* The chorus label reads in the chorus colour too. */
+.xs-lyrics.is-chorus .xs-ly-top { color: var(--ly-ink); opacity: 0.85; }
 .font-serif .xs-ly-trans { font-style: italic; font-size: calc(3.8cqmin * var(--k)); }
 .font-condensed .xs-ly-trans { font-family: var(--font-sans); }
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Braces, ChevronLeft, ChevronRight, FileText, ImagePlus, Loader2, Music2, Palette, Play, Plus, Printer, Settings2, Share2 } from "lucide-react";
+import { ArrowLeft, BarChart3, Braces, ChevronLeft, ChevronRight, Clock, FileText, ImagePlus, Loader2, Music2, Palette, Play, Plus, Printer, Settings2, Share2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { matchImages, uploadImage } from "@/lib/images";
@@ -21,6 +21,7 @@ import { cn, uid } from "@/lib/utils";
 import { DeckLook } from "@/slides/look";
 import { SlideFrame } from "@/slides/SlideView";
 import { SlideContentForm } from "./editor/fields";
+import { isMusicDeck, MusicDeckPanel, MusicSlideFields, MusicStylePanel, MusicTimePanel } from "./editor/music-panels";
 import { AnalysisPanel, DeckPanel, DesignPanel, JsonPanel } from "./editor/panels";
 import { SlideList } from "./editor/slide-list";
 
@@ -96,6 +97,10 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
 
   const update = (patch: Partial<Presentation>) => updatePresentation(deck.id, (p) => ({ ...p, ...patch }));
   const setSlides = (slides: Slide[]) => update({ slides });
+  // Lyrics decks get the music editor: style for the whole song, timing, translation.
+  const music = isMusicDeck(deck);
+  const patchMusic = (patch: Partial<NonNullable<Presentation["music"]>>) => update({ music: { ...deck.music, ...patch } });
+  const allLyrics = (patch: Partial<Slide>) => setSlides(deck.slides.map((s) => (s.layout === "lyrics" ? { ...s, ...patch } : s)));
   const patchSlide = (patch: Partial<Slide>) =>
     setSlides(deck.slides.map((s) => (s.id === slide?.id ? { ...s, ...patch } : s)));
 
@@ -276,21 +281,21 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
           <Tabs value={tab} onValueChange={setTab} className="flex flex-col">
             <div className="z-30 border-b border-border bg-background/95 p-3 backdrop-blur lg:sticky lg:top-0">
               <TabsList className="w-full">
-                <TabsTrigger value="content" aria-label={t("editor.content")}>
-                  <FileText /> <span className="hidden min-[400px]:inline">{t("editor.content")}</span>
+                <TabsTrigger value="content" aria-label={music ? t("editor.tabLyrics") : t("editor.content")}>
+                  <FileText /> <span className="hidden min-[400px]:inline">{music ? t("editor.tabLyrics") : t("editor.content")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="design" aria-label={t("editor.design")}>
-                  <Palette /> <span className="hidden min-[400px]:inline">{t("editor.design")}</span>
+                <TabsTrigger value="design" aria-label={music ? t("editor.tabStyle") : t("editor.design")}>
+                  <Palette /> <span className="hidden min-[400px]:inline">{music ? t("editor.tabStyle") : t("editor.design")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="analysis" aria-label={t("editor.analysis")}>
-                  <BarChart3 />
-                  <span className="hidden min-[400px]:inline">{t("editor.analysis")}</span>
+                <TabsTrigger value="analysis" aria-label={music ? t("editor.tabTime") : t("editor.analysis")}>
+                  {music ? <Clock /> : <BarChart3 />}
+                  <span className="hidden min-[400px]:inline">{music ? t("editor.tabTime") : t("editor.analysis")}</span>
                 </TabsTrigger>
                 <TabsTrigger value="json" aria-label={t("editor.json")}>
                   <Braces />
                 </TabsTrigger>
-                <TabsTrigger value="deck" aria-label={t("editor.deck")}>
-                  <Settings2 />
+                <TabsTrigger value="deck" aria-label={music ? t("editor.tabMusic") : t("editor.deck")} title={music ? t("editor.tabMusic") : undefined}>
+                  {music ? <Music2 /> : <Settings2 />}
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -307,12 +312,25 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                     onApplyAll={(patch) => setSlides(deck.slides.map((s) => (s.layout === slide.layout ? { ...s, ...patch } : s)))}
                   />
                 )}
+                {slide && music && slide.layout === "lyrics" && (
+                  <div className="mt-4">
+                    <MusicSlideFields slide={slide} onChange={patchSlide} />
+                  </div>
+                )}
               </TabsContent>
               <TabsContent value="design">
-                {slide && <DesignPanel slide={slide} lang={editLang} fallback={deck.defaultLanguage} template={deck.template ?? "editorial"} onChange={patchSlide} />}
+                {music ? (
+                  <MusicStylePanel deck={deck} slide={slide} onMusic={patchMusic} onAllLyrics={allLyrics} />
+                ) : (
+                  slide && <DesignPanel slide={slide} lang={editLang} fallback={deck.defaultLanguage} template={deck.template ?? "editorial"} onChange={patchSlide} />
+                )}
               </TabsContent>
               <TabsContent value="analysis">
-                <AnalysisPanel deck={deck} slideIndex={index} lang={editLang} onGo={go} />
+                {music ? (
+                  <MusicTimePanel deck={deck} index={index} lang={editLang} onGo={go} setSlides={setSlides} onMusic={patchMusic} />
+                ) : (
+                  <AnalysisPanel deck={deck} slideIndex={index} lang={editLang} onGo={go} />
+                )}
               </TabsContent>
               <TabsContent value="json">
                 <JsonPanel
@@ -325,7 +343,10 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                 />
               </TabsContent>
               <TabsContent value="deck">
-                <DeckPanel deck={deck} lang={editLang} onChange={update} />
+                {music && <MusicDeckPanel deck={deck} lang={editLang} setSlides={setSlides} onMusic={patchMusic} />}
+                <div className={music ? "mt-5" : undefined}>
+                  <DeckPanel deck={deck} lang={editLang} onChange={update} />
+                </div>
               </TabsContent>
             </div>
           </Tabs>

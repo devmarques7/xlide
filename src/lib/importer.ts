@@ -1,4 +1,4 @@
-import { LAYOUTS, LOCALES, TEMPLATES, TONES, type Layout, type Template, type Tone, type Locale, type LText, type MusicTrack, type Presentation, type Slide, type SlideItem } from "./types";
+import { LAYOUTS, LOCALES, TEMPLATES, TONES, type Layout, type Template, type Tone, type Locale, type LText, type MusicTrack, type Presentation, type Slide, type SlideItem, SONG_SECTIONS, type SongSection } from "./types";
 import { uid } from "./utils";
 
 function asLText(v: unknown): LText | undefined {
@@ -49,6 +49,8 @@ export function asSlide(raw: unknown): Slide {
     bg: typeof r.bg === "string" ? r.bg : undefined,
     font: typeof r.font === "string" ? r.font : undefined,
     at: typeof r.at === "number" && r.at >= 0 ? r.at : undefined,
+    section: (SONG_SECTIONS as readonly string[]).includes(r.section as string) ? (r.section as SongSection) : undefined,
+    repeat: typeof r.repeat === "number" && r.repeat > 1 ? Math.round(r.repeat) : undefined,
   };
 }
 
@@ -87,8 +89,18 @@ export interface ParsedImport {
 
 function asMusic(raw: unknown): MusicTrack | undefined {
   const r = raw as Record<string, unknown> | undefined;
-  if (!r || typeof r.video !== "string" || !/^[\w-]{11}$/.test(r.video)) return undefined;
-  return { video: r.video, offset: typeof r.offset === "number" ? r.offset : undefined };
+  if (!r || typeof r !== "object") return undefined;
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const hex = (v: unknown) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : undefined);
+  return {
+    video: typeof r.video === "string" && /^[\w-]{11}$/.test(r.video) ? r.video : undefined,
+    offset: num(r.offset),
+    speed: num(r.speed),
+    ink: hex(r.ink),
+    chorusInk: hex(r.chorusInk),
+    transInk: hex(r.transInk),
+    sections: r.sections === true ? true : undefined,
+  };
 }
 
 export function parseImport(input: string): ParsedImport {

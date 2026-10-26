@@ -61,6 +61,7 @@ function Player({ deck }: { deck: Presentation }) {
   const slides = deck.slides;
   const video = deck.music?.video;
   const offset = deck.music?.offset ?? 0;
+  const speed = deck.music?.speed ?? 1;
   const timed = slides.some((s, i) => i > 0 && s.at != null);
 
   const host = useRef<HTMLDivElement>(null);
@@ -101,6 +102,7 @@ function Player({ deck }: { deck: Presentation }) {
           events: {
             onReady: (e) => {
               player.current = e.target;
+              if (speed !== 1) e.target.setPlaybackRate(speed);
               setDuration(e.target.getDuration());
               setReady(true);
             },
@@ -142,6 +144,10 @@ function Player({ deck }: { deck: Presentation }) {
       }
     },
   });
+
+  useEffect(() => {
+    player.current?.setPlaybackRate(speed);
+  }, [speed, ready]);
 
   // The clock: while playing, follow the song (four ticks a second is plenty for text).
   useEffect(() => {
