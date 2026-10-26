@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, Languages, Loader2, Music2, Play } from "lucide-react";
+import { ArrowLeft, Download, Languages, Loader2, Music2, Play, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { usePrefs } from "@/lib/prefs";
 import { savePresentation } from "@/lib/store";
 import { SHIPPED_AT, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
+import { suggestStyle } from "@/lib/song-style";
 import { youtubeId } from "@/lib/youtube";
 import { DEFAULT_BG } from "@/slides/lyrics";
 import { SlideFrame } from "@/slides/SlideView";
@@ -76,6 +77,15 @@ export default function Music() {
   const [bg, setBg] = useState(DEFAULT_BG);
   const [font, setFont] = useState("grotesk");
   const [notice, setNotice] = useState<string | null>(null);
+  const [mood, setMood] = useState<string | null>(null);
+
+  /** Background and font that suit the song's words. */
+  const applyStyle = (title: string, text: string) => {
+    const look = suggestStyle(title, text.replace(/\[\d+:[\d.]+\]/g, ""));
+    setBg(look.bg);
+    setFont(look.font);
+    setMood(t(`style.${look.mood}` as TKey));
+  };
 
   const names = useMemo(() => {
     try {
@@ -97,6 +107,7 @@ export default function Music() {
       if (data.song || data.title) setSong(data.song || cleanTitle(data.title!));
       if (data.artist || data.author) setArtist(data.artist || data.author!.replace(/\s*-\s*Topic$/, ""));
       if (data.lines?.length) {
+        applyStyle(data.song || data.title || "", data.lines.join(" "));
         // Synced lyrics keep their time in front of each row, so edits keep them in place.
         setLyrics(data.lines.map((l, i) => (data.times?.[i] != null && l ? `${stamp(data.times[i]!)} ${l}` : l)).join("\n"));
         setTranslation("");
@@ -158,7 +169,7 @@ export default function Music() {
     return [cover, ...body, rest];
   }, [lyrics, translation, per, bg, font, song, artist]);
 
-  const create = () => {
+  const create = (play = false) => {
     const now = Date.now();
     const deck: Presentation = {
       id: uid("p_"),
@@ -175,7 +186,7 @@ export default function Music() {
       updatedAt: now,
     };
     savePresentation(deck);
-    navigate(`/p/${deck.id}`);
+    navigate(play ? `/play/${deck.id}` : `/p/${deck.id}`);
   };
 
   const preview = slides[1] ?? slides[0];
@@ -288,6 +299,12 @@ export default function Music() {
               <SlideFrame slide={{ id: "empty", layout: "lyrics", title: song || "♪", bg, font }} lang={locale} animate />
             )}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => applyStyle(song, lyrics)} disabled={!lyrics.trim() && !song.trim()}>
+              <Sparkles /> {t("music.suggest")}
+            </Button>
+            {mood && <span className="text-xs text-muted-foreground">{t("music.styleSuggested", { mood })}</span>}
+          </div>
           <div className="flex flex-col gap-1.5">
             <Label>{t("editor.fields.font")}</Label>
             <FontPicker value={font} onChange={setFont} />
@@ -296,9 +313,14 @@ export default function Music() {
             <Label>{t("editor.fields.bg")}</Label>
             <BackgroundPicker value={bg} onChange={setBg} />
           </div>
-          <Button size="lg" onClick={create} disabled={slides.length === 0}>
-            <Play /> {t("music.create", { n: slides.length })}
-          </Button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button size="lg" variant="outline" onClick={() => create()} disabled={slides.length === 0}>
+              {t("music.create", { n: slides.length })}
+            </Button>
+            <Button size="lg" onClick={() => create(true)} disabled={slides.length === 0 || !youtubeId(url)}>
+              <Play /> {t("music.createPlay")}
+            </Button>
+          </div>
         </section>
       </main>
     </div>

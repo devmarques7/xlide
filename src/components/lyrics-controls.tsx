@@ -16,7 +16,7 @@ interface PexelsVideo {
 }
 
 /** Background for lyrics slides: a colour wash, a Pexels video or any video/image URL. */
-export function BackgroundPicker({ value, onChange, onApplyAll }: { value?: string; onChange: (bg: string) => void; onApplyAll?: () => void }) {
+export function BackgroundPicker({ value, onChange }: { value?: string; onChange: (bg: string) => void }) {
   const { t } = usePrefs();
   const current = value || DEFAULT_BG;
   const [q, setQ] = useState("worship light");
@@ -123,17 +123,11 @@ export function BackgroundPicker({ value, onChange, onApplyAll }: { value?: stri
           placeholder="https://….mp4 · youtube.com/watch?v=…"
         />
       </div>
-      {onApplyAll && (
-        <Button type="button" variant="outline" size="sm" onClick={onApplyAll}>
-          {t("bg.applyAll")}
-        </Button>
-      )}
     </div>
   );
 }
 
-export function FontPicker({ value, onChange, onApplyAll }: { value?: string; onChange: (font: string) => void; onApplyAll?: () => void }) {
-  const { t } = usePrefs();
+export function FontPicker({ value, onChange }: { value?: string; onChange: (font: string) => void }) {
   const current = value || FONTS[0].id;
   return (
     <div className="flex flex-col gap-1.5">
@@ -152,11 +146,6 @@ export function FontPicker({ value, onChange, onApplyAll }: { value?: string; on
           </button>
         ))}
       </div>
-      {onApplyAll && (
-        <Button type="button" variant="outline" size="sm" onClick={onApplyAll}>
-          {t("font.applyAll")}
-        </Button>
-      )}
     </div>
   );
 }

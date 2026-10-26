@@ -304,11 +304,7 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                     languages={deck.languages}
                     fallback={deck.defaultLanguage}
                     onChange={patchSlide}
-                    onApplyAll={(patch) => {
-                      const same = deck.slides.filter((s) => s.layout === slide.layout).length;
-                      setSlides(deck.slides.map((s) => (s.layout === slide.layout ? { ...s, ...patch } : s)));
-                      toast.success(t("bg.applied", { n: same }));
-                    }}
+                    onApplyAll={(patch) => setSlides(deck.slides.map((s) => (s.layout === slide.layout ? { ...s, ...patch } : s)))}
                   />
                 )}
               </TabsContent>

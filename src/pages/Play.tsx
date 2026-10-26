@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, CircleDot, Maximize, Minimize, Minus, Pause, Play as PlayIcon, Plus, Square, Video, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleDot, Maximize, Mic, MicOff, Minimize, Minus, Pause, Play as PlayIcon, Plus, Square, Video, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { canFullscreen, toggleFullscreen, useFullscreenState, useImmersive } from "@/lib/app-mode";
 import { usePrefs } from "@/lib/prefs";
+import { canFollow, useVoiceFollow } from "@/lib/follow";
 import { isBuiltin, restoreBuiltin, updatePresentation, usePresentation } from "@/lib/store";
-import type { Locale, Presentation, Slide } from "@/lib/types";
+import { tx, type Locale, type Presentation, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { clock, loadYouTube, youtubeId, YT_STATE, type YTPlayer } from "@/lib/youtube";
 import { DeckLook } from "@/slides/look";
@@ -75,6 +76,8 @@ function Player({ deck }: { deck: Presentation }) {
   const [showVideo, setShowVideo] = useState(false);
   const [bar, setBar] = useState(true);
   const [link, setLink] = useState("");
+  // Follow by ear: the microphone hears the singing and turns the slides.
+  const [follow, setFollow] = useState(false);
 
   const save = useCallback((fn: (p: Presentation) => Presentation) => updatePresentation(deck.id, fn), [deck.id]);
 
@@ -123,6 +126,23 @@ function Player({ deck }: { deck: Presentation }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video]);
 
+  const { state: listen, heard } = useVoiceFollow({
+    on: follow && !recording,
+    lang,
+    texts: slides.map((s) => tx(s.title, lang, deck.defaultLanguage)),
+    index,
+    advance: (i) => {
+      setIndex(i);
+      // Following along with the song teaches the deck its timings for next time.
+      const p = player.current;
+      if (!timed && p && p.getPlayerState() === YT_STATE.PLAYING) {
+        const now = Math.round(p.getCurrentTime() * 100) / 100;
+        const sid = slides[i].id;
+        save((d) => ({ ...d, slides: d.slides.map((s, k) => (s.id === sid ? { ...s, at: now } : k === 0 && s.at == null ? { ...s, at: 0 } : s)) }));
+      }
+    },
+  });
+
   // The clock: while playing, follow the song (four ticks a second is plenty for text).
   useEffect(() => {
     if (!playing) return;
@@ -130,12 +150,12 @@ function Player({ deck }: { deck: Presentation }) {
     const tick = () => {
       const now = player.current?.getCurrentTime() ?? 0;
       setTime(Math.floor(now * 4) / 4);
-      if (timed && !recording) setIndex(slideAt(slides, now + offset));
+      if (timed && !recording && !follow) setIndex(slideAt(slides, now + offset));
       raf = requestAnimationFrame(tick);
     };
     tick();
     return () => cancelAnimationFrame(raf);
-  }, [playing, timed, recording, offset, slides]);
+  }, [playing, timed, recording, follow, offset, slides]);
 
   // The bar hides itself while the song plays.
   useEffect(() => {
@@ -301,7 +321,17 @@ function Player({ deck }: { deck: Presentation }) {
             {t("play.recording", { n: index + 1, total: slides.length })}
           </p>
         )}
-        {video && !timed && !recording && !failed && bar && <p className="bg-black/70 px-3 py-2 text-sm text-white">{t("play.noTimes")}</p>}
+        {video && !timed && !recording && !failed && !follow && bar && <p className="bg-black/70 px-3 py-2 text-sm text-white">{t("play.noTimes")}</p>}
+        {follow && listen === "listening" && (bar || !playing) && (
+          <p className="bg-black/70 px-3 py-2 text-sm text-white">
+            <Mic className="mr-1.5 inline size-4 animate-pulse" />
+            {t("play.listening")}
+            {heard && <span className="ml-2 text-white/60">“{heard}”</span>}
+          </p>
+        )}
+        {follow && (listen === "denied" || listen === "unsupported" || listen === "error") && (
+          <p className="pointer-events-auto bg-black/70 px-3 py-2 text-sm text-white">{t(`play.voice.${listen}`)}</p>
+        )}
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-0.5 bg-white/10">
@@ -359,6 +389,17 @@ function Player({ deck }: { deck: Presentation }) {
           title={t("play.recordHint")}
         >
           {recording ? <Square /> : <CircleDot />} <span className="hidden sm:inline">{recording ? t("play.stop") : t("play.record")}</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setFollow((f) => !f)}
+          disabled={!canFollow() || recording}
+          aria-pressed={follow}
+          title={t("play.followHint")}
+          className={cn(follow && "bg-accent")}
+        >
+          {follow ? <Mic /> : <MicOff />} <span className="hidden sm:inline">{t("play.follow")}</span>
         </Button>
         <Button
           variant="ghost"

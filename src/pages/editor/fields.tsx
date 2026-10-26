@@ -1,4 +1,5 @@
 import { Link2, Languages, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { ImageInput } from "@/components/image-input";
 import { BackgroundPicker, FontPicker } from "@/components/lyrics-controls";
 import { Button } from "@/components/ui/button";
@@ -284,6 +285,15 @@ export function SlideContentForm({
   const { t } = usePrefs();
   const def = LAYOUT_FIELDS[slide.layout];
   const common = { lang, languages, fallback };
+  // Lyrics look (background, font) is one choice for the whole song unless unticked.
+  const [everywhere, setEverywhere] = useState(true);
+  const setLook = (patch: Partial<Slide>) => (everywhere && onApplyAll ? onApplyAll(patch) : onChange(patch));
+  const everywhereBox = onApplyAll && (
+    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+      <input type="checkbox" checked={everywhere} onChange={(e) => setEverywhere(e.target.checked)} className="accent-foreground" />
+      {t("bg.applyAll")}
+    </label>
+  );
 
   const setItem = (id: string, patch: Partial<SlideItem>) =>
     onChange({ items: (slide.items ?? []).map((it) => (it.id === id ? { ...it, ...patch } : it)) });
@@ -324,12 +334,14 @@ export function SlideContentForm({
         ) : f.key === "bg" ? (
           <div key="bg" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
-            <BackgroundPicker value={slide.bg} onChange={(bg) => onChange({ bg })} onApplyAll={onApplyAll && (() => onApplyAll({ bg: slide.bg }))} />
+            {everywhereBox}
+            <BackgroundPicker value={slide.bg} onChange={(bg) => setLook({ bg })} />
           </div>
         ) : f.key === "font" ? (
           <div key="font" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
-            <FontPicker value={slide.font} onChange={(font) => onChange({ font })} onApplyAll={onApplyAll && (() => onApplyAll({ font: slide.font }))} />
+            {everywhereBox}
+            <FontPicker value={slide.font} onChange={(font) => setLook({ font })} />
           </div>
         ) : f.key === "image" ? (
           <div key="image" className="flex flex-col gap-1.5">
