@@ -32,6 +32,27 @@ export const WASHES: Wash[] = [
   { id: "gold", name: "Gold", base: "#0d0a05", c: ["#f5c26b", "#a16207", "#3b2a12", "#000000"], streak: "#f5c26b" },
 ];
 
+/**
+ * Looping worship backgrounds from the YouTube playlist "Worship Backgrounds"
+ * (Sunday Screens, PL4bEPDyF6iCQzjFZsz5TerA6JkMWrW3lS). Used as `bg` by their URL.
+ */
+export const LOOPS = [
+  { id: "5djr6ofyLLY", name: "Light Rings" },
+  { id: "DCBMIg4Yoq8", name: "Abstract Glass" },
+  { id: "R_xonpJ5bfU", name: "Abstract Glass II" },
+  { id: "1krnHdrN6q0", name: "Gradient" },
+  { id: "w4BuwIA-vg0", name: "Glow" },
+  { id: "ciD38DyxEC4", name: "Flower Blur" },
+  { id: "CQ0keZI1gds", name: "Clouds in Arch" },
+  { id: "oCZtyFfds-o", name: "Retro Grid" },
+  { id: "jT9IykfTWy0", name: "Easter Cross" },
+  { id: "UK0Pa324JeE", name: "Empty Tomb" },
+  { id: "2W8F-ZLDEmM", name: "Names of God" },
+  { id: "wdDyHKCEg6s", name: "Jesus" },
+] as const;
+
+export const loopUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
+
 export const FONTS = [
   { id: "grotesk", name: "Grotesk", family: "var(--font-sans)" },
   { id: "serif", name: "Serif", family: '"Instrument Serif", Georgia, serif' },
@@ -91,11 +112,9 @@ function YouTubeLoop({ id }: { id: string }) {
   useEffect(() => setLive(!!ref.current?.closest("[data-animate]") && !ref.current.closest(".xs-over")), []);
   return (
     <div ref={ref} className="xs-wash-media xs-yt" aria-hidden>
-      {live ? (
-        <iframe src={loopEmbed(id)} title="" allow="autoplay; encrypted-media" tabIndex={-1} />
-      ) : (
-        <img src={thumbnail(id)} alt="" draggable={false} />
-      )}
+      {/* The poster stays underneath while the player loads and shows its own title bar. */}
+      <img src={thumbnail(id)} alt="" draggable={false} />
+      {live && <iframe src={loopEmbed(id)} title="" allow="autoplay; encrypted-media" tabIndex={-1} />}
     </div>
   );
 }

@@ -119,7 +119,7 @@
 .play-yt.is-bg { inset: 0; pointer-events: none; }
 .play-yt.is-bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.25) 70%); }
 .play-yt.is-bg iframe {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1.2);
   width: max(100vw, 177.78dvh) !important; height: max(100dvh, 56.25vw) !important;
 }
 .play-yt.is-pip { right: 1rem; bottom: 5.5rem; z-index: 35; width: min(20rem, 45vw); aspect-ratio: 16 / 9; border: 1px solid rgb(255 255 255 / 0.25); }

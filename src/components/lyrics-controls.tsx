@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
-import { DEFAULT_BG, FONTS, WASHES } from "@/slides/lyrics";
+import { thumbnail, youtubeId } from "@/lib/youtube";
+import { DEFAULT_BG, FONTS, LOOPS, loopUrl, WASHES } from "@/slides/lyrics";
 
 interface PexelsVideo {
   id: number;
@@ -55,6 +56,28 @@ export function BackgroundPicker({ value, onChange, onApplyAll }: { value?: stri
             />
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>{t("bg.loops")}</Label>
+        <div className="grid grid-cols-3 gap-1.5">
+          {LOOPS.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              title={l.name}
+              onClick={() => onChange(loopUrl(l.id))}
+              className={cn(
+                "relative aspect-video overflow-hidden border border-border",
+                youtubeId(current) === l.id && "ring-2 ring-foreground ring-offset-1 ring-offset-background",
+              )}
+            >
+              <img src={thumbnail(l.id)} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
+              <span className="label-xs absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 text-left text-[0.6rem] text-white">{l.name}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">{t("bg.loopsCredit")}</p>
       </div>
 
       <div className="flex flex-col gap-1.5">

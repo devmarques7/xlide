@@ -521,6 +521,8 @@
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: max(100%, 177.78cqh); height: max(100%, 56.25cqw); border: 0; object-fit: cover;
 }
+/* Slightly larger than the frame to crop YouTube's title and logo; faded in once it is playing. */
+.xs-yt iframe { transform: translate(-50%, -50%) scale(1.2); animation: fade-in 1s ease 3s both; }
 /* Over a shared BackdropLayer (presenting, Play mode) the slide shows only its words. */
 .xs-over .xs[data-layout="lyrics"], .xs-over .xs-lyrics { background: transparent; }
 .xs-over .xs-lyrics > .xs-wash, .xs-over .xs-lyrics > .xs-wash-media, .xs-over .xs-lyrics > .xs-ly-grain { display: none; }
