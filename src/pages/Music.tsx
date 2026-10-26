@@ -11,6 +11,8 @@ import { savePresentation } from "@/lib/store";
 import { SHIPPED_AT, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
 import { suggestStyle } from "@/lib/song-style";
+import { importTimed, isLrc, isSrt, lrcStamp, parseRow } from "@/lib/subtitles";
+import { LyricsTimeline } from "@/components/lyrics-timeline";
 import { youtubeId } from "@/lib/youtube";
 import { DEFAULT_BG } from "@/slides/lyrics";
 import { SlideFrame } from "@/slides/SlideView";
@@ -40,13 +42,6 @@ interface Fetched {
   error?: string;
 }
 
-/** "[1:02.50] words" → { text: "words", at: 62.5 }; rows without a time have no `at`. */
-function parseRow(row: string): { text: string; at?: number } {
-  const m = row.match(/^\s*\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);
-  return m ? { text: m[3].trim(), at: Number(m[1]) * 60 + Number(m[2]) } : { text: row.trim() };
-}
-
-const stamp = (sec: number) => `[${Math.floor(sec / 60)}:${(sec % 60).toFixed(2).padStart(5, "0")}]`;
 
 /**
  * Splits lyric rows into slides: an empty row closes a stanza, and each stanza
@@ -113,7 +108,7 @@ export default function Music() {
         applyStyle(data.song || data.title || "", data.lines.join(" "));
         setTiming(data.times?.some((x) => x != null) ? (data.timing ?? "studio") : "none");
         // Synced lyrics keep their time in front of each row, so edits keep them in place.
-        setLyrics(data.lines.map((l, i) => (data.times?.[i] != null && l ? `${stamp(data.times[i]!)} ${l}` : l)).join("\n"));
+        setLyrics(data.lines.map((l, i) => (data.times?.[i] != null && l ? `${lrcStamp(data.times[i]!)} ${l}` : l)).join("\n"));
         setTranslation("");
       }
       setAuto(!!data.auto);
@@ -242,7 +237,22 @@ export default function Music() {
           <div className="grid gap-3 md:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lyrics">{t("music.lyrics")}</Label>
-              <Textarea id="lyrics" rows={16} value={lyrics} onChange={(e) => setLyrics(e.target.value)} className="text-sm leading-6" />
+              <Textarea
+                id="lyrics"
+                rows={16}
+                value={lyrics}
+                onChange={(e) => setLyrics(e.target.value)}
+                // A pasted SRT or LRC file becomes timed rows, in time order.
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData("text");
+                  if (isSrt(text) || (isLrc(text) && !lyrics.trim())) {
+                    e.preventDefault();
+                    setLyrics(importTimed(text));
+                    setTiming("video");
+                  }
+                }}
+                className="text-sm leading-6"
+              />
               <p className="text-xs text-muted-foreground">
                 {auto ? t("music.auto") + " " : ""}
                 {t("music.lyricsHint")}
@@ -256,6 +266,8 @@ export default function Music() {
               <p className="text-xs text-muted-foreground">{t("music.translationHint")}</p>
             </div>
           </div>
+
+          <LyricsTimeline lyrics={lyrics} onChange={setLyrics} song={song} artist={artist} />
 
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
