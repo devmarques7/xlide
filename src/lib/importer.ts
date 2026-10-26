@@ -1,4 +1,4 @@
-import { LAYOUTS, LOCALES, TEMPLATES, TONES, type Layout, type Template, type Tone, type Locale, type LText, type Presentation, type Slide, type SlideItem } from "./types";
+import { LAYOUTS, LOCALES, TEMPLATES, TONES, type Layout, type Template, type Tone, type Locale, type LText, type MusicTrack, type Presentation, type Slide, type SlideItem } from "./types";
 import { uid } from "./utils";
 
 function asLText(v: unknown): LText | undefined {
@@ -48,6 +48,7 @@ export function asSlide(raw: unknown): Slide {
     notes: asLText(r.notes),
     bg: typeof r.bg === "string" ? r.bg : undefined,
     font: typeof r.font === "string" ? r.font : undefined,
+    at: typeof r.at === "number" && r.at >= 0 ? r.at : undefined,
   };
 }
 
@@ -80,7 +81,14 @@ export interface ParsedImport {
   description?: LText;
   languages?: Locale[];
   defaultLanguage?: Locale;
+  music?: MusicTrack;
   slides: Slide[];
+}
+
+function asMusic(raw: unknown): MusicTrack | undefined {
+  const r = raw as Record<string, unknown> | undefined;
+  if (!r || typeof r.video !== "string" || !/^[\w-]{11}$/.test(r.video)) return undefined;
+  return { video: r.video, offset: typeof r.offset === "number" ? r.offset : undefined };
 }
 
 export function parseImport(input: string): ParsedImport {
@@ -101,6 +109,7 @@ export function parseImport(input: string): ParsedImport {
       description: asLText(obj.description),
       languages: languages?.length ? languages : undefined,
       defaultLanguage: (LOCALES as readonly string[]).includes(obj.defaultLanguage) ? obj.defaultLanguage : undefined,
+      music: asMusic(obj.music),
       slides: obj.slides.map(asSlide),
     };
   }
@@ -121,6 +130,7 @@ export function presentationFromImport(p: ParsedImport, fallbackLang: Locale): P
     languages,
     defaultLanguage: p.defaultLanguage ?? languages[0],
     slides: p.slides,
+    music: p.music,
     tags: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -142,6 +152,7 @@ export function exportPresentation(p: Presentation) {
     tags: p.tags,
     languages: p.languages,
     defaultLanguage: p.defaultLanguage,
+    music: p.music,
     slides: p.slides.map((s) => ({ ...strip(s), items: s.items?.map(strip) })),
   };
 }

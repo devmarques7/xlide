@@ -15,7 +15,7 @@ interface PexelsVideo {
 }
 
 /** Background for lyrics slides: a colour wash, a Pexels video or any video/image URL. */
-export function BackgroundPicker({ value, onChange }: { value?: string; onChange: (bg: string) => void }) {
+export function BackgroundPicker({ value, onChange, onApplyAll }: { value?: string; onChange: (bg: string) => void; onApplyAll?: () => void }) {
   const { t } = usePrefs();
   const current = value || DEFAULT_BG;
   const [q, setQ] = useState("worship light");
@@ -97,30 +97,43 @@ export function BackgroundPicker({ value, onChange }: { value?: string; onChange
           className="font-mono text-xs"
           value={current.startsWith("wash:") ? "" : current}
           onChange={(e) => onChange(e.target.value.trim() || DEFAULT_BG)}
-          placeholder="https://….mp4"
+          placeholder="https://….mp4 · youtube.com/watch?v=…"
         />
       </div>
+      {onApplyAll && (
+        <Button type="button" variant="outline" size="sm" onClick={onApplyAll}>
+          {t("bg.applyAll")}
+        </Button>
+      )}
     </div>
   );
 }
 
-export function FontPicker({ value, onChange }: { value?: string; onChange: (font: string) => void }) {
+export function FontPicker({ value, onChange, onApplyAll }: { value?: string; onChange: (font: string) => void; onApplyAll?: () => void }) {
+  const { t } = usePrefs();
   const current = value || FONTS[0].id;
   return (
-    <div className="grid grid-cols-4 gap-1.5">
-      {FONTS.map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          onClick={() => onChange(f.id)}
-          className={cn("flex flex-col items-center gap-0.5 border border-border py-2", current === f.id ? "bg-foreground text-background" : "hover:bg-accent")}
-        >
-          <span className="text-xl leading-none" style={{ fontFamily: f.family } as CSSProperties}>
-            Aa
-          </span>
-          <span className="label-xs text-[0.6rem]">{f.name}</span>
-        </button>
-      ))}
+    <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5">
+        {FONTS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => onChange(f.id)}
+            className={cn("flex flex-col items-center gap-0.5 border border-border py-2", current === f.id ? "bg-foreground text-background" : "hover:bg-accent")}
+          >
+            <span className="text-xl leading-none" style={{ fontFamily: f.family } as CSSProperties}>
+              Aa
+            </span>
+            <span className="label-xs text-[0.6rem]">{f.name}</span>
+          </button>
+        ))}
+      </div>
+      {onApplyAll && (
+        <Button type="button" variant="outline" size="sm" onClick={onApplyAll}>
+          {t("font.applyAll")}
+        </Button>
+      )}
     </div>
   );
 }

@@ -66,14 +66,50 @@ async function trackCues(baseUrl) {
 
 /** Cleans caption text into lyric lines: no [Music] tags or ♪, no empty or repeated-in-a-row lines. */
 function toLines(cues) {
-  const out = [];
+  const lines = [];
+  const times = [];
+  let last = "";
+  let lastAt = 0;
   for (const c of cues) {
     for (const raw of c.text.split("\n")) {
       const line = raw.replace(/[♪♫]/g, "").replace(/\[[^\]]*\]|\([^)]*(music|música|musica|applause)[^)]*\)/gi, "").replace(/\s+/g, " ").trim();
-      if (line && line !== out[out.length - 1]) out.push(line);
+      if (!line || line === last) continue;
+      // A long silence between lines closes a stanza.
+      if (lines.length && c.start - lastAt >= 6) {
+        lines.push("");
+        times.push(null);
+      }
+      lines.push(line);
+      times.push(round(c.start));
+      last = line;
+      lastAt = c.start;
     }
   }
-  return out;
+  return { lines, times };
+}
+
+const round = (n) => Math.round(n * 100) / 100;
+
+/** LRC ("[01:02.50] words") into rows and their times; an empty timed row closes a stanza. */
+function lrcRows(lrc) {
+  const lines = [];
+  const times = [];
+  for (const raw of String(lrc).replace(/\r/g, "").split("\n")) {
+    const m = raw.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);
+    if (!m) continue;
+    const text = m[3].trim();
+    if (!text) {
+      if (lines.length && lines[lines.length - 1] !== "") {
+        lines.push("");
+        times.push(null);
+      }
+      continue;
+    }
+    lines.push(text);
+    times.push(round(Number(m[1]) * 60 + Number(m[2])));
+  }
+  while (lines[lines.length - 1] === "") (lines.pop(), times.pop());
+  return { lines, times };
 }
 
 /**
@@ -120,34 +156,38 @@ export async function getLyrics(input, lang) {
     if (!title) ({ title = "", author = "" } = await oembed(id).catch(() => ({})));
     const done = (found) => ({ id, title, author, ...found, tracks: trackList, tried });
 
-    // 1. The lyrics YouTube Music has for this very video.
+    // 1. Lyrics synced to the song (LRCLIB), so slides can follow the music.
+    const synced = title ? await findLyrics(title, author, { synced: true }).catch(() => null) : null;
+    if (synced) return done(synced);
+    // 2. The lyrics YouTube Music has for this very video.
     const own = await musicLyrics(id).catch(() => null);
     if (own) return done(own);
     if (title) {
       const { song, artist } = songAndArtist(title, author);
-      // 2. Lyrics databases by song and artist.
+      // 3. Lyrics databases by song and artist.
       const db = await findLyrics(title, author).catch(() => null);
       if (db) return done(db);
-      // 3. The studio song on YouTube Music (live videos often have no lyrics tab).
+      // 4. The studio song on YouTube Music (live videos often have no lyrics tab).
       for (const songId of await musicSongs(`${song} ${artist}`.trim()).catch(() => [])) {
         const found = await musicLyrics(songId).catch(() => null);
         if (found) return done({ ...found, song, artist });
       }
     }
-    // 4. Lyrics typed into the video description.
+    // 5. Lyrics typed into the video description.
     const typed = descriptionLyrics(description);
     if (typed) return done({ lines: typed, source: "description" });
   }
   if (!track) return { id, title, author, error: title ? "no_captions" : "youtube_failed", tracks: [], tried };
-  const lines = toLines(await trackCues(track.baseUrl));
+  const { lines, times } = toLines(await trackCues(track.baseUrl));
   return {
     id,
     title,
     author,
     lang: track.languageCode,
     auto: track.kind === "asr",
-    tracks: tracks.map((t) => ({ lang: t.languageCode, auto: t.kind === "asr" })),
+    tracks: trackList,
     lines,
+    times,
     error: lines.length ? undefined : "empty_captions",
   };
 }
@@ -295,16 +335,24 @@ export function songAndArtist(title, author) {
  * LRCLIB first, then lyrics.ovh (whose suggestions also find the real artist
  * when the channel is a label or a church). Returns null when neither knows it.
  */
-export async function findLyrics(title, author) {
+export async function findLyrics(title, author, { synced = false } = {}) {
   const { song, artist } = songAndArtist(title, author);
   if (!song) return null;
   const matches = (name) => norm(name).includes(norm(song)) || norm(song).includes(norm(name));
 
   try {
     const hits = await getJson(`https://lrclib.net/api/search?${new URLSearchParams({ q: `${song} ${artist}`.trim() })}`);
-    const hit = (hits ?? []).filter((h) => h.plainLyrics && matches(h.trackName)).sort((a, b) => Number(norm(b.artistName).includes(norm(artist))) - Number(norm(a.artistName).includes(norm(artist))))[0];
-    if (hit) return { lines: lyricRows(hit.plainLyrics), song, artist: artist || hit.artistName, source: "LRCLIB" };
+    const byArtist = (h) => Number(norm(h.artistName).includes(norm(artist)));
+    const hit = (hits ?? [])
+      .filter((h) => (synced ? h.syncedLyrics : h.plainLyrics) && matches(h.trackName))
+      .sort((a, b) => byArtist(b) - byArtist(a))[0];
+    if (hit && synced) {
+      const rows = lrcRows(hit.syncedLyrics);
+      if (rows.lines.length) return { ...rows, song, artist: artist || hit.artistName, source: "LRCLIB", duration: hit.duration };
+    }
+    if (hit && !synced) return { lines: lyricRows(hit.plainLyrics), song, artist: artist || hit.artistName, source: "LRCLIB" };
   } catch {}
+  if (synced) return null;
 
   try {
     const { data = [] } = await getJson(`https://api.lyrics.ovh/suggest/${encodeURIComponent(`${song} ${artist}`.trim())}`);

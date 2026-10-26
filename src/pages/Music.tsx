@@ -10,6 +10,7 @@ import { usePrefs } from "@/lib/prefs";
 import { savePresentation } from "@/lib/store";
 import { SHIPPED_AT, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
+import { youtubeId } from "@/lib/youtube";
 import { DEFAULT_BG } from "@/slides/lyrics";
 import { SlideFrame } from "@/slides/SlideView";
 
@@ -26,6 +27,8 @@ interface Fetched {
   title?: string;
   author?: string;
   lines?: string[];
+  /** Second each line is sung (null for stanza breaks), when the source is synced. */
+  times?: (number | null)[];
   auto?: boolean;
   /** Set when the words came from a lyrics database instead of the captions. */
   song?: string;
@@ -33,6 +36,14 @@ interface Fetched {
   source?: string;
   error?: string;
 }
+
+/** "[1:02.50] words" → { text: "words", at: 62.5 }; rows without a time have no `at`. */
+function parseRow(row: string): { text: string; at?: number } {
+  const m = row.match(/^\s*\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);
+  return m ? { text: m[3].trim(), at: Number(m[1]) * 60 + Number(m[2]) } : { text: row.trim() };
+}
+
+const stamp = (sec: number) => `[${Math.floor(sec / 60)}:${(sec % 60).toFixed(2).padStart(5, "0")}]`;
 
 /**
  * Splits lyric rows into slides: an empty row closes a stanza, and each stanza
@@ -45,7 +56,7 @@ function groupRows(rows: string[], per: number) {
     for (let i = 0; i < stanza.length; i += per) groups.push(stanza.slice(i, i + per));
     stanza = [];
   };
-  rows.forEach((r, i) => (r.trim() ? stanza.push(i) : flush()));
+  rows.forEach((r, i) => (parseRow(r).text ? stanza.push(i) : flush()));
   flush();
   return groups;
 }
@@ -86,7 +97,8 @@ export default function Music() {
       if (data.song || data.title) setSong(data.song || cleanTitle(data.title!));
       if (data.artist || data.author) setArtist(data.artist || data.author!.replace(/\s*-\s*Topic$/, ""));
       if (data.lines?.length) {
-        setLyrics(data.lines.join("\n"));
+        // Synced lyrics keep their time in front of each row, so edits keep them in place.
+        setLyrics(data.lines.map((l, i) => (data.times?.[i] != null && l ? `${stamp(data.times[i]!)} ${l}` : l)).join("\n"));
         setTranslation("");
       }
       setAuto(!!data.auto);
@@ -106,7 +118,7 @@ export default function Music() {
     try {
       const rows = lyrics.split("\n");
       // Empty rows stay empty so both columns keep the same slide breaks.
-      const filled = rows.map((r, i) => [r.trim(), i] as const).filter(([r]) => r);
+      const filled = rows.map((r, i) => [parseRow(r).text, i] as const).filter(([r]) => r);
       const res = await fetch("/api/music/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,13 +145,14 @@ export default function Music() {
       id: uid("s_"),
       layout: "lyrics",
       tone: "dark",
-      title: g.map((i) => rows[i].trim()).join("\n"),
-      subtitle: hasTrans ? g.map((i) => (trans[i] ?? "").trim()).join("\n") : undefined,
+      title: g.map((i) => parseRow(rows[i]).text).join("\n"),
+      subtitle: hasTrans ? g.map((i) => parseRow(trans[i] ?? "").text).join("\n") : undefined,
       bg,
       font,
+      at: parseRow(rows[g[0]]).at,
     }));
     if (!body.length) return [];
-    const cover: Slide = { id: uid("s_"), layout: "lyrics", tone: "dark", title: song || "—", eyebrow: artist, bg, font };
+    const cover: Slide = { id: uid("s_"), layout: "lyrics", tone: "dark", title: song || "—", eyebrow: artist, bg, font, at: 0 };
     // A last slide with only the background, to rest on between songs.
     const rest: Slide = { id: uid("s_"), layout: "lyrics", tone: "dark", title: "", bg, font, cta: credit };
     return [cover, ...body, rest];
@@ -157,6 +170,7 @@ export default function Music() {
       defaultLanguage: locale,
       template: "editorial",
       slides,
+      music: youtubeId(url) ? { video: youtubeId(url)! } : undefined,
       createdAt: Math.max(now, SHIPPED_AT),
       updatedAt: now,
     };
@@ -214,7 +228,11 @@ export default function Music() {
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lyrics">{t("music.lyrics")}</Label>
               <Textarea id="lyrics" rows={16} value={lyrics} onChange={(e) => setLyrics(e.target.value)} className="text-sm leading-6" />
-              <p className="text-xs text-muted-foreground">{auto ? t("music.auto") + " " : ""}{t("music.lyricsHint")}</p>
+              <p className="text-xs text-muted-foreground">
+                {auto ? t("music.auto") + " " : ""}
+                {t("music.lyricsHint")}
+                {/^\s*\[\d+:/m.test(lyrics) ? " " + t("music.timedHint") : ""}
+              </p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="trans">{t("music.translation")}</Label>

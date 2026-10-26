@@ -12,6 +12,7 @@ import Identity from "@/pages/Identity";
 import Login from "@/pages/Login";
 import Music from "@/pages/Music";
 import Present from "@/pages/Present";
+import Play from "@/pages/Play";
 import Print from "@/pages/Print";
 import Remote from "@/pages/Remote";
 import Viewer from "@/pages/Viewer";
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/p/:id" element={<RequireCode><Editor /></RequireCode>} />
           <Route path="/present/:id" element={<RequireCode><Present /></RequireCode>} />
           <Route path="/music" element={<RequireCode><Music /></RequireCode>} />
+          <Route path="/play/:id" element={<RequireCode><Play /></RequireCode>} />
           <Route path="/print/:id" element={<RequireCode><Print /></RequireCode>} />
           <Route path="/fill/:id" element={<Print fill />} />
           {/* Remote asks for the passcode itself so a phone can pair in one step. */}

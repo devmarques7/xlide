@@ -4,6 +4,7 @@ import { setBrowserTint, useImmersive } from "@/lib/app-mode";
 import type { Locale, Presentation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DeckLook } from "@/slides/look";
+import { BackdropLayer } from "@/slides/lyrics";
 import { SlideView } from "@/slides/SlideView";
 
 /** Full-viewport slide with a fade between pages and a hairline progress bar. */
@@ -34,6 +35,8 @@ export function Stage({
     });
     return () => cancelAnimationFrame(id);
   });
+  // Lyrics slides share one background, so a video does not restart on every slide.
+  const lyrics = slide?.layout === "lyrics";
   const progress = deck.slides.length > 1 ? index / (deck.slides.length - 1) : 1;
   return (
     <div ref={root} className="fixed inset-0 h-dvh overflow-hidden bg-background select-none">
@@ -44,8 +47,12 @@ export function Stage({
           onTap?.();
         }}
       >
+        {lyrics && <BackdropLayer bg={slide.bg} />}
         {slide && (
-          <div key={`${slide.id}-${lang}`} className="absolute inset-0 animate-[fade-up_0.45s_cubic-bezier(0.2,0.7,0.2,1)_both]">
+          <div
+            key={`${slide.id}-${lang}`}
+            className={cn("absolute inset-0 animate-[fade-up_0.45s_cubic-bezier(0.2,0.7,0.2,1)_both]", lyrics && "xs-over")}
+          >
             <DeckLook deck={deck} lang={lang}>
               <SlideView slide={slide} lang={lang} fallback={deck.defaultLanguage} live scale={scale} />
             </DeckLook>

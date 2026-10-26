@@ -271,12 +271,15 @@ export function SlideContentForm({
   languages,
   fallback,
   onChange,
+  onApplyAll,
 }: {
   slide: Slide;
   lang: Locale;
   languages: Locale[];
   fallback: Locale;
   onChange: (patch: Partial<Slide>) => void;
+  /** Copies a field to every slide of the same layout (lyrics background and font). */
+  onApplyAll?: (patch: Partial<Slide>) => void;
 }) {
   const { t } = usePrefs();
   const def = LAYOUT_FIELDS[slide.layout];
@@ -321,12 +324,12 @@ export function SlideContentForm({
         ) : f.key === "bg" ? (
           <div key="bg" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
-            <BackgroundPicker value={slide.bg} onChange={(bg) => onChange({ bg })} />
+            <BackgroundPicker value={slide.bg} onChange={(bg) => onChange({ bg })} onApplyAll={onApplyAll && (() => onApplyAll({ bg: slide.bg }))} />
           </div>
         ) : f.key === "font" ? (
           <div key="font" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
-            <FontPicker value={slide.font} onChange={(font) => onChange({ font })} />
+            <FontPicker value={slide.font} onChange={(font) => onChange({ font })} onApplyAll={onApplyAll && (() => onApplyAll({ font: slide.font }))} />
           </div>
         ) : f.key === "image" ? (
           <div key="image" className="flex flex-col gap-1.5">

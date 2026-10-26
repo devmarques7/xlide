@@ -1,9 +1,10 @@
 import "@fontsource/bebas-neue/400.css";
 import "@fontsource/instrument-serif/400.css";
 import "@fontsource/instrument-serif/400-italic.css";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { LText, Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { loopEmbed, thumbnail, youtubeId } from "@/lib/youtube";
 
 /* Worship lyrics: words centred over a slow colour wash or a looping video. */
 
@@ -61,6 +62,8 @@ export function Backdrop({ bg }: { bg?: string }) {
       </div>
     );
   }
+  const yt = youtubeId(value);
+  if (yt) return <YouTubeLoop id={yt} />;
   if (isVideo(value)) return <LoopVideo src={value} />;
   return <img className="xs-wash-media" src={value} alt="" draggable={false} />;
 }
@@ -71,10 +74,46 @@ function LoopVideo({ src }: { src: string }) {
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    if (v.closest("[data-animate]")) v.play().catch(() => {});
+    if (v.closest("[data-animate]") && !v.closest(".xs-over")) v.play().catch(() => {});
     else v.pause();
   });
   return <video ref={ref} className="xs-wash-media" src={`${src}#t=0.5`} muted loop playsInline preload="metadata" aria-hidden />;
+}
+
+/**
+ * A YouTube video as a silent looping background. Only where slides animate:
+ * thumbnails (editor list, previews) show its poster instead of a player each.
+ */
+function YouTubeLoop({ id }: { id: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [live, setLive] = useState(false);
+  // Under a shared BackdropLayer (.xs-over) the slide's own copy is hidden: don't load it.
+  useEffect(() => setLive(!!ref.current?.closest("[data-animate]") && !ref.current.closest(".xs-over")), []);
+  return (
+    <div ref={ref} className="xs-wash-media xs-yt" aria-hidden>
+      {live ? (
+        <iframe src={loopEmbed(id)} title="" allow="autoplay; encrypted-media" tabIndex={-1} />
+      ) : (
+        <img src={thumbnail(id)} alt="" draggable={false} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * One background behind a run of lyrics slides. Rendered outside the slide
+ * (which hides its own copy), so a video keeps playing as the words change.
+ */
+export function BackdropLayer({ bg, children }: { bg?: string; children?: ReactNode }) {
+  return (
+    <div className="xs absolute inset-0" data-animate="" data-tone="dark">
+      <div className="xs-lyrics">
+        <Backdrop key={bg || DEFAULT_BG} bg={bg} />
+        <div className="xs-ly-grain" aria-hidden />
+        {children}
+      </div>
+    </div>
+  );
 }
 
 export function Lyrics({ s, T }: { s: Slide; T: (v: LText | undefined) => string }) {

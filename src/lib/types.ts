@@ -64,6 +64,16 @@ export interface Slide {
   bg?: string;
   /** Lyrics slides: grotesk | serif | condensed | mono. */
   font?: string;
+  /** Music decks: second of the song at which this slide appears. */
+  at?: number;
+}
+
+/** The song a lyrics deck plays along with. */
+export interface MusicTrack {
+  /** YouTube video id. */
+  video: string;
+  /** Seconds added to the clock when matching slide times (+ shows lyrics earlier). */
+  offset?: number;
 }
 
 export interface Presentation {
@@ -79,6 +89,8 @@ export interface Presentation {
   /** Attention colour (hex) used for highlights and accent-toned slides. */
   accent?: string;
   slides: Slide[];
+  /** Lyrics decks: the YouTube song played in Play mode. */
+  music?: MusicTrack;
   createdAt: number;
   updatedAt: number;
   /** When this browser added the deck (shipped decks); used only to sort Recent. */
