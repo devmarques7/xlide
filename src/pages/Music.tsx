@@ -11,8 +11,8 @@ import { savePresentation } from "@/lib/store";
 import { SHIPPED_AT, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
 import { suggestStyle } from "@/lib/song-style";
-import { importTimed, isLrc, isSrt, lrcStamp, parseRow } from "@/lib/subtitles";
-import { LyricsTimeline } from "@/components/lyrics-timeline";
+import { isLrc, isSrt, lrcStamp, parseRow } from "@/lib/subtitles";
+import { LyricsTimeline, useSubtitleImport } from "@/components/lyrics-timeline";
 import { youtubeId } from "@/lib/youtube";
 import { DEFAULT_BG } from "@/slides/lyrics";
 import { SlideFrame } from "@/slides/SlideView";
@@ -76,6 +76,7 @@ export default function Music() {
   const [notice, setNotice] = useState<string | null>(null);
   const [mood, setMood] = useState<string | null>(null);
   const [timing, setTiming] = useState<"video" | "studio" | "none" | null>(null);
+  const importSubtitles = useSubtitleImport(lyrics, setLyrics);
 
   /** Background and font that suit the song's words. */
   const applyStyle = (title: string, text: string) => {
@@ -247,7 +248,7 @@ export default function Music() {
                   const text = e.clipboardData.getData("text");
                   if (isSrt(text) || (isLrc(text) && !lyrics.trim())) {
                     e.preventDefault();
-                    setLyrics(importTimed(text));
+                    importSubtitles(text);
                     setTiming("video");
                   }
                 }}
@@ -267,7 +268,7 @@ export default function Music() {
             </div>
           </div>
 
-          <LyricsTimeline lyrics={lyrics} onChange={setLyrics} song={song} artist={artist} />
+          <LyricsTimeline lyrics={lyrics} onChange={setLyrics} song={song} artist={artist} link={url} />
 
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">

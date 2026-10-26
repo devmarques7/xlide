@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import type { TKey } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
-import { cuesToLrc, cuesToSrt, download, importTimed, parseRow, readTime, shortTime } from "@/lib/subtitles";
+import { alignToFile, cuesToLrc, cuesToSrt, download, importTimed, parseRow, readTime, shortTime } from "@/lib/subtitles";
 import { SONG_SECTIONS, tx, type Locale, type MusicTrack, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
 import { clock, youtubeId } from "@/lib/youtube";
@@ -213,12 +213,25 @@ export function MusicTimePanel({
     setSlides(deck.slides.map((s) => (s.at == null ? s : { ...s, at: Math.max(0, Math.round((s.at + d) * 100) / 100) })));
 
   /**
-   * SRT/LRC in: each subtitle line is looked for, in order, in the slides; a slide
-   * takes the time of its first line. If most lines are not in the slides, the
-   * slides are rebuilt from the file (keeping the cover and the look).
+   * SRT/LRC in: the slides' words are found in the file and each slide takes the
+   * time its words are sung; failing that, lines are matched by their start; if
+   * most lines are not in the slides, the slides are rebuilt from the file
+   * (keeping the cover and the look).
    */
   const importFile = async (f: File) => {
-    const rows = importTimed(await f.text())
+    const text = await f.text();
+    // First: find each slide's words in the file (works with rough AI transcriptions too).
+    const aligned = alignToFile(
+      deck.slides.map((s, i) => (i === 0 || s.layout !== "lyrics" ? "" : lines(s, lang, fb).replace(/\n/g, " "))),
+      text,
+    );
+    if (aligned && aligned.matched >= 0.4) {
+      const times = aligned.lyrics.split("\n").map((r) => parseRow(r).at);
+      setSlides(deck.slides.map((s, i) => (i === 0 ? { ...s, at: 0 } : times[i] != null ? { ...s, at: times[i] } : s)));
+      toast.success(t("timeline.aligned", { n: Math.round(aligned.matched * 100) }));
+      return;
+    }
+    const rows = importTimed(text)
       .split("\n")
       .map(parseRow)
       .filter((r) => r.text && r.at != null) as { text: string; at: number }[];

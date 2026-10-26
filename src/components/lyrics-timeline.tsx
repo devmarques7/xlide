@@ -1,9 +1,44 @@
-import { ArrowDownUp, Download, FileUp, Minus, Plus } from "lucide-react";
+import { ArrowDownUp, Download, ExternalLink, FileUp, Minus, Plus } from "lucide-react";
 import { useRef } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
 import { usePrefs } from "@/lib/prefs";
-import { download, importTimed, lrcStamp, parseRow, readTime, shortTime, sortByTime, toCues, toLrc, toSrt } from "@/lib/subtitles";
+import { alignToFile, download, importTimed, lrcStamp, needsTimes, parseRow, readTime, shortTime, sortByTime, toCues, toLrc, toSrt } from "@/lib/subtitles";
+import { youtubeId } from "@/lib/youtube";
+
+/**
+ * Free places that turn a song link into an .srt: DownSub and SaveSubs save the
+ * video's YouTube captions; TurboScribe transcribes the audio with AI (free
+ * plan: a few files a day). The file comes back here to time the lyrics.
+ */
+const SRT_SOURCES = [
+  { id: "downsub", name: "DownSub", url: (link: string) => `https://downsub.com/?url=${encodeURIComponent(link)}` },
+  { id: "savesubs", name: "SaveSubs", url: () => "https://savesubs.com/" },
+  { id: "turboscribe", name: "TurboScribe", url: () => "https://turboscribe.ai/pt/dashboard" },
+] as const;
+
+/**
+ * A subtitle file in: lyrics still without times are timed by it (their words
+ * found in the file); otherwise, or when they don't match, the file becomes the lyrics.
+ */
+export function useSubtitleImport(lyrics: string, onChange: (lyrics: string) => void) {
+  const { t } = usePrefs();
+  return (text: string) => {
+    if (needsTimes(lyrics)) {
+      const aligned = alignToFile(lyrics.split("\n"), text);
+      if (aligned && aligned.matched >= 0.4) {
+        onChange(aligned.lyrics);
+        toast.success(t("timeline.aligned", { n: Math.round(aligned.matched * 100) }));
+        return;
+      }
+    }
+    const rows = importTimed(text);
+    if (!rows) return toast.error(t("music.importEmpty"));
+    onChange(rows);
+    if (lyrics.trim()) toast.message(t("timeline.replaced"));
+  };
+}
 
 /** Lyrics with one row retimed (or untimed when `sec` is null). */
 function retime(lyrics: string, row: number, sec: number | null) {
@@ -32,18 +67,30 @@ function shiftAll(lyrics: string, d: number) {
  * The lyrics as a subtitle timeline: each timed row with its start and end,
  * a strip showing where the lines fall in the song, SRT/LRC import and export.
  */
-export function LyricsTimeline({ lyrics, onChange, song, artist }: { lyrics: string; onChange: (lyrics: string) => void; song: string; artist: string }) {
+export function LyricsTimeline({
+  lyrics,
+  onChange,
+  song,
+  artist,
+  link,
+}: {
+  lyrics: string;
+  onChange: (lyrics: string) => void;
+  song: string;
+  artist: string;
+  /** The song's YouTube link, for the SRT services. */
+  link?: string;
+}) {
   const { t } = usePrefs();
+  const importText = useSubtitleImport(lyrics, onChange);
+  const video = youtubeId(link);
   const file = useRef<HTMLInputElement>(null);
   const cues = toCues(lyrics);
   const total = Math.max(1, cues.at(-1)?.end ?? 1);
   const name = (song || "lyrics").replace(/[\\/:*?"<>|]+/g, "").trim() || "lyrics";
   const untimed = lyrics.split("\n").filter((r) => parseRow(r).text && parseRow(r).at == null).length;
 
-  const load = async (f: File) => {
-    const text = await f.text();
-    onChange(importTimed(text));
-  };
+  const load = async (f: File) => importText(await f.text());
 
   return (
     <div className="flex flex-col gap-2">
@@ -72,6 +119,21 @@ export function LyricsTimeline({ lyrics, onChange, song, artist }: { lyrics: str
         <Button variant="outline" size="sm" onClick={() => download(`${name}.lrc`, toLrc(lyrics, song, artist))} disabled={!cues.length}>
           <Download /> LRC
         </Button>
+      </div>
+
+      {/* Get an .srt for this song elsewhere, then import it. */}
+      <div className="flex flex-col gap-1.5 border border-border p-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs">{t("timeline.getSrt")}</span>
+          {SRT_SOURCES.map((s) => (
+            <Button key={s.id} asChild variant="outline" size="sm">
+              <a href={s.url(video ? `https://www.youtube.com/watch?v=${video}` : "")} target="_blank" rel="noreferrer">
+                {s.name} <ExternalLink />
+              </a>
+            </Button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">{t("timeline.getSrtHint")}</p>
       </div>
 
       {!cues.length ? (

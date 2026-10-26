@@ -1,3 +1,5 @@
+import { alignRows, wordTimeline } from "../../shared/align.js";
+
 /*
  * Lyrics with times, as subtitle files: SRT (start --> end) and LRC ([m:ss.xx]).
  * In the Music page each row keeps its start as an LRC tag; these helpers turn
@@ -56,6 +58,48 @@ export function toCues(lyrics: string): Cue[] {
 
 export const isSrt = (text: string) => /\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}\s*-->/.test(text);
 export const isLrc = (text: string) => /^\s*\[\d+:\d{2}(?:[.:]\d+)?\]/m.test(text);
+
+/** Timed lines of an SRT or LRC file: [{ start, dur, text }] in time order. */
+export function parseTimedFile(text: string): { start: number; dur: number; text: string }[] {
+  const out: { start: number; dur: number; text: string }[] = [];
+  if (isSrt(text)) {
+    for (const block of text.replace(/\r/g, "").split(/\n\s*\n/)) {
+      const lines = block.trim().split("\n");
+      const i = lines.findIndex((l) => l.includes("-->"));
+      if (i < 0) continue;
+      const [a, b] = lines[i].split("-->").map((x) => readTime(x));
+      const words = lines.slice(i + 1).join(" ").replace(/<[^>]+>|\{[^}]+\}/g, "").trim();
+      if (a != null && words) out.push({ start: a, dur: b != null && b > a ? b - a : 0, text: words });
+    }
+  } else {
+    for (const line of text.replace(/\r/g, "").split("\n")) {
+      const words = line.replace(/\[[^\]]*\]/g, "").trim();
+      for (const m of line.matchAll(/\[(\d+):(\d{2}(?:[.:]\d+)?)\]/g)) if (words) out.push({ start: Number(m[1]) * 60 + Number(m[2].replace(":", ".")), dur: 0, text: words });
+    }
+  }
+  return out.sort((x, y) => x.start - y.start);
+}
+
+/**
+ * Times lyric rows with a subtitle file of the same song (from YouTube, DownSub,
+ * TurboScribe…): each row starts when its words are said in the file, even if
+ * the file's text is a rough transcription. Returns the lyrics with [m:ss] tags
+ * and the share of rows found, or null when the file has no timed lines.
+ */
+export function alignToFile(rows: string[], file: string): { lyrics: string; matched: number } | null {
+  const cues = parseTimedFile(file);
+  if (!cues.length) return null;
+  const texts = rows.map((r) => parseRow(r).text);
+  const { times, matched } = alignRows(texts, wordTimeline(cues));
+  const lyrics = texts.map((t, i) => (t && times[i] != null ? `${lrcStamp(times[i]!)} ${t}` : t)).join("\n");
+  return { lyrics, matched };
+}
+
+/** True when most text rows have no time yet (lyrics waiting for timings). */
+export const needsTimes = (lyrics: string) => {
+  const rows = lyrics.split("\n").map(parseRow).filter((r) => r.text);
+  return rows.length > 0 && rows.filter((r) => r.at == null).length >= rows.length / 2;
+};
 
 /**
  * SRT or LRC text → lyrics rows with LRC tags, in time order. A pause of 4 s
