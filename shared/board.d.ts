@@ -88,6 +88,8 @@ export interface Board {
   arranged?: boolean;
   /** Mind map direction; horizontal when unset. */
   layout?: "horizontal" | "vertical";
+  /** Cards whose lines start folded when the board opens. */
+  folded?: string[];
   accent: string;
   createdAt: number;
   updatedAt: number;

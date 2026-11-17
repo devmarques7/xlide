@@ -1,5 +1,5 @@
 import {
-  ArrowDownToLine, ArrowLeft, Pause, PlayCircle, ArrowRight, ArrowRightToLine, Cable, ChevronLeft, Columns3, Shapes, ChevronsDownUp, ChevronsUpDown, Eye, Focus, ListPlus, Minus, Hand, Languages, Loader2, Maximize, MousePointer2, Network, PanelRight, Plus, Radio, Share2, Sparkles, Spline, Workflow,
+  ArrowDownToLine, ArrowLeft, BookmarkCheck, Pause, PlayCircle, ArrowRight, ArrowRightToLine, Cable, ChevronLeft, Columns3, Shapes, ChevronsDownUp, ChevronsUpDown, Eye, Focus, ListPlus, Minus, Hand, Languages, Loader2, Maximize, MousePointer2, Network, PanelRight, Plus, Radio, Share2, Sparkles, Spline, Workflow,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -121,7 +121,8 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
   /* ───── flow lines: highlight one, collapse and open them one by one ───── */
-  const [collapsed, setCollapsed] = useState<string[]>([]);
+  /** Starts with the board's saved folds, so the map opens step by step. */
+  const [collapsed, setCollapsed] = useState<string[]>(() => original.folded ?? []);
   const [focusMode, setFocusMode] = useState(true);
   const kids = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -1089,6 +1090,24 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
               >
                 {anyCollapsed ? <ChevronsUpDown className="size-4" /> : <ChevronsDownUp className="size-4" />}
               </button>
+              {owner && (
+                <button
+                  type="button"
+                  title={t("board.tool.saveFolds")}
+                  aria-label={t("board.tool.saveFolds")}
+                  onClick={() => {
+                    const keep = collapsed.filter((id) => byId.has(id));
+                    commit((b) => {
+                      if (keep.length) b.folded = keep;
+                      else delete b.folded;
+                    });
+                    toast(t(keep.length ? "board.foldsSaved" : "board.foldsCleared"));
+                  }}
+                  className="grid size-10 place-items-center hover:bg-accent"
+                >
+                  <BookmarkCheck className="size-4" />
+                </button>
+              )}
               {anyCollapsed && (
                 <button
                   type="button"

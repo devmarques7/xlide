@@ -268,6 +268,11 @@ export function normalizeBoard(raw) {
     if (!seen.has(e?.from) || !seen.has(e?.to) || e.from === e.to) continue;
     b.edges.push({ id: str(e.id, 64) || newId("e_"), from: e.from, to: e.to, ...(e.label ? { label: str(e.label, 80) } : {}) });
   }
+  // Lines that start folded when the board opens (click a card's toggle to open them).
+  if (Array.isArray(raw?.folded)) {
+    const f = raw.folded.filter((id) => typeof id === "string" && seen.has(id));
+    if (f.length) b.folded = [...new Set(f)];
+  }
   return b;
 }
 
