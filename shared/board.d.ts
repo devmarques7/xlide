@@ -19,6 +19,10 @@ export interface BoardNode {
   url?: string;
   file_type?: string;
   subtitle?: string;
+  /** Where the content is published: icon keys (instagram, tiktok, youtube, shorts, spotify, applepodcasts, linkedin, whatsapp, substack, newsletter, app). */
+  platforms?: string[];
+  /** What publishing there does to reach. */
+  reach?: string;
   items?: BoardItem[];
   value?: string;
   step?: number;

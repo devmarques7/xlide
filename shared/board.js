@@ -217,6 +217,10 @@ export function cleanNode(raw, fallbackId) {
   if (video) n.video = video;
   if (kind === "video" && !n.video && n.url) n.video = n.url;
   if (Array.isArray(raw?.tags)) n.tags = raw.tags.map((t) => str(t, 40)).filter(Boolean).slice(0, 8);
+  // Where the content gets published (icon keys like "instagram", "tiktok", "youtube", "newsletter") and what that does to reach.
+  if (Array.isArray(raw?.platforms)) n.platforms = [...new Set(raw.platforms.map((t) => str(t, 24)?.toLowerCase()).filter(Boolean))].slice(0, 12);
+  const reach = str(raw?.reach, 200);
+  if (reach) n.reach = reach;
   if (Array.isArray(raw?.images)) n.images = raw.images.map((t) => str(t, 4000)).filter(Boolean).slice(0, 12);
   if (Array.isArray(raw?.items)) {
     n.items = raw.items
@@ -490,6 +494,8 @@ const NODE_SCHEMA = {
     url: { type: "string" },
     file_type: { type: "string" },
     subtitle: { type: "string" },
+    platforms: { type: "array", items: { type: "string" }, description: "Where this content is published, shown as icons on the card: instagram, tiktok, youtube, shorts, spotify, applepodcasts, linkedin, whatsapp, substack, newsletter, app." },
+    reach: { type: "string", description: "One line on what publishing there does to reach, e.g. 'Same cut on 3 platforms: ×3 reach'." },
     items: { type: "array", items: { type: "object", properties: { text: { type: "string" }, done: { type: "boolean" } }, required: ["text"] } },
     value: { type: "string", description: "Metric value, e.g. '3.2%' or '12k'." },
     progress: { type: "number", description: "0–100, shown on stage cards." },

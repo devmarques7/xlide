@@ -22,7 +22,7 @@ import { KIND_ICON, NodeCard, videoPoster } from "./board/cards";
 import { ReelPlayer } from "./board/reel-player";
 import { Moodboard, type View as MoodViewState } from "./board/moodboard";
 import { ProfilesDock } from "./board/profiles-dock";
-import { Inspector, MapPalette, Overview } from "./board/side-panel";
+import { Inspector, MapPalette, NodeDetail, Overview } from "./board/side-panel";
 import { setAutoplay, useAutoplay, VideoTile } from "./board/inline-video";
 
 type Tool = "select" | "pan" | "connect";
@@ -108,6 +108,10 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   const [sizes, setSizes] = useState<Record<string, { w: number; h: number }>>({});
   const [panel, setPanel] = useState(() => window.innerWidth >= 1024);
   const [player, setPlayer] = useState<number | null>(null);
+  /** Set when the player was opened from one card: it plays only that card's references. */
+  const [playList, setPlayList] = useState<string[] | null>(null);
+  /** Owners open the editor from a card's detail view; it closes again when the selection changes. */
+  const [editCard, setEditCard] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const fitted = useRef(false);
@@ -294,6 +298,11 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     const order = [...o.stages.flatMap((s) => s.items), ...o.loose].filter((n) => n.kind === "video").map((n) => n.id);
     return nodes.filter((n) => n.kind === "video").sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   }, [board, nodes]);
+  const playerVideos = useMemo(
+    () => (playList ? playList.map((id) => byId.get(id)).filter((v): v is BoardNode => v?.kind === "video") : videos),
+    [playList, videos, byId],
+  );
+  useEffect(() => setEditCard(false), [selected]);
   const stageOf = useCallback(
     (nid: string) => {
       const s = outline(board).stages.find((s) => s.items.some((i) => i.id === nid));
@@ -607,7 +616,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     if (el && mode === "map") lastCenter.current = { cx: (el.clientWidth / 2 - view.x) / view.z, cy: (el.clientHeight / 2 - view.y) / view.z, span: el.clientWidth / view.z };
     const me = moodStage.current;
     if (me && mode === "mood") lastCenter.current = { cx: (me.clientWidth / 2 - moodView.x) / moodView.z, cy: (me.clientHeight / 2 - moodView.y) / moodView.z, span: me.clientWidth / moodView.z };
-    sync.send({ t: "board", mode, focus: selected, ...lastCenter.current, player: player !== null ? videos[player]?.id ?? null : null, collapsed, dim: focusMode });
+    sync.send({ t: "board", mode, focus: selected, ...lastCenter.current, player: player !== null ? playerVideos[player]?.id ?? null : null, collapsed, dim: focusMode });
   };
   useEffect(() => {
     if (!owner) return;
@@ -639,6 +648,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       setMoodView({ z, x: me.clientWidth / 2 - live.cx * z, y: me.clientHeight / 2 - live.cy * z });
     }
     const i = live.player ? videos.findIndex((v) => v.id === live.player) : -1;
+    setPlayList(null);
     setPlayer(i >= 0 ? i : null);
   }, [following, live, videos, mode]);
 
@@ -646,36 +656,77 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     if (failed) toast(t("board.translateFailed"));
   }, [failed, t]);
 
-  const play = (nid?: string) => {
-    if (!videos.length) return;
+  /** Opens the player at a video; `list` limits it to those videos (a card's references). */
+  const play = (nid?: string, list?: string[]) => {
+    const ids = list?.length ? list : null;
+    const pool = ids ? ids : videos.map((v) => v.id);
+    if (!pool.length) return;
     unfollow();
-    setPlayer(Math.max(0, videos.findIndex((v) => v.id === nid)));
+    setPlayList(ids);
+    setPlayer(Math.max(0, pool.indexOf(nid ?? "")));
   };
 
   /* ───── edges ───── */
+  /** Which side of the card a line leaves from (same rules as the paths below). */
+  const edgeSide = (a: BoardNode, b: BoardNode) => {
+    const pa = pos(a), pb = pos(b), sa = sizeOf(a), sb = sizeOf(b);
+    if (vertical && pb.y >= pa.y + sa.h * 0.6) return "down";
+    if (pb.x >= pa.x + sa.w * 0.6) return "right";
+    if (pb.x + sb.w <= pa.x - sa.w * 0.1) return "left";
+    return pb.y > pa.y ? "below" : "above";
+  };
+  /** Lines leaving the same side of a card fan out along it, in the order of their targets, so each one can be told apart and clicked. */
+  const fanOut = new Map<string, number>();
+  {
+    const groups = new Map<string, { id: string; k: number }[]>();
+    for (const e of board.edges) {
+      const a = byId.get(e.from), b = byId.get(e.to);
+      if (!a || !b || !visible.has(a.id) || !visible.has(b.id)) continue;
+      const side = edgeSide(a, b);
+      const pb = pos(b), sb = sizeOf(b);
+      const k = side === "right" || side === "left" ? pb.y + sb.h / 2 : pb.x + sb.w / 2;
+      const key = `${e.from}|${side}`;
+      groups.set(key, [...(groups.get(key) ?? []), { id: e.id, k }]);
+    }
+    for (const [key, list] of groups) {
+      if (list.length < 2) continue;
+      const [from, side] = key.split("|");
+      const sa = sizeOf(byId.get(from!)!);
+      const span = side === "right" || side === "left" ? sa.h : sa.w;
+      const gap = Math.min(26, (span * 0.8) / list.length);
+      list.sort((x, y) => x.k - y.k).forEach((x, i) => fanOut.set(x.id, (i - (list.length - 1) / 2) * gap));
+    }
+  }
+  /** A line's label: its own, else the stage it leads to ("05 · How it runs"). */
+  const edgeLabel = (e: { label?: string; to: string }) => {
+    if (e.label) return e.label;
+    const b = byId.get(e.to);
+    return b?.kind === "stage" ? `${String(b.step ?? "").padStart(2, "0")} · ${b.title}` : "";
+  };
   const edgePaths = board.edges.flatMap((e) => {
     const a = byId.get(e.from), b = byId.get(e.to);
     if (!a || !b || !visible.has(a.id) || !visible.has(b.id)) return [];
     const pa = pos(a), pb = pos(b), sa = sizeOf(a), sb = sizeOf(b);
+    const o = fanOut.get(e.id) ?? 0;
     let s: [number, number], d: [number, number], path: string;
     if (vertical && pb.y >= pa.y + sa.h * 0.6) {
-      s = [pa.x + sa.w / 2, pa.y + sa.h];
+      s = [pa.x + sa.w / 2 + o, pa.y + sa.h];
       d = [pb.x + sb.w / 2, pb.y];
       const k = Math.max(40, (d[1] - s[1]) / 2);
       path = `M${s[0]},${s[1]} C${s[0]},${s[1] + k} ${d[0]},${d[1] - k} ${d[0]},${d[1]}`;
     } else if (pb.x >= pa.x + sa.w * 0.6) {
-      s = [pa.x + sa.w, pa.y + sa.h / 2];
+      s = [pa.x + sa.w, pa.y + sa.h / 2 + o];
       d = [pb.x, pb.y + sb.h / 2];
       const k = Math.max(50, (d[0] - s[0]) / 2);
       path = `M${s[0]},${s[1]} C${s[0] + k},${s[1]} ${d[0] - k},${d[1]} ${d[0]},${d[1]}`;
     } else if (pb.x + sb.w <= pa.x - sa.w * 0.1) {
-      s = [pa.x, pa.y + sa.h / 2];
+      s = [pa.x, pa.y + sa.h / 2 + o];
       d = [pb.x + sb.w, pb.y + sb.h / 2];
       const k = Math.max(50, (s[0] - d[0]) / 2);
       path = `M${s[0]},${s[1]} C${s[0] - k},${s[1]} ${d[0] + k},${d[1]} ${d[0]},${d[1]}`;
     } else {
       const down = pb.y > pa.y;
-      s = [pa.x + sa.w / 2, down ? pa.y + sa.h : pa.y];
+      s = [pa.x + sa.w / 2 + o, down ? pa.y + sa.h : pa.y];
       d = [pb.x + sb.w / 2, down ? pb.y : pb.y + sb.h];
       const k = Math.max(40, Math.abs(d[1] - s[1]) / 2) * (down ? 1 : -1);
       path = `M${s[0]},${s[1]} C${s[0]},${s[1] + k} ${d[0]},${d[1] - k} ${d[0]},${d[1]}`;
@@ -725,9 +776,18 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                     <path d={path} fill="none" stroke="currentColor" strokeWidth={(opacity > 0.9 ? 2.2 : 1.5) / Math.max(view.z, 0.6)} strokeDasharray="1 6" strokeLinecap="round" />
                     <circle cx={s[0]} cy={s[1]} r={4} fill="var(--background)" stroke="currentColor" strokeWidth={1.5} />
                     <circle cx={d[0]} cy={d[1]} r={4} fill="currentColor" />
-                    {e.label && (
-                      <text x={(s[0] + d[0]) / 2} y={(s[1] + d[1]) / 2 - 8} textAnchor="middle" className="fill-muted-foreground font-mono text-[11px] uppercase">
-                        {e.label}
+                    {edgeLabel(e) && (
+                      <text
+                        x={(s[0] + d[0]) / 2}
+                        y={(s[1] + d[1]) / 2 - 8}
+                        textAnchor="middle"
+                        className="fill-muted-foreground font-mono text-[11px] uppercase"
+                        stroke="var(--background)"
+                        strokeWidth={4}
+                        paintOrder="stroke"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {edgeLabel(e)}
                       </text>
                     )}
                   </g>
@@ -1102,8 +1162,25 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
           </div>
           {owner && mode === "mood" ? (
             <MapPalette board={board} placed={new Set((original.mood?.items ?? []).map((i) => i.ref).filter((x): x is string => !!x))} />
-          ) : owner && sel ? (
-            <Inspector key={sel.id} node={sel} onChange={(p) => patchNode(sel.id, p)} onDelete={() => deleteNode(sel.id)} onDone={() => setSelected(null)} />
+          ) : owner && sel && (editCard || !sel.title) ? (
+            <Inspector key={sel.id} node={sel} onChange={(p) => patchNode(sel.id, p)} onDelete={() => deleteNode(sel.id)} onDone={() => setEditCard(false)} />
+          ) : sel ? (
+            <NodeDetail
+              key={sel.id}
+              board={board}
+              node={board.nodes.find((n) => n.id === sel.id) ?? sel}
+              stageOf={stageOf}
+              onBack={() => {
+                unfollow();
+                setSelected(null);
+              }}
+              onEdit={owner ? () => setEditCard(true) : undefined}
+              onSelect={(nid) => {
+                unfollow();
+                goTo(nid);
+              }}
+              onPlay={play}
+            />
           ) : (
             <Overview
               board={board}
@@ -1120,9 +1197,9 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
         </aside>
       )}
 
-      {player !== null && videos.length > 0 && (
+      {player !== null && playerVideos.length > 0 && (
         <ReelPlayer
-          videos={videos}
+          videos={playerVideos}
           start={player}
           index={following ? player : undefined}
           onIndex={owner ? setPlayer : undefined}
@@ -1130,6 +1207,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
           onClose={() => {
             unfollow();
             setPlayer(null);
+            setPlayList(null);
           }}
         />
       )}

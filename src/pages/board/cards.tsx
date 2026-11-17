@@ -4,6 +4,7 @@ import {
 import { useRef, type CSSProperties } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { VideoTile } from "./inline-video";
+import { PlatformRow } from "./platforms";
 import { NODE_W, parseVideo } from "../../../shared/board.js";
 import type { BoardNode, NodeKind } from "@/lib/boards";
 import { cn } from "@/lib/utils";
@@ -384,8 +385,9 @@ function VideoCard({ node: n, ring, onPlay }: { node: BoardNode; ring: boolean; 
 
 function Tags({ node, dark }: { node: BoardNode; dark?: boolean }) {
   const tags = [node.tag, ...(node.tags ?? [])].filter(Boolean) as string[];
-  if (!tags.length) return null;
+  if (!tags.length) return <PlatformRow node={node} dark={dark} />;
   return (
+    <>
     <div className="mt-4 flex flex-wrap gap-1.5">
       {tags.map((t, i) => (
         <span
@@ -397,5 +399,7 @@ function Tags({ node, dark }: { node: BoardNode; dark?: boolean }) {
         </span>
       ))}
     </div>
+    <PlatformRow node={node} dark={dark} />
+    </>
   );
 }

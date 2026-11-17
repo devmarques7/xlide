@@ -1,4 +1,4 @@
-import { Check, Film, Play, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Check, Film, Pencil, Play, Plus, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { outline, parseVideo } from "../../../shared/board.js";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { uploadImage } from "@/lib/images";
 import { usePrefs } from "@/lib/prefs";
 import { KIND_ICON, videoPoster } from "./cards";
+import { PLATFORM_KEYS, PlatformIcon, platformName } from "./platforms";
 
 /** Board overview: the idea, the funnel point to point, reels and the image moodboard. */
 export function Overview({ board, onSelect, onPlay }: { board: Board; onSelect: (id: string) => void; onPlay: (id?: string) => void }) {
@@ -115,6 +116,144 @@ export function Overview({ board, onSelect, onPlay }: { board: Board; onSelect: 
   );
 }
 
+/**
+ * One card, read-only: only what belongs to the item being looked at on the map —
+ * its text, its references (videos it points to, with their lesson) and where it leads.
+ */
+export function NodeDetail({ board, node: n, stageOf, onBack, onEdit, onSelect, onPlay }: {
+  board: Board;
+  node: BoardNode;
+  stageOf: (id: string) => string | undefined;
+  onBack: () => void;
+  /** Owners only: open the editor for this card. */
+  onEdit?: () => void;
+  onSelect: (id: string) => void;
+  /** Plays a video; `list` limits the player to these videos. */
+  onPlay: (id: string, list?: string[]) => void;
+}) {
+  const { t } = usePrefs();
+  const byId = new Map(board.nodes.map((x) => [x.id, x]));
+  const Icon = KIND_ICON[n.kind];
+  const out = board.edges.filter((e) => e.from === n.id && byId.has(e.to)).map((e) => ({ label: e.label, c: byId.get(e.to)! }));
+  const into = board.edges.filter((e) => e.to === n.id && byId.has(e.from)).map((e) => ({ label: e.label, c: byId.get(e.from)! }));
+  const refs = out.filter((x) => x.c.kind === "video");
+  const refIds = refs.map((x) => x.c.id);
+  const links = out.filter((x) => x.c.kind !== "video");
+  const where = stageOf(n.id) ?? (n.kind === "stage" ? `${String(n.step ?? "").padStart(2, "0")} · ${n.title}` : undefined);
+  const poster = n.kind === "video" ? videoPoster(n) : null;
+
+  const linkList = (title: string, list: { label?: string; c: BoardNode }[]) =>
+    list.length > 0 && (
+      <section>
+        <p className="label-xs text-muted-foreground">{title}</p>
+        <ul className="mt-2 space-y-1">
+          {list.map(({ label, c }) => {
+            const CIcon = KIND_ICON[c.kind];
+            return (
+              <li key={c.id}>
+                <button type="button" onClick={() => onSelect(c.id)} className="flex w-full items-start gap-2 border border-border px-2.5 py-2 text-left text-sm hover:border-foreground">
+                  <CIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1">
+                    {label && <span className="label-xs block" style={{ color: board.accent }}>{label}</span>}
+                    <span className="block leading-tight">{c.kind === "metric" && c.value ? `${c.value} · ${c.title}` : c.title}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    );
+
+  return (
+    <div className="space-y-6 p-5">
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="ghost" onClick={onBack}>
+          <ArrowLeft /> {t("board.overview")}
+        </Button>
+        <span className="flex-1" />
+        {onEdit && (
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            <Pencil /> {t("board.edit")}
+          </Button>
+        )}
+      </div>
+
+      <section>
+        <p className="label-xs flex items-center gap-2 text-muted-foreground">
+          <Icon className="size-3.5" /> {where ?? t(`board.kind.${n.kind}`)}
+        </p>
+        {n.kind === "metric" && n.value && <p className="mt-3 text-4xl leading-none font-medium" style={{ color: board.accent }}>{n.value}</p>}
+        <h2 className="mt-2 text-xl leading-tight font-medium">{n.title || t(`board.kind.${n.kind}`)}</h2>
+        {n.text && <p className="mt-2 text-sm whitespace-pre-line text-muted-foreground">{n.text}</p>}
+        {(n.items?.length ?? 0) > 0 && (
+          <ul className="mt-3 space-y-1 text-sm">
+            {n.items!.map((it, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="text-muted-foreground">·</span>
+                <span className={cn(it.done && "text-muted-foreground line-through")}>{it.text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {(n.platforms?.length ?? 0) > 0 && (
+        <section>
+          <p className="label-xs text-muted-foreground">{t("board.publishedOn")}</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {n.platforms!.map((p) => (
+              <li key={p} className="flex items-center gap-1.5 border border-border px-2 py-1 text-xs">
+                <PlatformIcon id={p} className="size-3.5" /> {platformName(p)}
+              </li>
+            ))}
+          </ul>
+          {n.reach && <p className="mt-2 text-sm">{n.reach}</p>}
+        </section>
+      )}
+
+      {n.kind === "video" && n.video && (
+        <button type="button" onClick={() => onPlay(n.id, [n.id])} className="relative block aspect-[9/16] w-40 overflow-hidden bg-[#111] text-white" title={n.title}>
+          {poster ? <img src={poster} alt="" className="size-full object-cover" /> : <Film className="absolute top-1/2 left-1/2 size-6 -translate-1/2 opacity-60" />}
+          <Play className="absolute top-1/2 left-1/2 size-8 -translate-1/2 drop-shadow" />
+        </button>
+      )}
+
+      {refs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between gap-2">
+            <p className="label-xs text-muted-foreground">{t("board.references", { n: refs.length })}</p>
+            <Button size="sm" variant="outline" onClick={() => onPlay(refIds[0]!, refIds)}>
+              <Play /> {t("board.watchThese")}
+            </Button>
+          </div>
+          <ul className="mt-3 space-y-4">
+            {refs.map(({ label, c }) => {
+              const p = videoPoster(c);
+              return (
+                <li key={c.id} className="flex gap-3">
+                  <button type="button" onClick={() => onPlay(c.id, refIds)} className="relative aspect-[9/16] w-16 shrink-0 self-start overflow-hidden bg-[#111] text-white" title={c.title}>
+                    {p ? <img src={p} alt="" className="size-full object-cover" loading="lazy" /> : <Film className="absolute top-1/2 left-1/2 size-4 -translate-1/2 opacity-60" />}
+                    <Play className="absolute top-1/2 left-1/2 size-5 -translate-1/2 drop-shadow" />
+                  </button>
+                  <button type="button" onClick={() => onSelect(c.id)} className="min-w-0 flex-1 text-left">
+                    {label && <span className="label-xs block" style={{ color: board.accent }}>{label}</span>}
+                    <span className="block text-sm leading-tight font-medium">{c.title}</span>
+                    {c.text && <span className="mt-1 block text-xs whitespace-pre-line text-muted-foreground">{c.text}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {linkList(t("board.leadsTo"), links)}
+      {linkList(t("board.comesFrom"), into)}
+    </div>
+  );
+}
+
 /** Edits one card. Every change is saved as you type. */
 export function Inspector({ node: n, onChange, onDelete, onDone }: {
   node: BoardNode;
@@ -215,6 +354,22 @@ export function Inspector({ node: n, onChange, onDelete, onDone }: {
 
       {(n.kind === "asset" || n.kind === "note") && field(t("board.field.url"), <Input value={n.url ?? ""} onChange={(e) => onChange({ url: e.target.value || undefined })} />)}
       {n.kind === "asset" && field(t("board.field.fileType"), <Input value={n.file_type ?? ""} onChange={(e) => onChange({ file_type: e.target.value || undefined })} />)}
+
+      {field(
+        t("board.field.platforms"),
+        <Input
+          value={(n.platforms ?? []).join(", ")}
+          placeholder={PLATFORM_KEYS.slice(0, 4).join(", ")}
+          onChange={(e) => onChange({ platforms: e.target.value.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean) })}
+        />,
+      )}
+      {(n.platforms?.length ?? 0) > 0 && (
+        <p className="-mt-2 flex flex-wrap gap-1.5 text-muted-foreground">
+          {n.platforms!.map((p) => <PlatformIcon key={p} id={p} className="size-3.5" />)}
+          <span className="text-[11px]">{PLATFORM_KEYS.join(" · ")}</span>
+        </p>
+      )}
+      {field(t("board.field.reach"), <Input value={n.reach ?? ""} onChange={(e) => onChange({ reach: e.target.value || undefined })} />)}
 
       <div className="grid grid-cols-2 gap-3">
         {field(t("board.field.tag"), <Input value={n.tag ?? ""} onChange={(e) => onChange({ tag: e.target.value || undefined })} />)}
