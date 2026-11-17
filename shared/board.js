@@ -159,6 +159,46 @@ export function addMoodItems(board, list) {
   return added;
 }
 
+/* ───────── Instagram profiles mentioned in a board ───────── */
+
+const IG_RESERVED = new Set(["p", "reel", "reels", "tv", "explore", "stories", "accounts", "direct", "about", "legal", "developer", "api", "embed", "s"]);
+
+/**
+ * Every Instagram link on the board, with where it appears. A link names its
+ * profile directly (instagram.com/name/…) or only a post (instagram.com/reel/CODE),
+ * whose author is looked up later.
+ */
+export function instagramLinks(board) {
+  const out = new Map();
+  const add = (raw, source) => {
+    const re = /(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9_.]{1,30})(?:\/(reels?|p|tv)\/([A-Za-z0-9_-]+))?(?:\/([A-Za-z0-9_-]+))?/gi;
+    for (const m of String(raw ?? "").matchAll(re)) {
+      let user = m[1], type = m[2], code = m[3];
+      if (IG_RESERVED.has(user.toLowerCase())) {
+        // instagram.com/reel/CODE: no user in the link
+        type = user.toLowerCase() === "reels" ? "reel" : user.toLowerCase();
+        code = m[4] ?? (m[2] && !m[3] ? undefined : m[3]);
+        if (!["reel", "p", "tv"].includes(type)) continue;
+        user = undefined;
+        // the second path segment is the shortcode
+        const seg = /instagram\.com\/(?:reels?|p|tv)\/([A-Za-z0-9_-]+)/i.exec(m[0]);
+        code = seg?.[1];
+        if (!code) continue;
+      } else if (type) {
+        type = type.toLowerCase() === "reels" ? "reel" : type.toLowerCase();
+      }
+      const key = code ? `code:${code}` : `user:${user.toLowerCase()}`;
+      const entry = out.get(key) ?? { key, user: user?.toLowerCase(), code, type, url: m[0].startsWith("http") ? m[0] : `https://${m[0]}`, sources: [] };
+      if (!entry.sources.some((s) => s.id === source.id)) entry.sources.push(source);
+      out.set(key, entry);
+    }
+  };
+  for (const n of board.nodes) for (const v of [n.video, n.url, n.text, n.subtitle, ...(n.items ?? []).map((i) => i.text)]) add(v, { kind: "node", id: n.id, title: n.title });
+  for (const m of board.mood?.items ?? []) for (const v of [m.video, m.url, m.text, m.caption, m.title]) add(v, { kind: "mood", id: m.id, title: m.caption || m.title || m.type });
+  for (const v of [board.idea, board.summary]) add(v, { kind: "board", id: board.id, title: board.title });
+  return [...out.values()];
+}
+
 /* ───────── normalize ───────── */
 
 const str = (v, max = 4000) => (typeof v === "string" ? v.slice(0, max) : v == null ? undefined : String(v).slice(0, max));

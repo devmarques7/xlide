@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { WebSocketServer } from "ws";
 import { getLyrics, searchBackgrounds, translateLines } from "../api/_music.js";
 import { handleMcpBody, mcpAuthorized } from "../shared/board.js";
+import { igGraphConfigured, instagramAuthor, instagramProfile } from "../api/_instagram.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.env.NODE_ENV === "production";
@@ -111,6 +112,28 @@ app.post("/api/mcp", async (req, res) => {
   const { status, body } = await handleMcpBody(req.body, boardStore, origin);
   if (!body) return res.status(status).end();
   res.status(status).json(body);
+});
+
+// Instagram: who posted a reel (cached in memory while the server runs).
+const igCache = new Map();
+app.get("/api/instagram/author", async (req, res) => {
+  const code = String(req.query.code ?? "");
+  try {
+    if (!igCache.has(code)) igCache.set(code, await instagramAuthor(code, String(req.query.type ?? "reel")));
+    res.json(igCache.get(code));
+  } catch (e) {
+    res.status(502).json({ error: String(e?.message ?? e) });
+  }
+});
+
+app.get("/api/instagram/profile", async (req, res) => {
+  if (!igGraphConfigured()) return res.status(501).json({ error: "not_configured" });
+  try {
+    res.json(await instagramProfile(String(req.query.user ?? "").toLowerCase()));
+  } catch (e) {
+    const msg = String(e?.message ?? e);
+    res.status(msg === "not_business" ? 404 : 502).json({ error: msg });
+  }
 });
 
 // Images uploaded from the editor, stored as files next to data.json.

@@ -124,3 +124,14 @@ export const MOOD_TYPES: MoodType[];
 export const SHAPES: ShapeKind[];
 export function cleanMoodItem(raw: unknown): MoodItem;
 export function addMoodItems(board: Board, list: unknown[]): MoodItem[];
+export interface InstagramLink {
+  key: string;
+  /** Profile named in the link itself (instagram.com/name…). */
+  user?: string;
+  /** Post shortcode when the link is instagram.com/reel/CODE (author looked up later). */
+  code?: string;
+  type?: string;
+  url: string;
+  sources: { kind: "node" | "mood" | "board"; id: string; title: string }[];
+}
+export function instagramLinks(board: Board): InstagramLink[];

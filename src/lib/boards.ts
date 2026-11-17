@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { layoutBoard, newId, normalizeBoard, type Board } from "../../shared/board.js";
 
-export type { Board, BoardEdge, BoardNode, NodeKind } from "../../shared/board.js";
+export type { Board, BoardEdge, BoardNode, MoodItem, NodeKind } from "../../shared/board.js";
 
 /* Boards live on the server (so the MCP can write them) and are mirrored in
    localStorage, so they still open offline or on a static host. */

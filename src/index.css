@@ -183,6 +183,8 @@ html body {
 *, *::before, *::after {
   border-radius: 0 !important;
 }
+/* The one exception: profile badges are round, like the avatars they stand for. */
+.round { border-radius: 9999px !important; }
 
 /* Brief cross-fade while switching theme (class added by the prefs provider). */
 html.theme-switching, html.theme-switching * {

@@ -296,8 +296,13 @@ export function Moodboard({ items, original, accent, readOnly: viewerOnly, view,
       if (it.type === "image" && it.src) addImage(it.src, undefined, it.caption);
       else place(it);
     };
+    const onAddItem = (e: Event) => place((e as CustomEvent<Partial<MoodItem> & { type: MoodType }>).detail);
     window.addEventListener("xlide:mood-add-node", onAdd);
-    return () => window.removeEventListener("xlide:mood-add-node", onAdd);
+    window.addEventListener("xlide:mood-add", onAddItem);
+    return () => {
+      window.removeEventListener("xlide:mood-add-node", onAdd);
+      window.removeEventListener("xlide:mood-add", onAddItem);
+    };
   });
 
   // Paste: images from the clipboard, links and text.

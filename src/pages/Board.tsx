@@ -21,6 +21,7 @@ import { BoardShareDialog } from "./board/share";
 import { KIND_ICON, NodeCard, videoPoster } from "./board/cards";
 import { ReelPlayer } from "./board/reel-player";
 import { Moodboard, type View as MoodViewState } from "./board/moodboard";
+import { ProfilesDock } from "./board/profiles-dock";
 import { Inspector, MapPalette, Overview } from "./board/side-panel";
 import { setAutoplay, useAutoplay, VideoTile } from "./board/inline-video";
 
@@ -788,6 +789,26 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
         ) : (
           <KanbanView board={board} onPlay={play} onSelect={(nid) => { unfollow(); setSelected(nid); setPanel(true); }} />
         )}
+
+        {/* Instagram profiles mentioned on the board: always on screen. */}
+        <ProfilesDock
+          board={board}
+          onGo={(s) => {
+            unfollow();
+            if (s.kind === "node") {
+              setMode("map");
+              setTimeout(() => goTo(s.id), 60);
+            } else if (s.kind === "mood") setMode("mood");
+          }}
+          onAddToMood={
+            owner
+              ? (item) => {
+                  setMode("mood");
+                  setTimeout(() => window.dispatchEvent(new CustomEvent("xlide:mood-add", { detail: item })), 150);
+                }
+              : undefined
+          }
+        />
 
         {/* Top-left: board name */}
         <div className="absolute top-3 left-3 flex max-w-[calc(100%-15rem)] items-center gap-1 border border-border bg-card/90 p-1 pr-3 backdrop-blur sm:top-4 sm:left-4 sm:max-w-[calc(100%-26rem)] xl:max-w-[calc(100%-36rem)]">
