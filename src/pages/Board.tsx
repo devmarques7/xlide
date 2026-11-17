@@ -198,7 +198,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     const sz = sizes[id] ?? { w: NODE_W[n.kind], h: 200 };
     const from = view;
     const z = Math.max(from.z, Math.min(0.9, (el.clientWidth * 0.5) / sz.w));
-    const to = { z, x: el.clientWidth / 2 - ((n.x ?? 0) + sz.w / 2) * z, y: el.clientHeight / 2 - ((n.y ?? 0) + sz.h / 2) * z };
+    const to = { z, x: el.clientWidth / 2 - (at(n).x + sz.w / 2) * z, y: el.clientHeight / 2 - (at(n).y + sz.h / 2) * z };
     cancelAnimationFrame(anim.current);
     const t0 = performance.now();
     const step = (now: number) => {
@@ -271,7 +271,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     const el = stage.current;
     if (!n || !el) return;
     const sz = sizes[id] ?? { w: NODE_W[n.kind], h: 200 };
-    setView((v) => ({ ...v, x: el.clientWidth / 2 - ((n.x ?? 0) + sz.w + 200) * v.z, y: el.clientHeight / 2 - ((n.y ?? 0) + sz.h / 2) * v.z }));
+    setView((v) => ({ ...v, x: el.clientWidth / 2 - (at(n).x + sz.w + 200) * v.z, y: el.clientHeight / 2 - (at(n).y + sz.h / 2) * v.z }));
   };
   const anyCollapsed = collapsed.some((id) => visible.has(id));
   const collapseAll = () => {
@@ -294,7 +294,34 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     setSelected(id);
     centerOn(id);
   };
-  const pos = (n: BoardNode) => ({ x: (n.x ?? 0) + (drag?.id === n.id ? drag.dx : 0), y: (n.y ?? 0) + (drag?.id === n.id ? drag.dy : 0) });
+  /**
+   * Until someone arranges the map by hand, cards are laid out from what is visible:
+   * folded lines take no room, and opening one pushes its neighbours only as far as
+   * its cards need (measured sizes), so the map stays as close together as possible.
+   */
+  const compact = useMemo(() => {
+    if (original.arranged) return null;
+    const ns = board.nodes
+      .filter((n) => visible.has(n.id))
+      .map((n) => ({ ...n, x: undefined, y: undefined, ...(sizes[n.id] ? { w: n.w ?? sizes[n.id]!.w, h: Math.max(n.h ?? 0, sizes[n.id]!.h) } : {}) }));
+    const ids = new Set(ns.map((n) => n.id));
+    const laid = layoutBoard({ ...board, nodes: ns, edges: board.edges.filter((e) => ids.has(e.from) && ids.has(e.to)) }, true);
+    return new Map(laid.nodes.map((n) => [n.id, { x: n.x ?? 0, y: n.y ?? 0 }]));
+  }, [original.arranged, board, visible, sizes]);
+  /** Where a card sits now: the compact layout, else its saved position. */
+  const at = (n: BoardNode) => compact?.get(n.id) ?? { x: n.x ?? 0, y: n.y ?? 0 };
+  /** Saving a hand move freezes the compact layout first, so nothing jumps. */
+  const freeze = (b: Board) => {
+    if (!compact || b.arranged) return;
+    for (const n of b.nodes) {
+      const p = compact.get(n.id);
+      if (p) {
+        n.x = Math.round(p.x);
+        n.y = Math.round(p.y);
+      }
+    }
+  };
+  const pos = (n: BoardNode) => ({ x: at(n).x + (drag?.id === n.id ? drag.dx : 0), y: at(n).y + (drag?.id === n.id ? drag.dy : 0) });
   const sizeOf = (n: BoardNode) => sizes[n.id] ?? { w: NODE_W[n.kind], h: 160 };
   const videos = useMemo(() => {
     const o = outline(board);
@@ -341,13 +368,14 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     const el = stage.current;
     const list = shownNodes.length ? shownNodes : nodes;
     if (!el || !list.length) return;
-    const xs = list.map((n) => n.x ?? 0), ys = list.map((n) => n.y ?? 0);
-    const x2 = list.map((n) => (n.x ?? 0) + (sizes[n.id]?.w ?? NODE_W[n.kind]));
-    const y2 = list.map((n) => (n.y ?? 0) + (sizes[n.id]?.h ?? 200));
+    const xs = list.map((n) => at(n).x), ys = list.map((n) => at(n).y);
+    const x2 = list.map((n) => at(n).x + (sizes[n.id]?.w ?? NODE_W[n.kind]));
+    const y2 = list.map((n) => at(n).y + (sizes[n.id]?.h ?? 200));
     const minX = Math.min(...xs) - 80, minY = Math.min(...ys) - 80, maxX = Math.max(...x2) + 80, maxY = Math.max(...y2) + 140;
     const z = Math.max(0.2, Math.min(1.1, el.clientWidth / (maxX - minX), el.clientHeight / (maxY - minY)));
     setView({ z, x: (el.clientWidth - (maxX - minX) * z) / 2 - minX * z, y: (el.clientHeight - (maxY - minY) * z) / 2 - minY * z });
-  }, [nodes, shownNodes, sizes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, shownNodes, sizes, compact]);
 
   const fitRef = useRef(fit);
   fitRef.current = fit;
@@ -464,6 +492,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       setResize(null);
       if (r)
         commit((b) => {
+          freeze(b);
           const n = b.nodes.find((x) => x.id === r.id);
           if (n) {
             n.w = r.w;
@@ -486,6 +515,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       const { dx, dy } = drag;
       setDrag(null);
       commit((b) => {
+        freeze(b);
         const n = b.nodes.find((x) => x.id === nid);
         b.arranged = true;
         if (n) {
@@ -838,7 +868,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                     data-node={n.id}
                     ref={measure}
                     className={cn("absolute", tool === "select" && "cursor-grab active:cursor-grabbing", (linkFrom === n.id || hit) && "outline-2 outline-dashed outline-offset-8")}
-                    style={{ left: p.x, top: p.y, zIndex: drag?.id === n.id ? 5 : selected === n.id ? 4 : 1, outlineColor: accent, opacity: dim ? 0.16 : 1, transition: "opacity 0.3s" }}
+                    style={{ left: p.x, top: p.y, zIndex: drag?.id === n.id ? 5 : selected === n.id ? 4 : 1, outlineColor: accent, opacity: dim ? 0.16 : 1, transition: drag?.id === n.id ? "opacity 0.3s" : "opacity 0.3s, left 0.35s ease, top 0.35s ease" }}
                     onPointerDown={(e) => onNodeDown(e, n.id)}
                   >
                     <NodeCard
@@ -1258,7 +1288,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                 setSelected(nid);
                 const n = byId.get(nid);
                 const el = stage.current;
-                if (n && el) setView((v) => ({ ...v, x: el.clientWidth / 2 - ((n.x ?? 0) + NODE_W[n.kind] / 2) * v.z, y: el.clientHeight / 2 - ((n.y ?? 0) + 100) * v.z }));
+                if (n && el) setView((v) => ({ ...v, x: el.clientWidth / 2 - (at(n).x + NODE_W[n.kind] / 2) * v.z, y: el.clientHeight / 2 - (at(n).y + 100) * v.z }));
               }}
             />
           )}
