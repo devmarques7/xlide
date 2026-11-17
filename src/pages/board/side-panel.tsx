@@ -7,7 +7,7 @@ import type { Board, BoardNode } from "@/lib/boards";
 import { cn } from "@/lib/utils";
 import { uploadImage } from "@/lib/images";
 import { usePrefs } from "@/lib/prefs";
-import { KIND_ICON, videoPoster } from "./cards";
+import { KIND_ICON, Linkify, videoPoster } from "./cards";
 import { PLATFORM_KEYS, PlatformIcon, platformName } from "./platforms";
 
 /** Board overview: the idea, the funnel point to point, reels and the image moodboard. */
@@ -185,13 +185,13 @@ export function NodeDetail({ board, node: n, stageOf, onBack, onEdit, onSelect, 
         </p>
         {n.kind === "metric" && n.value && <p className="mt-3 text-4xl leading-none font-medium" style={{ color: board.accent }}>{n.value}</p>}
         <h2 className="mt-2 text-xl leading-tight font-medium">{n.title || t(`board.kind.${n.kind}`)}</h2>
-        {n.text && <p className="mt-2 text-sm whitespace-pre-line text-muted-foreground">{n.text}</p>}
+        {n.text && <p className="mt-2 text-sm whitespace-pre-line text-muted-foreground"><Linkify text={n.text} /></p>}
         {(n.items?.length ?? 0) > 0 && (
           <ul className="mt-3 space-y-1 text-sm">
             {n.items!.map((it, i) => (
               <li key={i} className="flex gap-2">
                 <span className="text-muted-foreground">·</span>
-                <span className={cn(it.done && "text-muted-foreground line-through")}>{it.text}</span>
+                <span className={cn(it.done && "text-muted-foreground line-through")}><Linkify text={it.text} /></span>
               </li>
             ))}
           </ul>
@@ -208,7 +208,7 @@ export function NodeDetail({ board, node: n, stageOf, onBack, onEdit, onSelect, 
               </li>
             ))}
           </ul>
-          {n.reach && <p className="mt-2 text-sm">{n.reach}</p>}
+          {n.reach && <p className="mt-2 text-sm"><Linkify text={n.reach} /></p>}
         </section>
       )}
 
@@ -239,7 +239,7 @@ export function NodeDetail({ board, node: n, stageOf, onBack, onEdit, onSelect, 
                   <button type="button" onClick={() => onSelect(c.id)} className="min-w-0 flex-1 text-left">
                     {label && <span className="label-xs block" style={{ color: board.accent }}>{label}</span>}
                     <span className="block text-sm leading-tight font-medium">{c.title}</span>
-                    {c.text && <span className="mt-1 block text-xs whitespace-pre-line text-muted-foreground">{c.text}</span>}
+                    {c.text && <span className="mt-1 block text-xs whitespace-pre-line text-muted-foreground"><Linkify text={c.text} /></span>}
                   </button>
                 </li>
               );

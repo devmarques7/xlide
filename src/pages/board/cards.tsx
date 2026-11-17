@@ -63,6 +63,39 @@ interface CardProps {
  * Text with highlighted words: ==word== shows as a marker highlight. Clicking a
  * highlight asks the board to light up the card that word refers to.
  */
+const URL_RE = /(https?:\/\/[^\s)]+|(?:www\.)?(?:instagram\.com|youtu\.be|youtube\.com|tiktok\.com|linkedin\.com|open\.spotify\.com)\/[^\s)]+)/g;
+
+/** Text where every web address is a link (opens in a new tab and never starts a drag). */
+export function Linkify({ text }: { text: string }) {
+  const parts = text.split(URL_RE);
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (i % 2 === 0) return p;
+        const clean = p.replace(/[.,;:!?”’"']+$/, "");
+        const rest = p.slice(clean.length);
+        const href = /^https?:\/\//.test(clean) ? clean : `https://${clean}`;
+        return (
+          <span key={i}>
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              className="break-all underline decoration-1 underline-offset-2 hover:opacity-70"
+            >
+              {clean.replace(/^https?:\/\/(www\.)?/, "")}
+            </a>
+            {rest}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 export function RichText({ text, accent, onWord }: { text: string; accent: string; onWord?: (word: string) => void }) {
   const parts = text.split(/==([^=\n]{1,80})==/g);
   return (
@@ -82,7 +115,7 @@ export function RichText({ text, accent, onWord }: { text: string; accent: strin
             {p}
           </mark>
         ) : (
-          p
+          <Linkify key={i} text={p} />
         ),
       )}
     </>

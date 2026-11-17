@@ -11,6 +11,7 @@ import { uploadImage } from "@/lib/images";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import type { MoodItem, MoodType, ShapeKind } from "../../../shared/board.js";
+import { Linkify } from "./cards";
 import { VideoTile } from "./inline-video";
 import { ReelPlayer } from "./reel-player";
 
@@ -922,7 +923,7 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
               {area(source.text ?? "", (v) => onEdit({ text: v }), t("mood.notePlaceholder"), undefined, "text-[15px] leading-relaxed")}
             </div>
           ) : (
-            (it.text || !it.title) && <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{it.text || <span className="opacity-30">{t("mood.notePlaceholder")}</span>}</p>
+            (it.text || !it.title) && <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{it.text ? <Linkify text={it.text} /> : <span className="opacity-30">{t("mood.notePlaceholder")}</span>}</p>
           )}
         </div>
       );
@@ -956,7 +957,7 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
                       <span className={cn("mt-0.5 grid size-4 shrink-0 place-items-center border", x.done ? "border-transparent text-white" : "border-black/30")} style={x.done ? { background: accent } : undefined}>
                         {x.done && <Check className="size-3" />}
                       </span>
-                      <span className={cn(x.done && "text-black/40 line-through")}>{x.text}</span>
+                      <span className={cn(x.done && "text-black/40 line-through")}><Linkify text={x.text} /></span>
                     </button>
                   </li>
                 ))}
