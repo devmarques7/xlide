@@ -2,6 +2,7 @@ import {
   ArrowRight, BarChart3, Check, CheckSquare, File, FileText, Film, Image as ImageIcon, Lightbulb, Link2, PenTool, Play, StickyNote, Target, type LucideIcon,
 } from "lucide-react";
 import type { CSSProperties } from "react";
+import { InlineVideo } from "./inline-video";
 import { NODE_W, parseVideo } from "../../../shared/board.js";
 import type { BoardNode, NodeKind } from "@/lib/boards";
 import { cn } from "@/lib/utils";
@@ -46,16 +47,79 @@ interface CardProps {
   childCount: number;
   onPlay: (id: string) => void;
   onToggleItem: (i: number) => void;
+  /** Writing inside the card (double-click). */
+  editing?: boolean;
+  onEdit?: (patch: Partial<BoardNode>) => void;
+  onDone?: () => void;
+  /** Live size while the corner is dragged. */
+  size?: { w: number; h: number };
 }
 
-export function NodeCard({ node: n, accent, selected, childCount, onPlay, onToggleItem }: CardProps) {
-  const w = NODE_W[n.kind];
-  const shell = "relative border border-border bg-card text-card-foreground shadow-[0_1px_0_rgb(0_0_0/0.03),0_18px_40px_-24px_rgb(0_0_0/0.45)]";
+/** Textareas grow with what is typed (CSS field-sizing), so nothing is hidden while writing. */
+const grow = { fieldSizing: "content" } as CSSProperties;
+
+export function NodeCard({ node: n, accent, selected, childCount, onPlay, onToggleItem, editing, onEdit, onDone, size }: CardProps) {
+  const w = size?.w ?? n.w ?? NODE_W[n.kind];
+  const minH = size?.h ?? n.h;
+  const shell = "relative flex-1 border border-border bg-card text-card-foreground shadow-[0_1px_0_rgb(0_0_0/0.03),0_18px_40px_-24px_rgb(0_0_0/0.45)]";
   const ring = selected && "outline-2 outline-offset-4 outline-foreground";
-  const style: CSSProperties = { width: w, ["--accent" as string]: accent };
+  const style: CSSProperties = { width: w, minHeight: minH, ["--accent" as string]: accent };
+
+  if (editing && onEdit) {
+    const stop = { onPointerDown: (e: React.PointerEvent) => e.stopPropagation() };
+    const keys = (e: React.KeyboardEvent) => {
+      if (e.key === "Escape" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) {
+        e.preventDefault();
+        // Keep the key from the board's shortcuts (Escape would also drop the selection).
+        e.stopPropagation();
+        onDone?.();
+      }
+    };
+    return (
+      <div style={style} className="relative flex flex-col">
+        <div className={cn(shell, "flex flex-col gap-2 p-4 outline-2 outline-offset-4")} style={{ outlineColor: accent }} {...stop}>
+          <textarea
+            autoFocus
+            rows={1}
+            defaultValue={n.title}
+            onChange={(e) => onEdit({ title: e.target.value })}
+            onKeyDown={keys}
+            className="w-full resize-none bg-transparent text-lg leading-tight font-medium break-words outline-none"
+            style={grow}
+          />
+          {n.kind === "list" ? (
+            <textarea
+              rows={3}
+              defaultValue={(n.items ?? []).map((i) => (i.done ? `[x] ${i.text}` : i.text)).join("\n")}
+              onChange={(e) => onEdit({ items: e.target.value.split("\n").filter((l) => l.trim()).map((l) => (/^\[x\]\s*/i.test(l) ? { text: l.replace(/^\[x\]\s*/i, ""), done: true } : { text: l })) })}
+              onKeyDown={keys}
+              className="w-full resize-none bg-transparent text-sm leading-6 outline-none"
+              style={grow}
+            />
+          ) : (
+            <textarea
+              rows={2}
+              defaultValue={n.text ?? ""}
+              onChange={(e) => onEdit({ text: e.target.value || undefined })}
+              onKeyDown={keys}
+              placeholder="…"
+              className="w-full resize-none bg-transparent text-sm leading-relaxed text-muted-foreground outline-none"
+              style={grow}
+            />
+          )}
+          {n.kind === "metric" && (
+            <input defaultValue={n.value ?? ""} onChange={(e) => onEdit({ value: e.target.value })} onKeyDown={keys} className="bg-transparent text-3xl font-medium outline-none" />
+          )}
+          <button type="button" onClick={onDone} className="label-xs self-end text-muted-foreground hover:text-foreground">
+            ⌘↵ · Esc
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={style} className="relative">
+    <div style={style} className="relative flex flex-col">
       {n.by && (
         <span
           title={n.by}
@@ -71,7 +135,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             <Lightbulb className="size-4 opacity-60" />
           </div>
           <h3 className="mt-6 text-3xl leading-[0.95] font-medium tracking-tight uppercase">{n.title}</h3>
-          {n.text && <p className="mt-4 line-clamp-5 text-sm opacity-75">{n.text}</p>}
+          {n.text && <p className="mt-4 text-sm opacity-75">{n.text}</p>}
           <Tags node={n} dark />
         </div>
       )}
@@ -85,7 +149,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             <span className="label-xs text-muted-foreground">{childCount}</span>
           </div>
           <h3 className="mt-5 text-lg leading-tight font-medium uppercase">{n.title}</h3>
-          {n.text && <p className="mt-1.5 line-clamp-3 text-sm text-muted-foreground">{n.text}</p>}
+          {n.text && <p className="mt-1.5 text-sm text-muted-foreground">{n.text}</p>}
           {n.progress !== undefined && (
             <div className="mt-4 flex items-center gap-2">
               <div className="h-1 flex-1 bg-muted">
@@ -105,7 +169,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             <StickyNote className="size-4 text-muted-foreground" />
           </div>
           <h3 className="mt-3 font-medium">{n.title}</h3>
-          {n.text && <p className="mt-1.5 line-clamp-6 text-sm whitespace-pre-line text-muted-foreground">{n.text}</p>}
+          {n.text && <p className="mt-1.5 text-sm break-words whitespace-pre-line text-muted-foreground">{n.text}</p>}
           {n.url && (
             <a
               href={n.url}
@@ -114,7 +178,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
               onPointerDown={(e) => e.stopPropagation()}
               className="mt-4 flex items-center justify-between border border-border bg-card py-1.5 pr-1.5 pl-3 text-xs"
             >
-              <span className="truncate">{n.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
+              <span className="break-words">{n.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
               <span className="grid size-6 shrink-0 place-items-center bg-foreground text-background">
                 <ArrowRight className="size-3.5" />
               </span>
@@ -148,7 +212,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
           </div>
           <div className="mt-3">
             <h3 className="text-sm font-medium">{n.title}</h3>
-            {n.text && <p className="line-clamp-2 text-xs text-muted-foreground">{n.text}</p>}
+            {n.text && <p className="text-xs text-muted-foreground">{n.text}</p>}
           </div>
         </div>
       )}
@@ -172,8 +236,8 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             })()}
           </div>
           <div className="px-1 pt-2 pb-1 text-center">
-            <h3 className="truncate text-sm font-medium">{n.title}</h3>
-            <p className="truncate text-xs text-muted-foreground">{n.subtitle ?? n.url?.replace(/^https?:\/\/(www\.)?/, "") ?? ""}</p>
+            <h3 className="break-words text-sm font-medium">{n.title}</h3>
+            <p className="break-words text-xs text-muted-foreground">{n.subtitle ?? n.url?.replace(/^https?:\/\/(www\.)?/, "") ?? ""}</p>
           </div>
         </div>
       )}
@@ -201,7 +265,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
                   >
                     {it.done && <Check className="size-3" />}
                   </span>
-                  <span className={cn("flex-1 truncate", it.done && "text-muted-foreground line-through")}>{it.text}</span>
+                  <span className={cn("flex-1 break-words", it.done && "text-muted-foreground line-through")}>{it.text}</span>
                   {it.by && <span className="label-xs text-muted-foreground">{initials(it.by)}</span>}
                 </button>
               </li>
@@ -214,7 +278,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
         <div className={cn(shell, ring, "p-5")}>
           <span className="label-xs text-muted-foreground">{n.title}</span>
           <p className="mt-3 text-4xl leading-none font-medium tracking-tight">{n.value ?? "—"}</p>
-          {n.text && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{n.text}</p>}
+          {n.text && <p className="mt-2 text-xs text-muted-foreground">{n.text}</p>}
         </div>
       )}
     </div>
@@ -227,13 +291,8 @@ function VideoCard({ node: n, ring, onPlay }: { node: BoardNode; ring: boolean; 
   return (
     <div className={cn(ring && "outline-2 outline-offset-4 outline-foreground")}>
       <div className="group relative block aspect-[9/16] w-full overflow-hidden border border-border bg-[#111] text-left text-white shadow-[0_18px_40px_-20px_rgb(0_0_0/0.55)]">
-        {poster ? (
-          <img src={poster} alt="" draggable={false} className="absolute inset-0 size-full object-cover opacity-90" />
-        ) : info?.provider === "file" ? (
-          <video src={info.embed} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_30%_10%,#3a3a38,#0d0d0c)]" />
-        )}
+        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_30%_10%,#3a3a38,#0d0d0c)]" />
+        <InlineVideo url={n.video} poster={poster} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
         <span className="label-xs absolute top-3 left-3 bg-black/45 px-1.5 text-[10px] backdrop-blur">{info?.provider ?? "video"}</span>
         <button

@@ -26,6 +26,9 @@ export interface BoardNode {
   by?: string;
   x?: number;
   y?: number;
+  /** Width set by stretching the card; h is a minimum height (text always fits). */
+  w?: number;
+  h?: number;
 }
 
 export interface BoardEdge {
@@ -66,6 +69,10 @@ export interface MoodItem {
   rot?: number;
   flipX?: boolean;
   flipY?: boolean;
+  /** Id of the mind map card this item was made from (dragged from the sidebar). */
+  ref?: string;
+  /** Lines/arrows: straight horizontal (h) or vertical (v) through the middle of the box. */
+  axis?: "h" | "v";
 }
 
 export interface Board {
@@ -75,6 +82,8 @@ export interface Board {
   summary?: string;
   /** Set once a person moves cards by hand: new cards then find free space instead of re-laying out the map. */
   arranged?: boolean;
+  /** Mind map direction; horizontal when unset. */
+  layout?: "horizontal" | "vertical";
   accent: string;
   createdAt: number;
   updatedAt: number;
@@ -88,6 +97,10 @@ export interface VideoInfo {
   id: string;
   url: string;
   embed: string;
+  /** Muted, looping, no-controls version for cards (autoplay where the provider allows it). */
+  inline: string;
+  /** False for Instagram: its embeds never start on their own. */
+  autoplay: boolean;
   poster: string | null;
 }
 

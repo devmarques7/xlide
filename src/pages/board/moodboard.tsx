@@ -1,5 +1,5 @@
 import {
-  ArrowUpRight, BringToFront, Check, Circle, Copy, ExternalLink, Hand, ImagePlus, Link2, ListTodo, Maximize, Minus, MousePointer2, MoveRight,
+  ArrowUpRight, BringToFront, Check, Circle, Copy, ExternalLink, Eye, Hand, ImagePlus, Link2, ListTodo, Maximize, Minus, MousePointer2, MoveRight,
   Palette, Pencil, Play, Plus, Redo2, SendToBack, Slash, Square, StickyNote, Trash2, Triangle, Type, Undo2, Video,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from "react";
@@ -11,6 +11,7 @@ import { uploadImage } from "@/lib/images";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import type { MoodItem, MoodType, ShapeKind } from "../../../shared/board.js";
+import { InlineVideo } from "./inline-video";
 import { ReelPlayer } from "./reel-player";
 
 export interface View { x: number; y: number; z: number }
@@ -22,6 +23,8 @@ const PAPER = "#f3f2ee";
 const COLORS = ["#161615", "#ffffff", "#e0512b", "#d93d3d", "#f2c94c", "#3e8e5a", "#2f6fd6", "#8a8a85"];
 const WIDTHS = [2, 4, 8, 14];
 const TEXT_SIZE: Record<string, string> = { sm: "14px", md: "20px", lg: "34px", xl: "60px" };
+/** Cards whose height follows their text: the size you drag is the minimum, the text is never cut. */
+const GROWS = new Set<MoodType>(["note", "todo", "link", "text", "color"]);
 const clampZ = (z: number) => Math.max(0.1, Math.min(4, z));
 const isImageUrl = (s: string) => /^https?:\/\/\S+\.(png|jpe?g|webp|gif|avif|svg)(\?\S*)?$/i.test(s.trim()) || /^data:image\//.test(s);
 const isUrl = (s: string) => /^https?:\/\/\S+$/i.test(s.trim());
@@ -71,9 +74,29 @@ interface Props {
   onChange: (next: MoodItem[]) => void;
   /** Called when the person moves the canvas themselves (stops following). */
   onUserMove: () => void;
+  /** Mind map cards, so one dragged in from the sidebar becomes a moodboard card. */
+  mapNodes: BoardNode[];
 }
 
-export function Moodboard({ items, original, accent, readOnly, view, setView, stageRef, onChange, onUserMove }: Props) {
+/** Drag type used by the sidebar palette. */
+export const NODE_DRAG = "application/x-xlide-node";
+
+/** A mind map card as a moodboard item (keeps a reference to it). */
+export function moodFromNode(n: BoardNode): Partial<MoodItem> & { type: MoodType } {
+  const ref = n.id;
+  if (n.kind === "video" && n.video) return { type: "video", video: n.video, poster: n.poster, caption: n.title, ref };
+  if (n.kind === "media" && n.images?.[0]) return { type: "image", src: n.images[0], caption: n.title, ref };
+  if (n.kind === "list") return { type: "todo", title: n.title, items: n.items ?? [], ref };
+  if (n.kind === "asset" && n.url) return { type: "link", url: n.url, title: n.title, text: n.text, ref };
+  if (n.kind === "metric") return { type: "note", title: n.title, text: [n.value, n.text].filter(Boolean).join("\n"), ref, w: 220 };
+  const head = n.kind === "stage" && n.step ? `${String(n.step).padStart(2, "0")} · ${n.title}` : n.title;
+  return { type: "note", title: head, text: n.text ?? "", ref, ...(n.kind === "idea" || n.kind === "stage" ? { color: "#e0512b" } : {}) };
+}
+
+export function Moodboard({ items, original, accent, readOnly: viewerOnly, view, setView, stageRef, onChange, onUserMove, mapNodes }: Props) {
+  // The owner can switch to a clean view (no tools, no selection) to present.
+  const [preview, setPreview] = useState(false);
+  const readOnly = viewerOnly || preview;
   const { t } = usePrefs();
   const [tool, setTool] = useState<Tool>("select");
   const [color, setColor] = useState(INK);
@@ -138,8 +161,10 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
     }
     const minX = Math.min(...items.map((i) => i.x)) - 60, minY = Math.min(...items.map((i) => i.y)) - 60;
     const maxX = Math.max(...items.map((i) => i.x + i.w)) + 60, maxY = Math.max(...items.map((i) => i.y + i.h)) + 120;
-    const z = clampZ(Math.min(1.2, el.clientWidth / (maxX - minX), el.clientHeight / (maxY - minY)));
-    setView(() => ({ z, x: (el.clientWidth - (maxX - minX) * z) / 2 - minX * z, y: (el.clientHeight - (maxY - minY) * z) / 2 - minY * z }));
+    // Leave room for the bars on top (72px) and the tools at the bottom (84px).
+    const top = 72, bottom = 84, availH = Math.max(100, el.clientHeight - top - bottom);
+    const z = clampZ(Math.min(1.2, el.clientWidth / (maxX - minX), availH / (maxY - minY)));
+    setView(() => ({ z, x: (el.clientWidth - (maxX - minX) * z) / 2 - minX * z, y: top + (availH - (maxY - minY) * z) / 2 - minY * z }));
   }, [items, setView, stageRef]);
 
   useEffect(() => {
@@ -242,6 +267,16 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
     setDropping(false);
     if (readOnly) return;
     const at = toWorld(e.clientX, e.clientY);
+    const nodeId = e.dataTransfer.getData(NODE_DRAG);
+    if (nodeId) {
+      const n = mapNodes.find((x) => x.id === nodeId);
+      if (n) {
+        const it = moodFromNode(n);
+        if (it.type === "image" && it.src) return addImage(it.src, at, it.caption);
+        place(it, at);
+      }
+      return;
+    }
     const files = [...e.dataTransfer.files];
     if (files.length) return addFiles(files, at);
     // Images dragged from another web page come as HTML with an <img>.
@@ -250,6 +285,20 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
     if (img && /^https?:/.test(img)) return addImage(img, at);
     addText(e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain"), at);
   };
+
+  // The sidebar's "+" (no drag on touch screens) sends cards here.
+  useEffect(() => {
+    if (readOnly) return;
+    const onAdd = (e: Event) => {
+      const n = mapNodes.find((x) => x.id === (e as CustomEvent<string>).detail);
+      if (!n) return;
+      const it = moodFromNode(n);
+      if (it.type === "image" && it.src) addImage(it.src, undefined, it.caption);
+      else place(it);
+    };
+    window.addEventListener("xlide:mood-add-node", onAdd);
+    return () => window.removeEventListener("xlide:mood-add-node", onAdd);
+  });
 
   // Paste: images from the clipboard, links and text.
   useEffect(() => {
@@ -282,6 +331,13 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
     | { kind: "shape" }
     | { kind: "marquee" };
   const g = useRef<Gesture | null>(null);
+  const lastTap = useRef({ id: "", t: 0 });
+  const openItem = (id: string) => {
+    const it = items.find((i) => i.id === id);
+    if (!it) return;
+    if (it.type === "video" && it.video) return setPlayer(videos.findIndex((v) => v.id === id));
+    if (!readOnly && it.type !== "draw" && it.type !== "shape") setEditing(id);
+  };
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<number | null>(null);
 
@@ -427,11 +483,24 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
         h = shape === "line" || shape === "arrow" ? 0 : 100;
         x = a[0];
         y = a[1];
+        b[0] = a[0] + w;
+        b[1] = a[1];
+      }
+      const linear = shape === "line" || shape === "arrow";
+      // Nearly flat or upright lines snap straight.
+      const axis = linear ? (h < 14 && w >= 14 ? "h" : w < 14 && h >= 14 ? "v" : undefined) : undefined;
+      if (axis === "h") {
+        y = (a[1] + b[1]) / 2 - 12;
+        h = 24;
+      }
+      if (axis === "v") {
+        x = (a[0] + b[0]) / 2 - 12;
+        w = 24;
       }
       const item: MoodItem = {
         id: newId("m_"), type: "shape", shape, x: Math.round(x), y: Math.round(y), w: Math.max(16, Math.round(w)), h: Math.max(16, Math.round(h)),
         color, stroke: width,
-        ...(shape === "line" || shape === "arrow" ? { flipX: b[0] < a[0], flipY: b[1] < a[1] } : {}),
+        ...(linear ? { flipX: b[0] < a[0], flipY: b[1] < a[1], ...(axis ? { axis } : {}) } : {}),
       };
       commit((list) => [...list, item]);
       setSelected([item.id]);
@@ -443,6 +512,13 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
       if (x2 - x1 < 4 && y2 - y1 < 4) return;
       const hit = items.filter((i) => i.x < x2 && i.x + i.w > x1 && i.y < y2 && i.y + i.h > y1).map((i) => i.id);
       setSelected((s) => [...new Set([...s, ...hit])]);
+    } else if (cur.kind === "move" && !cur.moved) {
+      // Double tap on a card: edit it (or play a video).
+      const now = Date.now();
+      if (lastTap.current.id === cur.id && now - lastTap.current.t < 420) {
+        lastTap.current = { id: "", t: 0 };
+        openItem(cur.id);
+      } else lastTap.current = { id: cur.id, t: now };
     } else if ((cur.kind === "move" && cur.moved) || cur.kind === "resize") {
       const d = draft;
       setDraft({});
@@ -536,7 +612,13 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
   /* ───── videos in the moodboard, in board order ───── */
   const videos: BoardNode[] = items.filter((i) => i.type === "video" && i.video).map((i) => ({ id: i.id, kind: "video", title: i.caption ?? i.title ?? "", video: i.video, poster: i.poster }));
 
-  const drawing = tool !== "select" && tool !== "hand";
+  useEffect(() => {
+    if (preview) {
+      setSelected([]);
+      setTool("select");
+    }
+  }, [preview]);
+  const drawing = !readOnly && tool !== "select" && tool !== "hand";
   const cursor = readOnly || tool === "hand" || space ? "cursor-grab active:cursor-grabbing" : drawing ? "cursor-crosshair" : "cursor-default";
 
   return (
@@ -566,15 +648,10 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
               <div
                 key={it.id}
                 data-mood={it.id}
-                className={cn("absolute", !readOnly && tool === "select" && !space && "cursor-move", drawing && "pointer-events-none")}
-                style={{ left: b.x, top: b.y, width: b.w, height: b.h }}
+                className={cn("absolute", GROWS.has(it.type) && "flex flex-col", !readOnly && tool === "select" && !space && "cursor-move", drawing && "pointer-events-none")}
+                style={{ left: b.x, top: b.y, width: b.w, ...(GROWS.has(it.type) ? { minHeight: b.h } : { height: b.h }) }}
                 onPointerDown={(e) => onItemDown(e, it)}
-                onDoubleClick={(e) => {
-                  if (readOnly) return it.type === "video" && setPlayer(videos.findIndex((v) => v.id === it.id));
-                  e.stopPropagation();
-                  if (it.type === "video" && !editing) return setPlayer(videos.findIndex((v) => v.id === it.id));
-                  if (it.type !== "draw" && it.type !== "shape") setEditing(it.id);
-                }}
+                onDoubleClick={() => readOnly && it.type === "video" && setPlayer(videos.findIndex((v) => v.id === it.id))}
               >
                 <ItemView
                   item={it}
@@ -658,6 +735,19 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
         <div className="absolute top-16 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 border border-black/10 bg-white p-1 text-[#161615] shadow-[0_12px_30px_-14px_rgb(0_0_0/0.35)] sm:top-20">
           <Swatches value={sel[0]?.color ?? color} onPick={recolor} />
           {sel.some((i) => i.type === "draw" || i.type === "shape") && <Widths value={sel[0]?.stroke ?? width} onPick={restroke} />}
+          {sel.some((i) => i.type === "shape" && !["line", "arrow"].includes(i.shape ?? "")) && (
+            <button
+              type="button"
+              onClick={() => {
+                const ids = new Set(selected);
+                const filled = sel.some((i) => i.fill);
+                commit((list) => list.map((i) => (ids.has(i.id) && i.type === "shape" ? { ...i, fill: filled ? undefined : `${i.color ?? INK}33` } : i)));
+              }}
+              className={cn("label-xs h-8 px-2", sel.some((i) => i.fill) ? "bg-[#161615] text-white" : "hover:bg-black/5")}
+            >
+              {t("mood.fill")}
+            </button>
+          )}
           {sel.length === 1 && sel[0]!.type === "text" && (
             <div className="flex">
               {(["sm", "md", "lg", "xl"] as const).map((s) => (
@@ -718,8 +808,16 @@ export function Moodboard({ items, original, accent, readOnly, view, setView, st
         )}
       </div>
 
-      {/* Zoom */}
+      {/* Zoom (and, for the owner, view / edit) */}
       <div className="absolute bottom-4 left-4 z-20 hidden items-center border border-black/10 bg-white text-[#161615] shadow-[0_12px_30px_-16px_rgb(0_0_0/0.35)] md:flex">
+        {!viewerOnly && (
+          <>
+            <button type="button" onClick={() => setPreview((p) => !p)} className={cn("label-xs flex h-10 items-center gap-1.5 px-3", preview ? "bg-[#161615] text-white" : "hover:bg-black/5")} title={preview ? t("mood.edit") : t("mood.preview")}>
+              {preview ? <Pencil className="size-3.5" /> : <Eye className="size-3.5" />} {preview ? t("mood.edit") : t("mood.preview")}
+            </button>
+            <span className="h-5 border-l border-black/10" />
+          </>
+        )}
         <BarButton label={t("mood.zoomOut")} onClick={() => zoomAt(1 / 1.25)}><Minus className="size-4" /></BarButton>
         <button type="button" onClick={() => setView((v) => ({ ...v, z: 1 }))} className="label-xs h-10 w-14 hover:bg-black/5" title={t("mood.zoomReset")}>
           {Math.round(view.z * 100)}%
@@ -760,7 +858,8 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
   onPlay: () => void;
 }) {
   const { t } = usePrefs();
-  const card = "size-full overflow-hidden bg-white shadow-[0_1px_2px_rgb(0_0_0/0.06),0_14px_32px_-18px_rgb(0_0_0/0.35)] transition-shadow hover:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_22px_44px_-18px_rgb(0_0_0/0.4)]";
+  const grows = GROWS.has(it.type);
+  const card = (grows ? "flex-1 w-full break-words " : "size-full overflow-hidden ") + "bg-white shadow-[0_1px_2px_rgb(0_0_0/0.06),0_14px_32px_-18px_rgb(0_0_0/0.35)] transition-shadow hover:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_22px_44px_-18px_rgb(0_0_0/0.4)]";
   const stop = { onPointerDown: (e: React.PointerEvent) => e.stopPropagation() };
   const area = (value: string, set: (v: string) => void, placeholder: string, style?: CSSProperties, className?: string) => (
     <textarea
@@ -773,10 +872,13 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
         onDoneEditing();
       }}
       onKeyDown={(e) => {
-        if (e.key === "Escape" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) (e.target as HTMLTextAreaElement).blur();
+        if (e.key === "Escape" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) {
+          e.stopPropagation();
+          (e.target as HTMLTextAreaElement).blur();
+        }
       }}
-      className={cn("size-full resize-none bg-transparent outline-none placeholder:opacity-40", className)}
-      style={style}
+      className={cn("min-h-full w-full resize-none bg-transparent outline-none placeholder:opacity-40", className)}
+      style={{ fieldSizing: "content", ...style } as CSSProperties}
     />
   );
 
@@ -806,8 +908,16 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
     case "note":
       return (
         <div className={cn(card, "p-4")} style={{ borderTop: it.color && it.color !== "#ffffff" && it.color !== INK ? `4px solid ${it.color}` : undefined }}>
-          {editing ? area(source.text ?? "", (v) => onEdit({ text: v }), t("mood.notePlaceholder"), undefined, "text-[15px] leading-relaxed") : (
-            <p className="size-full overflow-hidden text-[15px] leading-relaxed whitespace-pre-wrap">{it.text || <span className="opacity-30">{t("mood.notePlaceholder")}</span>}</p>
+          {it.title && !editing && <p className="mb-1.5 font-semibold break-words">{it.title}</p>}
+          {editing ? (
+            <div className="flex flex-col gap-1.5">
+              {source.title !== undefined && (
+                <input {...stop} defaultValue={source.title} onBlur={(e) => onEdit({ title: e.target.value })} className="font-semibold outline-none" />
+              )}
+              {area(source.text ?? "", (v) => onEdit({ text: v }), t("mood.notePlaceholder"), undefined, "text-[15px] leading-relaxed")}
+            </div>
+          ) : (
+            (it.text || !it.title) && <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{it.text || <span className="opacity-30">{t("mood.notePlaceholder")}</span>}</p>
           )}
         </div>
       );
@@ -878,7 +988,7 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
                 className="w-full text-sm outline-none"
               />
             ) : (
-              <p className="truncate text-sm text-black/70">{it.name || t("mood.colorName")}</p>
+              <p className="py-2 text-sm break-words text-black/70">{it.name || t("mood.colorName")}</p>
             )}
           </div>
         </div>
@@ -898,8 +1008,8 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
                 {it.url && <img src={`https://www.google.com/s2/favicons?domain=${domainOf(it.url)}&sz=32`} alt="" className="size-4" />}
                 <span className="truncate">{it.url ? domainOf(it.url) : "https://…"}</span>
               </p>
-              <p className="mt-1 line-clamp-2 font-medium" style={{ color: accent }}>{it.title || it.url}</p>
-              {it.text && <p className="mt-1 line-clamp-2 text-xs text-black/55">{it.text}</p>}
+              <p className="mt-1 font-medium break-words" style={{ color: accent }}>{it.title || it.url}</p>
+              {it.text && <p className="mt-1 text-xs break-words text-black/55">{it.text}</p>}
               {it.url && (
                 <a {...stop} href={it.url} target="_blank" rel="noreferrer" className="absolute top-2 right-2 grid size-7 place-items-center text-black/40 hover:bg-black/5 hover:text-black" title={it.url}>
                   <ArrowUpRight className="size-4" />
@@ -921,7 +1031,7 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
             </div>
           ) : (
             <>
-              {poster && <img src={poster} alt="" draggable={false} className="absolute inset-0 size-full object-cover opacity-90" />}
+              <InlineVideo url={it.video} poster={poster} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
               <span className="label-xs absolute top-2 left-2 bg-black/45 px-1.5 text-[10px]">{info?.provider ?? "video"}</span>
               <button {...stop} type="button" onClick={onPlay} className="absolute top-1/2 left-1/2 grid size-12 -translate-1/2 place-items-center bg-white/90 text-black" aria-label="Play">
@@ -941,7 +1051,7 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
     case "text": {
       const style: CSSProperties = { fontSize: TEXT_SIZE[it.size ?? "md"], color: it.color ?? INK, lineHeight: 1.15, fontWeight: it.size === "xl" || it.size === "lg" ? 500 : 400 };
       return editing ? area(source.text ?? "", (v) => onEdit({ text: v }), t("mood.textPlaceholder"), style) : (
-        <p className="size-full overflow-visible whitespace-pre-wrap" style={style}>{it.text || <span className="opacity-30">{t("mood.textPlaceholder")}</span>}</p>
+        <p className="break-words whitespace-pre-wrap" style={style}>{it.text || <span className="opacity-30">{t("mood.textPlaceholder")}</span>}</p>
       );
     }
     case "draw": {
@@ -954,11 +1064,11 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
       );
     }
     case "shape":
-      return <ShapeSvg shape={it.shape ?? "rect"} w={b.w} h={b.h} color={it.color ?? INK} fill={it.fill} stroke={it.stroke ?? 4} flipX={it.flipX} flipY={it.flipY} />;
+      return <ShapeSvg shape={it.shape ?? "rect"} w={b.w} h={b.h} color={it.color ?? INK} fill={it.fill} stroke={it.stroke ?? 4} flipX={it.flipX} flipY={it.flipY} axis={it.axis} />;
   }
 }
 
-function ShapeSvg({ shape, w, h, color, fill, stroke, flipX, flipY }: { shape: ShapeKind; w: number; h: number; color: string; fill?: string; stroke: number; flipX?: boolean; flipY?: boolean }) {
+function ShapeSvg({ shape, w, h, color, fill, stroke, flipX, flipY, axis }: { shape: ShapeKind; w: number; h: number; color: string; fill?: string; stroke: number; flipX?: boolean; flipY?: boolean; axis?: "h" | "v" }) {
   const s = stroke / 2;
   const common = { fill: fill ?? "none", stroke: color, strokeWidth: stroke, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
   let el: ReactNode;
@@ -966,7 +1076,13 @@ function ShapeSvg({ shape, w, h, color, fill, stroke, flipX, flipY }: { shape: S
   else if (shape === "ellipse") el = <ellipse cx={w / 2} cy={h / 2} rx={Math.max(0, w / 2 - s)} ry={Math.max(0, h / 2 - s)} {...common} />;
   else if (shape === "triangle") el = <polygon points={`${w / 2},${s} ${w - s},${h - s} ${s},${h - s}`} {...common} />;
   else {
-    const x1 = flipX ? w : 0, x2 = flipX ? 0 : w, y1 = flipY ? h : 0, y2 = flipY ? 0 : h;
+    let x1 = flipX ? w : 0, x2 = flipX ? 0 : w, y1 = flipY ? h : 0, y2 = flipY ? 0 : h;
+    if (axis === "h") y1 = y2 = h / 2;
+    if (axis === "v") {
+      x1 = x2 = w / 2;
+      y1 = flipY ? h : 0;
+      y2 = flipY ? 0 : h;
+    }
     const ang = Math.atan2(y2 - y1, x2 - x1), head = Math.max(12, stroke * 3.5);
     el = (
       <>

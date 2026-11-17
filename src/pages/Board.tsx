@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, Cable, Columns3, Shapes, ChevronsDownUp, ChevronsUpDown, Eye, Focus, ListPlus, Minus, Hand, Languages, Loader2, Maximize, MousePointer2, Network, PanelRight, Plus, Radio, Share2, Sparkles, Spline, Workflow,
+  ArrowDownToLine, ArrowLeft, Pause, PlayCircle, ArrowRight, ArrowRightToLine, Cable, ChevronLeft, Columns3, Shapes, ChevronsDownUp, ChevronsUpDown, Eye, Focus, ListPlus, Minus, Hand, Languages, Loader2, Maximize, MousePointer2, Network, PanelRight, Plus, Radio, Share2, Sparkles, Spline, Workflow,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -21,7 +21,8 @@ import { BoardShareDialog } from "./board/share";
 import { KIND_ICON, NodeCard, videoPoster } from "./board/cards";
 import { ReelPlayer } from "./board/reel-player";
 import { Moodboard, type View as MoodViewState } from "./board/moodboard";
-import { Inspector, Overview } from "./board/side-panel";
+import { Inspector, MapPalette, Overview } from "./board/side-panel";
+import { InlineVideo, setAutoplay, useAutoplay } from "./board/inline-video";
 
 type Tool = "select" | "pan" | "connect";
 interface View { x: number; y: number; z: number }
@@ -98,6 +99,9 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null);
+  const [resize, setResize] = useState<{ id: string; w: number; h: number } | null>(null);
+  const [editingNode, setEditingNode] = useState<string | null>(null);
+  const autoplay = useAutoplay();
   const [sizes, setSizes] = useState<Record<string, { w: number; h: number }>>({});
   const [panel, setPanel] = useState(() => window.innerWidth >= 1024);
   const [player, setPlayer] = useState<number | null>(null);
@@ -173,6 +177,68 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     const open = collapsed.includes(id);
     setCollapsed((c) => (open ? c.filter((x) => x !== id) : [...c, id]));
     if (open) setSelected(id);
+  };
+  const vertical = original.layout === "vertical";
+  /** Smooth camera move to a card, so following the lines feels like travelling along them. */
+  const anim = useRef(0);
+  const flyTo = (id: string) => {
+    const n = byId.get(id);
+    const el = stage.current;
+    if (!n || !el) return;
+    const sz = sizes[id] ?? { w: NODE_W[n.kind], h: 200 };
+    const from = view;
+    const z = Math.max(from.z, Math.min(0.9, (el.clientWidth * 0.5) / sz.w));
+    const to = { z, x: el.clientWidth / 2 - ((n.x ?? 0) + sz.w / 2) * z, y: el.clientHeight / 2 - ((n.y ?? 0) + sz.h / 2) * z };
+    cancelAnimationFrame(anim.current);
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / 520);
+      const e = 1 - Math.pow(1 - k, 3);
+      setView({ z: from.z + (to.z - from.z) * e, x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e });
+      if (k < 1) anim.current = requestAnimationFrame(step);
+    };
+    anim.current = requestAnimationFrame(step);
+  };
+  /** Select a card and travel to it; opens its branch first if it was collapsed away. */
+  const goTo = (id: string) => {
+    if (!visible.has(id)) {
+      const opened = new Set<string>();
+      const up = (x: string) => (parentsOf.get(x) ?? []).forEach((p) => {
+        if (!opened.has(p)) {
+          opened.add(p);
+          up(p);
+        }
+      });
+      up(id);
+      setCollapsed((c) => c.filter((x) => !opened.has(x)));
+    }
+    setSelected(id);
+    setTimeout(() => flyTo(id), visible.has(id) ? 0 : 60);
+  };
+  const flowFrom = (id: string) => (parentsOf.get(id) ?? []).map((p) => byId.get(p)).filter((x): x is BoardNode => !!x);
+  const flowTo = (id: string) => (kids.get(id) ?? []).map((k) => byId.get(k)).filter((x): x is BoardNode => !!x);
+  /** Next card along the flow: its first branch, else the next card in reading order. */
+  const stepFlow = (dir: 1 | -1) => {
+    unfollowRef.current();
+    const cur = selected ?? order[0];
+    if (!cur) return;
+    if (!selected) return goTo(cur);
+    if (dir === 1) {
+      const next = flowTo(cur)[0]?.id ?? order[order.indexOf(cur) + 1];
+      if (next) goTo(next);
+    } else {
+      const prev = flowFrom(cur)[0]?.id ?? order[order.indexOf(cur) - 1];
+      if (prev) goTo(prev);
+    }
+  };
+  const setOrientation = (layout: "horizontal" | "vertical") => {
+    commit((b) => {
+      if (layout === "vertical") b.layout = "vertical";
+      else delete b.layout;
+      layoutBoard(b, true);
+      b.arranged = false;
+    });
+    setTimeout(() => fitRef.current(), 80);
   };
   const centerOn = (id: string) => {
     const n = byId.get(id);
@@ -292,7 +358,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   unfollowRef.current = unfollow;
 
   /* ───── pointer: pan the canvas, drag cards ───── */
-  const gesture = useRef<{ kind: "pan" | "node"; id?: string; sx: number; sy: number; vx: number; vy: number; moved: boolean; pts: Map<number, { x: number; y: number }>; pinch?: number } | null>(null);
+  const gesture = useRef<{ kind: "pan" | "node" | "resize"; id?: string; sx: number; sy: number; vx: number; vy: number; moved: boolean; pts: Map<number, { x: number; y: number }>; pinch?: number } | null>(null);
 
   const onStageDown = (e: RPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 && e.button !== 1) return;
@@ -315,9 +381,22 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     gesture.current = { kind: "node", id: nid, sx: e.clientX, sy: e.clientY, vx: 0, vy: 0, moved: false, pts: new Map() };
   };
 
+  const lastTap = useRef({ id: "", t: 0 });
+  const onResizeDown = (e: RPointerEvent<HTMLDivElement>, n: BoardNode) => {
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const sz = sizeOf(n);
+    gesture.current = { kind: "resize", id: n.id, sx: e.clientX, sy: e.clientY, vx: sz.w, vy: sz.h, moved: false, pts: new Map() };
+  };
+
   const onMove = (e: RPointerEvent<HTMLDivElement>) => {
     const g = gesture.current;
     if (!g) return;
+    if (g.kind === "resize") {
+      g.moved = true;
+      setResize({ id: g.id!, w: Math.max(140, Math.round(g.vx + (e.clientX - g.sx) / view.z)), h: Math.max(60, Math.round(g.vy + (e.clientY - g.sy) / view.z)) });
+      return;
+    }
     if (g.pinch && g.pts.has(e.pointerId)) {
       g.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const [a, b] = [...g.pts.values()];
@@ -349,6 +428,20 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       return;
     }
     gesture.current = null;
+    if (g.kind === "resize") {
+      const r = resize;
+      setResize(null);
+      if (r)
+        commit((b) => {
+          const n = b.nodes.find((x) => x.id === r.id);
+          if (n) {
+            n.w = r.w;
+            n.h = r.h;
+          }
+          b.arranged = true;
+        });
+      return;
+    }
     if (g.kind === "pan") {
       if (!g.moved) {
         setSelected(null);
@@ -384,6 +477,17 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       }
       return;
     }
+    // Double tap (pointer capture swallows the browser's dblclick): write in the card, play a video, or travel to it.
+    const now = Date.now();
+    if (lastTap.current.id === nid && now - lastTap.current.t < 420) {
+      lastTap.current = { id: "", t: 0 };
+      const n = byId.get(nid);
+      if (n?.kind === "video") play(nid);
+      else if (owner && lang === "original") setEditingNode(nid);
+      else flyTo(nid);
+      return;
+    }
+    lastTap.current = { id: nid, t: now };
     setSelected(nid);
     setPanel(true);
   };
@@ -451,6 +555,18 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       if (e.key === "c") setTool("connect");
       if (e.key === "f") fit();
       if (e.key === "n") openNext();
+      if (e.key === "Enter" && owner && selected && lang === "original" && byId.get(selected)?.kind !== "video") {
+        e.preventDefault();
+        setEditingNode(selected);
+      }
+      if (mode === "map" && (e.key === "ArrowRight" || e.key === "ArrowDown")) {
+        e.preventDefault();
+        stepFlow(1);
+      }
+      if (mode === "map" && (e.key === "ArrowLeft" || e.key === "ArrowUp")) {
+        e.preventDefault();
+        stepFlow(-1);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -521,7 +637,12 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     if (!a || !b || !visible.has(a.id) || !visible.has(b.id)) return [];
     const pa = pos(a), pb = pos(b), sa = sizeOf(a), sb = sizeOf(b);
     let s: [number, number], d: [number, number], path: string;
-    if (pb.x >= pa.x + sa.w * 0.6) {
+    if (vertical && pb.y >= pa.y + sa.h * 0.6) {
+      s = [pa.x + sa.w / 2, pa.y + sa.h];
+      d = [pb.x + sb.w / 2, pb.y];
+      const k = Math.max(40, (d[1] - s[1]) / 2);
+      path = `M${s[0]},${s[1]} C${s[0]},${s[1] + k} ${d[0]},${d[1] - k} ${d[0]},${d[1]}`;
+    } else if (pb.x >= pa.x + sa.w * 0.6) {
       s = [pa.x + sa.w, pa.y + sa.h / 2];
       d = [pb.x, pb.y + sb.h / 2];
       const k = Math.max(50, (d[0] - s[0]) / 2);
@@ -543,6 +664,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   });
 
   const sel = selected ? original.nodes.find((n) => n.id === selected) : undefined;
+  if (editingNode && editingNode !== selected) setTimeout(() => setEditingNode(null));
   const childCount = (nid: string) => board.edges.filter((e) => e.from === nid).length;
 
   return (
@@ -576,7 +698,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                       onPointerDown={(ev) => ev.stopPropagation()}
                       onClick={() => {
                         unfollow();
-                        setSelected(e.to);
+                        goTo(selected === e.to ? e.from : e.to);
                       }}
                     />
                     <path d={path} fill="none" stroke="currentColor" strokeWidth={(opacity > 0.9 ? 2.2 : 1.5) / Math.max(view.z, 0.6)} strokeDasharray="1 6" strokeLinecap="round" />
@@ -603,16 +725,27 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                     className={cn("absolute", tool === "select" && "cursor-grab active:cursor-grabbing", linkFrom === n.id && "outline-2 outline-dashed outline-offset-8")}
                     style={{ left: p.x, top: p.y, zIndex: drag?.id === n.id ? 5 : selected === n.id ? 4 : 1, outlineColor: accent, opacity: dim ? 0.16 : 1, transition: "opacity 0.3s" }}
                     onPointerDown={(e) => onNodeDown(e, n.id)}
-                    onDoubleClick={() => n.kind === "video" && play(n.id)}
                   >
                     <NodeCard
-                      node={n}
+                      node={owner && editingNode === n.id ? original.nodes.find((x) => x.id === n.id) ?? n : n}
+                      editing={owner && editingNode === n.id}
+                      onEdit={(p) => patchNode(n.id, p)}
+                      onDone={() => setEditingNode(null)}
+                      size={resize?.id === n.id ? { w: resize.w, h: resize.h } : undefined}
                       accent={accent}
                       selected={selected === n.id}
                       childCount={childCount(n.id)}
                       onPlay={(vid) => (tool === "select" ? play(vid) : undefined)}
                       onToggleItem={(i) => owner && patchNode(n.id, { items: (original.nodes.find((x) => x.id === n.id)?.items ?? []).map((it, j) => (j === i ? { ...it, done: !it.done } : it)) })}
                     />
+                    {owner && selected === n.id && editingNode !== n.id && (
+                      <div
+                        title={t("board.resize")}
+                        onPointerDown={(e) => onResizeDown(e, n)}
+                        className="absolute z-20 cursor-nwse-resize border-2 bg-background"
+                        style={{ right: -7 / view.z, bottom: -7 / view.z, width: 14 / view.z, height: 14 / view.z, borderColor: accent }}
+                      />
+                    )}
                     {branches > 0 && (
                       <button
                         type="button"
@@ -621,7 +754,8 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                         title={shut ? t("board.expand", { n: branches }) : t("board.collapse")}
                         aria-label={shut ? t("board.expand", { n: branches }) : t("board.collapse")}
                         className={cn(
-                          "label-xs absolute top-1/2 -right-[2.6rem] z-10 flex h-7 min-w-7 -translate-y-1/2 items-center justify-center gap-0.5 border px-1.5 text-[11px] transition-colors",
+                          "label-xs absolute z-10 flex h-7 min-w-7 items-center justify-center gap-0.5 border px-1.5 text-[11px] transition-colors",
+                          vertical ? "-bottom-[2.6rem] left-1/2 -translate-x-1/2" : "top-1/2 -right-[2.6rem] -translate-y-1/2",
                           shut ? "border-transparent text-white" : "border-border bg-card text-muted-foreground hover:text-foreground",
                         )}
                         style={shut ? { background: accent } : undefined}
@@ -649,6 +783,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
               })
             }
             onUserMove={unfollow}
+            mapNodes={original.nodes}
           />
         ) : (
           <KanbanView board={board} onPlay={play} onSelect={(nid) => { unfollow(); setSelected(nid); setPanel(true); }} />
@@ -721,6 +856,16 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
               </button>
             ))}
           </div>
+          <Button
+            variant="outline"
+            className="h-9 bg-card/90 px-2.5"
+            onClick={() => setAutoplay(!autoplay)}
+            aria-pressed={autoplay}
+            title={autoplay ? t("board.autoplayOn") : t("board.autoplayOff")}
+            aria-label={autoplay ? t("board.autoplayOn") : t("board.autoplayOff")}
+          >
+            {autoplay ? <PlayCircle /> : <Pause />}
+          </Button>
           <LangMenu lang={lang} onChange={setLang} busy={translating} />
           {owner ? (
             <>
@@ -746,6 +891,39 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
             <PanelRight />
           </Button>
         </div>
+
+        {/* Flow bar: where the selected card comes from and where its lines go. */}
+        {mode === "map" && selected && byId.get(selected) && (
+          <div className="absolute bottom-20 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-1 border border-border bg-card/95 p-1 text-sm shadow-[0_18px_40px_-20px_rgb(0_0_0/0.4)] backdrop-blur">
+            {flowFrom(selected).slice(0, 1).map((p) => (
+              <button key={p.id} type="button" onClick={() => { unfollow(); goTo(p.id); }} className="flex h-9 max-w-40 items-center gap-1.5 px-2.5 text-muted-foreground hover:bg-accent hover:text-foreground" title={`${t("board.flow.back")} (←)`}>
+                <ChevronLeft className="size-4 shrink-0" /> <span className="truncate">{p.title || t(`board.kind.${p.kind}`)}</span>
+              </button>
+            ))}
+            <span className="label-xs flex h-9 max-w-48 items-center gap-1.5 bg-foreground px-3 text-background">
+              <span className="truncate">{byId.get(selected)!.title || t(`board.kind.${byId.get(selected)!.kind}`)}</span>
+            </span>
+            <div className="no-scrollbar flex max-w-[50vw] items-center gap-1 overflow-x-auto">
+              {flowTo(selected).slice(0, 8).map((c, i) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => { unfollow(); goTo(c.id); }}
+                  className="flex h-9 max-w-44 shrink-0 items-center gap-1.5 px-2.5 hover:bg-accent"
+                  title={i === 0 ? `${t("board.flow.next")} (→)` : t("board.flow.goTo")}
+                >
+                  {i === 0 && <ArrowRight className="size-3.5 shrink-0" style={{ color: accent }} />}
+                  <span className="truncate">{c.title || t(`board.kind.${c.kind}`)}</span>
+                </button>
+              ))}
+              {flowTo(selected).length === 0 && order[order.indexOf(selected) + 1] && (
+                <button type="button" onClick={() => stepFlow(1)} className="flex h-9 items-center gap-1.5 px-2.5 text-muted-foreground hover:bg-accent hover:text-foreground" title={`${t("board.flow.next")} (→)`}>
+                  {t("board.flow.next")} <ArrowRight className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Bottom toolbar */}
         <div className={cn("absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 border border-border bg-card/95 p-1 shadow-[0_18px_40px_-20px_rgb(0_0_0/0.4)] backdrop-blur pb-safe sm:pb-1", mode === "mood" && "hidden")}>
@@ -809,6 +987,17 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                 </button>
               )}
               {owner && (
+                <button
+                  type="button"
+                  title={vertical ? t("board.tool.horizontal") : t("board.tool.vertical")}
+                  aria-label={vertical ? t("board.tool.horizontal") : t("board.tool.vertical")}
+                  onClick={() => setOrientation(vertical ? "horizontal" : "vertical")}
+                  className="grid size-10 place-items-center hover:bg-accent"
+                >
+                  {vertical ? <ArrowRightToLine className="size-4" /> : <ArrowDownToLine className="size-4" />}
+                </button>
+              )}
+              {owner && (
                 <button type="button" title={t("board.tool.tidy")} aria-label={t("board.tool.tidy")} onClick={tidy} className="grid size-10 place-items-center hover:bg-accent">
                   <Sparkles className="size-4" />
                 </button>
@@ -857,7 +1046,9 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
               {t("common.close")}
             </Button>
           </div>
-          {owner && sel ? (
+          {owner && mode === "mood" ? (
+            <MapPalette board={board} placed={new Set((original.mood?.items ?? []).map((i) => i.ref).filter((x): x is string => !!x))} />
+          ) : owner && sel ? (
             <Inspector key={sel.id} node={sel} onChange={(p) => patchNode(sel.id, p)} onDelete={() => deleteNode(sel.id)} onDone={() => setSelected(null)} />
           ) : (
             <Overview
@@ -933,7 +1124,7 @@ function MoodItem({ node: n, accent, onPlay, onSelect }: { node: BoardNode; acce
     const poster = videoPoster(n);
     return (
       <button type="button" onClick={() => onPlay(n.id)} className="group relative block aspect-[9/16] w-full overflow-hidden bg-[#111] text-left text-white">
-        {poster && <img src={poster} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />}
+        <InlineVideo url={n.video} poster={poster} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
         <span className="label-xs absolute top-2 left-2 bg-black/50 px-1.5 text-[10px]">{parseVideo(n.video)?.provider ?? "video"}</span>
         <p className="absolute inset-x-3 bottom-3 text-sm font-medium">{n.title}</p>

@@ -8,10 +8,14 @@ export const NODE_W = { idea: 340, stage: 250, note: 290, media: 300, video: 200
 
 /** Rough height per kind, used by the auto layout before the cards are measured. */
 export function estimateH(n) {
+  return Math.max(n.h ?? 0, baseH(n));
+}
+function baseH(n) {
+  const longText = Math.ceil(((n.text?.length ?? 0) * 7.5) / ((n.w ?? NODE_W[n.kind] ?? 280) - 40)) * 20;
   switch (n.kind) {
     case "idea": return 230;
-    case "stage": return 170;
-    case "note": return 150 + (n.url ? 40 : 0);
+    case "note": return Math.max(150, 90 + longText) + (n.url ? 40 : 0);
+    case "stage": return Math.max(170, 130 + longText);
     case "media": return 280;
     case "video": return 400;
     case "asset": return 190;
@@ -40,7 +44,9 @@ export function parseVideo(url) {
   let m = u.match(/instagram\.com\/(?:[\w.]+\/)?(reels?|p|tv)\/([A-Za-z0-9_-]+)/i);
   if (m) {
     const type = m[1].toLowerCase() === "p" ? "p" : m[1].toLowerCase() === "tv" ? "tv" : "reel";
-    return { provider: "instagram", id: m[2], url: `https://www.instagram.com/${type}/${m[2]}/`, embed: `https://www.instagram.com/${type}/${m[2]}/embed/`, poster: null };
+    const embed = `https://www.instagram.com/${type}/${m[2]}/embed/`;
+    // Instagram has no autoplay in embeds: inline shows the embed itself (cover frame), one tap plays.
+    return { provider: "instagram", id: m[2], url: `https://www.instagram.com/${type}/${m[2]}/`, embed, inline: embed, autoplay: false, poster: null };
   }
   m = u.match(/(?:youtube\.com\/(?:shorts\/|watch\?(?:.*&)?v=|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
   if (m) {
@@ -48,15 +54,22 @@ export function parseVideo(url) {
     return {
       provider: "youtube", id, url: u,
       embed: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${id}&rel=0`,
+      inline: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist=${id}&rel=0&modestbranding=1&disablekb=1&iv_load_policy=3`,
+      autoplay: true,
       poster: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
     };
   }
   m = u.match(/tiktok\.com\/.*\/video\/(\d+)/i);
   if (m) {
-    return { provider: "tiktok", id: m[1], url: u, embed: `https://www.tiktok.com/player/v1/${m[1]}?autoplay=1&loop=1&rel=0`, poster: null };
+    const base = `https://www.tiktok.com/player/v1/${m[1]}?autoplay=1&loop=1&rel=0`;
+    return {
+      provider: "tiktok", id: m[1], url: u, embed: base,
+      inline: `${base}&controls=0&progress_bar=0&play_button=0&volume_control=0&fullscreen_button=0&timestamp=0&music_info=0&description=0&native_context_menu=0`,
+      autoplay: true, poster: null,
+    };
   }
   if (/^https?:\/\/.+\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(u) || u.startsWith("/api/")) {
-    return { provider: "file", id: u, url: u, embed: u, poster: null };
+    return { provider: "file", id: u, url: u, embed: u, inline: u, autoplay: true, poster: null };
   }
   return null;
 }
@@ -81,7 +94,7 @@ export function cleanMoodItem(raw) {
     w: Math.max(16, num(raw?.w) ?? dw),
     h: Math.max(16, num(raw?.h) ?? dh),
   };
-  for (const k of ["src", "caption", "text", "title", "name", "url", "video", "poster", "color", "fill", "size"]) {
+  for (const k of ["src", "caption", "text", "title", "name", "url", "video", "poster", "color", "fill", "size", "ref"]) {
     const v = str(raw?.[k], k === "src" ? 3_000_000 : 4000);
     if (v) it[k] = v;
   }
@@ -94,6 +107,7 @@ export function cleanMoodItem(raw) {
     const v = num(raw?.[k]);
     if (v !== undefined) it[k] = v;
   }
+  if (raw?.axis === "h" || raw?.axis === "v") it.axis = raw.axis;
   if (raw?.flipX) it.flipX = true;
   if (raw?.flipY) it.flipY = true;
   return it;
@@ -173,6 +187,10 @@ export function cleanNode(raw, fallbackId) {
   if (progress !== undefined) n.progress = Math.max(0, Math.min(100, progress));
   const x = num(raw?.x), y = num(raw?.y);
   if (x !== undefined && y !== undefined) { n.x = x; n.y = y; }
+  // Size set by stretching the card (height is a minimum: the text always fits).
+  const w = num(raw?.w), h = num(raw?.h);
+  if (w !== undefined) n.w = Math.max(140, Math.min(1200, Math.round(w)));
+  if (h !== undefined) n.h = Math.max(60, Math.min(2000, Math.round(h)));
   return n;
 }
 
@@ -190,6 +208,7 @@ export function normalizeBoard(raw) {
   };
   if (raw?.summary) b.summary = str(raw.summary);
   if (raw?.arranged) b.arranged = true;
+  if (raw?.layout === "vertical") b.layout = "vertical";
   if (Array.isArray(raw?.mood?.items)) b.mood = { items: raw.mood.items.map((i) => cleanMoodItem(i)) };
   const seen = new Set();
   for (const n of Array.isArray(raw?.nodes) ? raw.nodes : []) {
@@ -207,10 +226,12 @@ export function normalizeBoard(raw) {
 
 /* ───────── layout: a left-to-right mind map ───────── */
 
-/** Places nodes without a position (or every node with `all`). Roots are nodes nobody points to. */
+/** Places nodes without a position (or every node with `all`). Roots are nodes nobody points to.
+ *  board.layout: "horizontal" (default, left → right) or "vertical" (top → bottom). */
 export function layoutBoard(board, all = false) {
   const nodes = board.nodes;
   if (!nodes.length) return board;
+  const vertical = board.layout === "vertical";
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const kids = new Map(nodes.map((n) => [n.id, []]));
   const hasParent = new Set();
@@ -227,7 +248,13 @@ export function layoutBoard(board, all = false) {
   if (!nodes.some(needs)) return board;
   if (!all && nodes.some((n) => !needs(n))) return placeNew(board, byId);
 
-  // Column x per depth: the widest card in the previous column + a gap.
+  // "Depth" runs along the flow (x when horizontal, y when vertical); "breadth" spreads siblings.
+  const W = (n) => n.w ?? NODE_W[n.kind] ?? 280;
+  const depthSize = (n) => (vertical ? estimateH(n) : W(n));
+  const breadthSize = (n) => (vertical ? W(n) : estimateH(n));
+  const DEPTH_GAP = vertical ? 110 : COL_GAP;
+  const BREADTH_GAP = vertical ? 40 : ROW_GAP;
+
   const depth = new Map();
   const visited = new Set();
   const walkDepth = (id, d) => {
@@ -237,56 +264,62 @@ export function layoutBoard(board, all = false) {
     for (const k of kids.get(id)) walkDepth(k, d + 1);
   };
   roots.forEach((r) => walkDepth(r.id, 0));
-  const colW = [];
+  const band = [];
   for (const n of nodes) {
     const d = depth.get(n.id) ?? 0;
-    colW[d] = Math.max(colW[d] ?? 0, NODE_W[n.kind] ?? 280);
+    band[d] = Math.max(band[d] ?? 0, depthSize(n));
   }
-  const colX = [0];
-  for (let i = 1; i < colW.length; i++) colX[i] = colX[i - 1] + colW[i - 1] + COL_GAP;
+  const bandAt = [0];
+  for (let i = 1; i < band.length; i++) bandAt[i] = bandAt[i - 1] + band[i - 1] + DEPTH_GAP;
 
-  // Subtree heights, then place each child block centred on its parent.
   const sub = new Map();
-  const height = (id, seen = new Set()) => {
+  const span = (id, seen = new Set()) => {
     if (seen.has(id)) return 0;
     seen.add(id);
-    const own = estimateH(byId.get(id));
-    const ch = kids.get(id);
-    const total = ch.reduce((s, k, i) => s + height(k, seen) + (i ? ROW_GAP : 0), 0);
-    const h = Math.max(own, total);
-    sub.set(id, h);
-    return h;
+    const own = breadthSize(byId.get(id));
+    const total = kids.get(id).reduce((s, k, i) => s + span(k, seen) + (i ? BREADTH_GAP : 0), 0);
+    const v = Math.max(own, total);
+    sub.set(id, v);
+    return v;
   };
-  const place = (id, top, placed) => {
+  const place = (id, start, placed) => {
     if (placed.has(id)) return;
     placed.add(id);
     const n = byId.get(id);
-    const h = sub.get(id) ?? estimateH(n);
+    const s = sub.get(id) ?? breadthSize(n);
     if (needs(n)) {
-      n.x = colX[depth.get(id) ?? 0];
-      n.y = Math.round(top + h / 2 - estimateH(n) / 2);
+      const along = bandAt[depth.get(id) ?? 0];
+      const across = Math.round(start + s / 2 - breadthSize(n) / 2);
+      if (vertical) {
+        n.x = across;
+        n.y = along;
+      } else {
+        n.x = along;
+        n.y = across;
+      }
     }
     const ch = kids.get(id);
-    const total = ch.reduce((s, k, i) => s + (sub.get(k) ?? 0) + (i ? ROW_GAP : 0), 0);
-    let y = top + h / 2 - total / 2;
+    const total = ch.reduce((acc, k, i) => acc + (sub.get(k) ?? 0) + (i ? BREADTH_GAP : 0), 0);
+    let at = start + s / 2 - total / 2;
     for (const k of ch) {
-      place(k, y, placed);
-      y += (sub.get(k) ?? 0) + ROW_GAP;
+      place(k, at, placed);
+      at += (sub.get(k) ?? 0) + BREADTH_GAP;
     }
   };
-  let top = 0;
+  let at = 0;
   const placed = new Set();
   for (const r of roots) {
-    height(r.id);
-    place(r.id, top, placed);
-    top += (sub.get(r.id) ?? 0) + ROW_GAP * 3;
+    span(r.id);
+    place(r.id, at, placed);
+    at += (sub.get(r.id) ?? 0) + BREADTH_GAP * 3;
   }
   return board;
 }
 
-/** Cards added to an arranged board: right of their parent, below its other branches, never on top of another card. */
+/** Cards added to an arranged board: after their parent along the flow, beside its other branches, never on top of another card. */
 function placeNew(board, byId) {
-  const rect = (n) => ({ x: n.x, y: n.y, w: NODE_W[n.kind] ?? 280, h: estimateH(n) });
+  const vertical = board.layout === "vertical";
+  const rect = (n) => ({ x: n.x, y: n.y, w: n.w ?? NODE_W[n.kind] ?? 280, h: estimateH(n) });
   const placed = board.nodes.filter((n) => n.x !== undefined && n.y !== undefined).map(rect);
   const hits = (r) => placed.some((p) => r.x < p.x + p.w + 24 && r.x + r.w + 24 > p.x && r.y < p.y + p.h + 24 && r.y + r.h + 24 > p.y);
   for (const n of board.nodes) {
@@ -296,13 +329,24 @@ function placeNew(board, byId) {
     const r = { x: 0, y: 0, w: NODE_W[n.kind] ?? 280, h: estimateH(n) };
     if (parent) {
       const sibs = board.edges.filter((e) => e.from === parent.id && e.to !== n.id).map((e) => byId.get(e.to)).filter((s) => s?.x !== undefined);
-      r.x = sibs.length ? Math.min(...sibs.map((s) => s.x)) : parent.x + (NODE_W[parent.kind] ?? 280) + COL_GAP;
-      r.y = parent.y;
+      if (vertical) {
+        r.y = sibs.length ? Math.min(...sibs.map((s) => s.y)) : parent.y + estimateH(parent) + 110;
+        r.x = parent.x;
+      } else {
+        r.x = sibs.length ? Math.min(...sibs.map((s) => s.x)) : parent.x + (NODE_W[parent.kind] ?? 280) + COL_GAP;
+        r.y = parent.y;
+      }
+    } else if (vertical) {
+      r.y = Math.min(...placed.map((p) => p.y));
+      r.x = Math.max(...placed.map((p) => p.x + p.w)) + 80;
     } else {
       r.x = Math.min(...placed.map((p) => p.x));
       r.y = Math.max(...placed.map((p) => p.y + p.h)) + ROW_GAP * 2;
     }
-    for (let i = 0; i < 400 && hits(r); i++) r.y += 32;
+    for (let i = 0; i < 400 && hits(r); i++) {
+      if (vertical) r.x += 32;
+      else r.y += 32;
+    }
     n.x = Math.round(r.x);
     n.y = Math.round(r.y);
     placed.push(r);
@@ -439,6 +483,7 @@ const TOOLS = [
         idea: { type: "string", description: "The idea in one or two sentences, as the user gave it." },
         summary: { type: "string", description: "The strategy in a short paragraph." },
         accent: { type: "string", description: "Hex accent colour, default #e0512b." },
+        layout: { type: "string", enum: ["horizontal", "vertical"], description: "Mind map direction: horizontal (left → right, default) or vertical (top → bottom)." },
         nodes: { type: "array", items: NODE_SCHEMA },
       },
       required: ["title", "idea"],
@@ -500,6 +545,10 @@ const TOOLS = [
               items: { type: "array", items: { type: "string" } }, color: { type: "string" }, name: { type: "string" },
               url: { type: "string" }, video: { type: "string" }, poster: { type: "string" }, shape: { type: "string", enum: SHAPES },
               fill: { type: "string" }, size: { type: "string", enum: ["sm", "md", "lg", "xl"] },
+              stroke: { type: "number", description: "Line width for shapes, lines and arrows (2–14)." },
+              axis: { type: "string", enum: ["h", "v"], description: "Lines/arrows: h = straight horizontal across w, v = straight vertical down h. Omit for a diagonal from the top-left to the bottom-right corner." },
+              flipX: { type: "boolean", description: "Lines/arrows point the other way (right→left, or bottom-left→top-right for diagonals)." },
+              flipY: { type: "boolean", description: "Lines/arrows point upwards (bottom→top)." },
               x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" },
             },
             required: ["type"],
@@ -511,10 +560,14 @@ const TOOLS = [
   },
   {
     name: "update_board",
-    description: "Rename a board, rewrite its idea/summary/accent, or re-run the mind-map layout (relayout: true).",
+    description: "Rename a board, rewrite its idea/summary/accent, switch the mind map direction (layout), or re-run the layout (relayout: true).",
     inputSchema: {
       type: "object",
-      properties: { board_id: { type: "string" }, title: { type: "string" }, idea: { type: "string" }, summary: { type: "string" }, accent: { type: "string" }, relayout: { type: "boolean" } },
+      properties: {
+        board_id: { type: "string" }, title: { type: "string" }, idea: { type: "string" }, summary: { type: "string" }, accent: { type: "string" },
+        layout: { type: "string", enum: ["horizontal", "vertical"], description: "Switch the mind map direction (re-lays out the map)." },
+        relayout: { type: "boolean" },
+      },
       required: ["board_id"],
     },
   },
@@ -560,7 +613,7 @@ async function callTool(name, args, store, origin) {
       };
     }
     case "create_board": {
-      const b = normalizeBoard({ title: args?.title, idea: args?.idea, summary: args?.summary, accent: args?.accent });
+      const b = normalizeBoard({ title: args?.title, idea: args?.idea, summary: args?.summary, accent: args?.accent, layout: args?.layout });
       const list = Array.isArray(args?.nodes) ? [...args.nodes] : [];
       if (!list.some((n) => n?.kind === "idea")) list.unshift({ id: "idea", kind: "idea", title: b.title, text: b.idea });
       addNodes(b, list);
@@ -606,6 +659,11 @@ async function callTool(name, args, store, origin) {
       if (args?.idea) b.idea = String(args.idea);
       if (args?.summary !== undefined) b.summary = String(args.summary);
       if (/^#[0-9a-f]{6}$/i.test(args?.accent ?? "")) b.accent = args.accent;
+      if (args?.layout === "vertical" || args?.layout === "horizontal") {
+        if (args.layout === "vertical") b.layout = "vertical";
+        else delete b.layout;
+        args.relayout = true;
+      }
       if (args?.relayout) {
         layoutBoard(b, true);
         b.arranged = false;

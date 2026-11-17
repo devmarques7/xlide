@@ -1,9 +1,10 @@
-import { Film, Play, Trash2, Upload } from "lucide-react";
+import { Check, Film, Play, Plus, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { outline, parseVideo } from "../../../shared/board.js";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import type { Board, BoardNode } from "@/lib/boards";
+import { cn } from "@/lib/utils";
 import { uploadImage } from "@/lib/images";
 import { usePrefs } from "@/lib/prefs";
 import { KIND_ICON, videoPoster } from "./cards";
@@ -225,6 +226,65 @@ export function Inspector({ node: n, onChange, onDelete, onDone }: {
           <Trash2 /> {t("board.deleteCard")}
         </Button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Moodboard sidebar: the mind map cards, by stage. Drag one onto the board to
+ * make a moodboard card from it (or tap +). Cards already placed are marked.
+ */
+export function MapPalette({ board, placed }: { board: Board; placed: Set<string> }) {
+  const { t } = usePrefs();
+  const o = outline(board);
+  const idea = board.nodes.find((n) => n.kind === "idea");
+  const groups = [
+    ...(idea ? [{ key: "idea", head: null as BoardNode | null, items: [idea] }] : []),
+    ...o.stages.map((s) => ({ key: s.stage.id, head: s.stage, items: [s.stage, ...s.items] })),
+    ...(o.loose.filter((n) => n.kind !== "idea").length ? [{ key: "loose", head: null, items: o.loose.filter((n) => n.kind !== "idea") }] : []),
+  ];
+  const waiting = board.nodes.filter((n) => !placed.has(n.id)).length;
+  return (
+    <div className="p-5">
+      <p className="label-xs text-muted-foreground">{t("mood.palette")}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{t("mood.paletteHint", { n: waiting })}</p>
+      <div className="mt-4 space-y-4">
+        {groups.map((g) => (
+          <section key={g.key}>
+            {g.head && <p className="label-xs mb-1 truncate" style={{ color: board.accent }}>{String(g.head.step ?? "").padStart(2, "0")} · {g.head.title}</p>}
+            <ul className="space-y-1">
+              {g.items.map((n) => {
+                const Icon = KIND_ICON[n.kind];
+                const done = placed.has(n.id);
+                return (
+                  <li
+                    key={n.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("application/x-xlide-node", n.id);
+                      e.dataTransfer.effectAllowed = "copy";
+                    }}
+                    className={cn("group flex cursor-grab items-center gap-2 border border-border bg-background px-2.5 py-2 text-sm active:cursor-grabbing hover:border-foreground", done && "opacity-50")}
+                    title={t("mood.dragHint")}
+                  >
+                    <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 break-words">{n.title || t(`board.kind.${n.kind}`)}</span>
+                    {done && <Check className="size-3.5 shrink-0" />}
+                    <button
+                      type="button"
+                      onClick={() => window.dispatchEvent(new CustomEvent("xlide:mood-add-node", { detail: n.id }))}
+                      className="grid size-6 shrink-0 place-items-center text-muted-foreground hover:bg-accent hover:text-foreground"
+                      aria-label={t("mood.add")}
+                    >
+                      <Plus className="size-3.5" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
