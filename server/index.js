@@ -11,6 +11,7 @@ import { WebSocketServer } from "ws";
 import { getLyrics, searchBackgrounds, translateLines } from "../api/_music.js";
 import { handleMcpBody, mcpAuthorized } from "../shared/board.js";
 import { igGraphConfigured, instagramAuthor, instagramProfile } from "../api/_instagram.js";
+import { renderPreview } from "../api/_preview.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.env.NODE_ENV === "production";
@@ -90,9 +91,14 @@ const boardStore = {
   },
 };
 app.get("/api/boards", (_req, res) => res.json(Object.values(boards)));
-app.get("/api/boards/:id", (req, res) => {
+app.get("/api/boards/:id", async (req, res) => {
   const b = boards[req.params.id];
   if (!b) return res.status(404).json({ error: "not_found" });
+  if (req.query.preview) {
+    const view = ["map", "moodboard", "kanban"].includes(req.query.preview) ? req.query.preview : "map";
+    const { png } = await renderPreview(b, view, `${req.protocol}://${req.headers.host}`, Number(req.query.width) || 1600);
+    return res.type("png").send(png);
+  }
   res.json(b);
 });
 app.put("/api/boards/:id", (req, res) => {
@@ -109,7 +115,7 @@ const MCP_KEY = process.env.XLIDE_MCP_KEY || "1423";
 app.post("/api/mcp", async (req, res) => {
   if (!mcpAuthorized(req.headers, req.query, MCP_KEY)) return res.status(401).json({ error: "unauthorized" });
   const origin = `${req.protocol}://${req.headers["x-forwarded-host"] || req.headers.host}`;
-  const { status, body } = await handleMcpBody(req.body, boardStore, origin);
+  const { status, body } = await handleMcpBody(req.body, boardStore, origin, { renderPreview });
   if (!body) return res.status(status).end();
   res.status(status).json(body);
 });

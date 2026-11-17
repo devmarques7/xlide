@@ -560,10 +560,15 @@ const TOOLS = [
   },
   {
     name: "remove_items",
-    description: "Delete cards (and their connections) or single connections.",
+    description: "Delete mind map cards (and their connections), moodboard items, single connections, or clear the whole moodboard.",
     inputSchema: {
       type: "object",
-      properties: { board_id: { type: "string" }, node_ids: { type: "array", items: { type: "string" } }, edge_ids: { type: "array", items: { type: "string" } } },
+      properties: {
+        board_id: { type: "string" },
+        node_ids: { type: "array", items: { type: "string" }, description: "Mind map card ids and/or moodboard item ids." },
+        edge_ids: { type: "array", items: { type: "string" } },
+        clear_moodboard: { type: "boolean", description: "Remove every moodboard item." },
+      },
       required: ["board_id"],
     },
     annotations: { destructiveHint: true },
@@ -602,6 +607,85 @@ const TOOLS = [
     },
   },
   {
+    name: "update_mood_item",
+    description: "Change one moodboard item: move/resize (x, y, w, h), text, title, caption, colour, fill, stroke, size, items, image src, video link, shape, axis/flip.",
+    inputSchema: {
+      type: "object",
+      properties: { board_id: { type: "string" }, item_id: { type: "string" }, patch: { type: "object", description: "Any moodboard item fields (see add_mood_items)." } },
+      required: ["board_id", "item_id", "patch"],
+    },
+  },
+  {
+    name: "arrange",
+    description:
+      "Reorganise the structure: move, resize or re-stack any mind map card or moodboard item in one call. Give absolute x/y, or dx/dy to shift, " +
+      "w/h to resize (map cards: h is a minimum, the text always fits), and front/back to restack moodboard items. Use preview_board to check the result.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board_id: { type: "string" },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" }, x: { type: "number" }, y: { type: "number" }, dx: { type: "number" }, dy: { type: "number" },
+              w: { type: "number" }, h: { type: "number" }, front: { type: "boolean" }, back: { type: "boolean" },
+            },
+            required: ["id"],
+          },
+        },
+      },
+      required: ["board_id", "items"],
+    },
+  },
+  {
+    name: "draw",
+    description:
+      "Draw on the moodboard with the pencil: each stroke is a list of [x, y] points in board coordinates (smoothed in the app), with a colour and width. " +
+      "For straight lines, arrows and shapes use add_mood_items type shape instead.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board_id: { type: "string" },
+        strokes: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              points: { type: "array", items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 }, description: "[[x, y], …] at least 2 points" },
+              color: { type: "string", description: "Hex, default #161615" },
+              width: { type: "number", description: "2–14, default 4" },
+            },
+            required: ["points"],
+          },
+        },
+      },
+      required: ["board_id", "strokes"],
+    },
+  },
+  {
+    name: "preview_board",
+    description:
+      "See the board: returns a PNG of the mind map, the moodboard or the kanban as it is now, plus the drawing bounds. Use it after changes to check layout, overlaps and balance.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board_id: { type: "string" },
+        view: { type: "string", enum: ["map", "moodboard", "kanban"], description: "Default map." },
+        width: { type: "number", description: "Image width in px (400–2400, default 1600)." },
+      },
+      required: ["board_id"],
+    },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "share_link",
+    description: "Links for a board: the editor (passcode), the public live link people follow in their own language (optionally opening in one), and PNG preview links.",
+    inputSchema: { type: "object", properties: { board_id: { type: "string" }, lang: { type: "string", enum: ["original", "pt", "en", "nl", "es", "fr", "de", "it"] } }, required: ["board_id"] },
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: "update_board",
     description: "Rename a board, rewrite its idea/summary/accent, switch the mind map direction (layout), or re-run the layout (relayout: true).",
     inputSchema: {
@@ -616,6 +700,13 @@ const TOOLS = [
   },
 ];
 
+export const MCP_INSTRUCTIONS_FULL =
+  "Full control of XLIDE boards. A board has three views of the same idea: a mind map (cards + dotted connections, horizontal or vertical), " +
+  "a free Milanote-style moodboard (images, notes, to-dos, colour swatches, links, reels, labels, shapes, arrows and pencil drawings) and a kanban by funnel stage. " +
+  "Read with get_board (positions, sizes, every item). Build with create_board / add_nodes / add_mood_items / draw. Edit with update_node / update_mood_item / update_board. " +
+  "Reorganise with arrange (move, shift, resize, restack) or update_board (layout: vertical|horizontal, relayout). Remove with remove_items. " +
+  "ALWAYS check your work with preview_board (map, moodboard or kanban as a PNG) and fix overlaps before you finish. share_link gives the live follow link. " +
+  "Highlight key words in card text with ==word== (clicking it in the app lights up the card it names). ";
 export const MCP_INSTRUCTIONS =
   "XLIDE boards turn an idea into a visual strategy: a mind map (dotted connections) plus a moodboard and a point-to-point funnel view. " +
   "Workflow: 1) create_board with the whole first version in one call — the idea card at the centre, 3–5 funnel stages (step 1 = top of funnel), " +
@@ -628,7 +719,7 @@ function summarize(b, origin) {
   return { id: b.id, title: b.title, idea: b.idea, nodes: b.nodes.length, edges: b.edges.length, updatedAt: b.updatedAt, url: `${origin}/b/${b.id}` };
 }
 
-async function callTool(name, args, store, origin) {
+async function callTool(name, args, store, origin, ctx = {}) {
   const load = async () => {
     const b = await store.get(String(args?.board_id ?? ""));
     if (!b) throw new Error(`Board not found: ${args?.board_id}. Use list_boards.`);
@@ -650,8 +741,11 @@ async function callTool(name, args, store, origin) {
         summary: b.summary,
         accent: b.accent,
         outline: o.stages.map((s) => ({ step: s.stage.step, stage: s.stage.title, id: s.stage.id, items: s.items.map((n) => `${n.kind}: ${n.title} (${n.id})`) })),
+        layout: b.layout ?? "horizontal",
+        arranged: !!b.arranged,
         nodes: b.nodes,
         edges: b.edges,
+        preview_urls: { map: `${origin}/api/boards/${b.id}?preview=map`, moodboard: `${origin}/api/boards/${b.id}?preview=moodboard` },
         moodboard: (b.mood?.items ?? []).map((i) => ({ ...i, points: i.points ? `${i.points.length / 2} points` : undefined, src: i.src?.startsWith("data:") ? "(uploaded image)" : i.src })),
       };
     }
@@ -685,10 +779,84 @@ async function callTool(name, args, store, origin) {
     }
     case "remove_items": {
       const b = await load();
-      const before = [b.nodes.length, b.edges.length];
+      const before = [b.nodes.length, b.edges.length, b.mood?.items.length ?? 0];
       removeItems(b, args?.node_ids ?? [], args?.edge_ids ?? []);
+      if (args?.clear_moodboard && b.mood) b.mood.items = [];
       await save(b);
-      return { removed_nodes: before[0] - b.nodes.length, removed_edges: before[1] - b.edges.length };
+      return { removed_nodes: before[0] - b.nodes.length, removed_edges: before[1] - b.edges.length, removed_mood_items: before[2] - (b.mood?.items.length ?? 0) };
+    }
+    case "update_mood_item": {
+      const b = await load();
+      const items = b.mood?.items ?? [];
+      const i = items.findIndex((x) => x.id === args?.item_id);
+      if (i < 0) throw new Error(`Moodboard item not found: ${args?.item_id}`);
+      items[i] = cleanMoodItem({ ...items[i], ...(args?.patch ?? {}), id: items[i].id });
+      await save(b);
+      return { item: { ...items[i], points: items[i].points ? `${items[i].points.length / 2} points` : undefined } };
+    }
+    case "arrange": {
+      const b = await load();
+      const moved = [], missing = [];
+      let mapMoved = false;
+      for (const a of Array.isArray(args?.items) ? args.items : []) {
+        const n = b.nodes.find((x) => x.id === a.id);
+        const m = b.mood?.items.find((x) => x.id === a.id);
+        const t = n ?? m;
+        if (!t) {
+          missing.push(a.id);
+          continue;
+        }
+        if (typeof a.x === "number") t.x = Math.round(a.x);
+        if (typeof a.y === "number") t.y = Math.round(a.y);
+        if (typeof a.dx === "number") t.x = Math.round((t.x ?? 0) + a.dx);
+        if (typeof a.dy === "number") t.y = Math.round((t.y ?? 0) + a.dy);
+        if (typeof a.w === "number") t.w = Math.max(n ? 140 : 16, Math.round(a.w));
+        if (typeof a.h === "number") t.h = Math.max(n ? 60 : 16, Math.round(a.h));
+        if (m && (a.front || a.back)) {
+          b.mood.items = b.mood.items.filter((x) => x !== m);
+          if (a.front) b.mood.items.push(m);
+          else b.mood.items.unshift(m);
+        }
+        if (n) mapMoved = true;
+        moved.push(a.id);
+      }
+      if (mapMoved) b.arranged = true;
+      await save(b);
+      return { moved, missing };
+    }
+    case "draw": {
+      const b = await load();
+      const items = [];
+      for (const st of Array.isArray(args?.strokes) ? args.strokes.slice(0, 200) : []) {
+        const pts = (Array.isArray(st?.points) ? st.points : []).filter((p) => Array.isArray(p) && p.length >= 2 && p.every((v) => typeof v === "number" && Number.isFinite(v))).slice(0, 4000);
+        if (pts.length < 2) continue;
+        const width = Math.max(1, Math.min(30, typeof st.width === "number" ? st.width : 4));
+        const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+        const x = Math.min(...xs) - width, y = Math.min(...ys) - width;
+        const w = Math.max(8, Math.max(...xs) + width - x), h = Math.max(8, Math.max(...ys) + width - y);
+        items.push({ type: "draw", x, y, w, h, vw: w, vh: h, color: /^#[0-9a-f]{6}$/i.test(st.color ?? "") ? st.color : "#161615", stroke: width, points: pts.flatMap(([px, py]) => [px - x, py - y]) });
+      }
+      const added = addMoodItems(b, items);
+      await save(b);
+      return { added: added.map((i) => i.id) };
+    }
+    case "preview_board": {
+      if (!ctx.renderPreview) throw new Error("Preview is not available on this server.");
+      const b = await load();
+      const view = ["map", "moodboard", "kanban"].includes(args?.view) ? args.view : "map";
+      const { png, width, height, bounds } = await ctx.renderPreview(b, view, origin, Number(args?.width) || 1600);
+      const meta = { board_id: b.id, view, width, height, bounds, png_url: `${origin}/api/boards/${b.id}?preview=${view}` };
+      return { __content: [{ type: "image", data: Buffer.from(png).toString("base64"), mimeType: "image/png" }, { type: "text", text: JSON.stringify(meta) }], ...meta };
+    }
+    case "share_link": {
+      const b = await load();
+      const lang = args?.lang && args.lang !== "original" ? `?lang=${args.lang}` : "";
+      return {
+        editor_url: `${origin}/b/${b.id}`,
+        follow_url: `${origin}/board/${b.id}${lang}`,
+        preview_urls: { map: `${origin}/api/boards/${b.id}?preview=map`, moodboard: `${origin}/api/boards/${b.id}?preview=moodboard`, kanban: `${origin}/api/boards/${b.id}?preview=kanban` },
+        note: "The follow link needs no passcode: people see it live, read-only, in the language they pick.",
+      };
     }
     case "add_mood_items": {
       const b = await load();
@@ -722,7 +890,7 @@ async function callTool(name, args, store, origin) {
 const VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 /** One JSON-RPC message in, one response out (null for notifications). */
-export async function handleMcpMessage(msg, store, origin) {
+export async function handleMcpMessage(msg, store, origin, ctx = {}) {
   const id = msg?.id;
   const reply = (result) => ({ jsonrpc: "2.0", id, result });
   const fail = (code, message) => ({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
@@ -734,8 +902,8 @@ export async function handleMcpMessage(msg, store, origin) {
       return reply({
         protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "xlide-boards", title: "XLIDE Boards", version: "1.0.0" },
-        instructions: MCP_INSTRUCTIONS,
+        serverInfo: { name: "xlide-boards", title: "XLIDE Boards", version: "2.0.0" },
+        instructions: MCP_INSTRUCTIONS_FULL + MCP_INSTRUCTIONS,
       });
     }
     case "ping":
@@ -744,7 +912,11 @@ export async function handleMcpMessage(msg, store, origin) {
       return reply({ tools: TOOLS });
     case "tools/call": {
       try {
-        const out = await callTool(msg.params?.name, msg.params?.arguments ?? {}, store, origin);
+        const out = await callTool(msg.params?.name, msg.params?.arguments ?? {}, store, origin, ctx);
+        if (out?.__content) {
+          const { __content, ...rest } = out;
+          return reply({ content: __content, structuredContent: rest, isError: false });
+        }
         return reply({ content: [{ type: "text", text: JSON.stringify(out, null, 2) }], structuredContent: out, isError: false });
       } catch (e) {
         return reply({ content: [{ type: "text", text: String(e?.message ?? e) }], isError: true });
@@ -760,14 +932,14 @@ export async function handleMcpMessage(msg, store, origin) {
 }
 
 /** Handles a POST body (single message or batch). Returns { status, body }. */
-export async function handleMcpBody(body, store, origin) {
+export async function handleMcpBody(body, store, origin, ctx = {}) {
   const parsed = typeof body === "string" ? safeParse(body) : body;
   if (parsed === undefined) return { status: 400, body: { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } } };
   if (Array.isArray(parsed)) {
-    const out = (await Promise.all(parsed.map((m) => handleMcpMessage(m, store, origin)))).filter(Boolean);
+    const out = (await Promise.all(parsed.map((m) => handleMcpMessage(m, store, origin, ctx)))).filter(Boolean);
     return out.length ? { status: 200, body: out } : { status: 202, body: null };
   }
-  const out = await handleMcpMessage(parsed, store, origin);
+  const out = await handleMcpMessage(parsed, store, origin, ctx);
   return out ? { status: 200, body: out } : { status: 202, body: null };
 }
 
