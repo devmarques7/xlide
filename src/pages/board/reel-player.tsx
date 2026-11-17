@@ -8,9 +8,13 @@ import { usePrefs } from "@/lib/prefs";
  * Full-screen vertical player, like Reels: one video per screen, swipe, wheel or
  * arrow keys to move. Starts playing on open where the provider allows it.
  */
-export function ReelPlayer({ videos, start, stageOf, onClose }: {
+export function ReelPlayer({ videos, start, index, onIndex, stageOf, onClose }: {
   videos: BoardNode[];
   start: number;
+  /** Set while following someone: the player shows their video. */
+  index?: number;
+  /** Reports the video on screen (the host shares it with followers). */
+  onIndex?: (i: number) => void;
   stageOf: (id: string) => string | undefined;
   onClose: () => void;
 }) {
@@ -20,6 +24,14 @@ export function ReelPlayer({ videos, start, stageOf, onClose }: {
   const touchY = useRef<number | null>(null);
   const wheelLock = useRef(0);
   const go = (d: number) => setI((x) => Math.max(0, Math.min(videos.length - 1, x + d)));
+  useEffect(() => {
+    if (index !== undefined) setI(Math.max(0, Math.min(videos.length - 1, index)));
+  }, [index, videos.length]);
+  const report = useRef(onIndex);
+  report.current = onIndex;
+  useEffect(() => {
+    report.current?.(i);
+  }, [i]);
 
   useEffect(() => {
     root.current?.requestFullscreen?.().catch(() => {});

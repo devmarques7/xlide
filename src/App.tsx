@@ -7,7 +7,7 @@ import { syncBoards } from "@/lib/boards";
 import { syncFromServer } from "@/lib/store";
 import { startUpdateCheck } from "@/lib/update-check";
 import { LOCALES, type Locale } from "@/lib/types";
-import BoardPage from "@/pages/Board";
+import BoardPage, { BoardViewPage } from "@/pages/Board";
 import Boards from "@/pages/Boards";
 import Dashboard from "@/pages/Dashboard";
 import Editor from "@/pages/Editor";
@@ -56,6 +56,7 @@ export default function App() {
           {/* Remote asks for the passcode itself so a phone can pair in one step. */}
           <Route path="/remote/:id" element={<Remote />} />
           {/* Audience view is public: shared by link / QR. */}
+          <Route path="/board/:id" element={<BoardViewPage />} />
           <Route path="/view/:id" element={<Viewer />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

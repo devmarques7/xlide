@@ -1,46 +1,94 @@
 import {
-  ArrowLeft, Cable, Hand, LayoutGrid, Maximize, MousePointer2, Network, PanelRight, Plus, Sparkles, Spline, Workflow,
+  ArrowLeft, Cable, ChevronsDownUp, ChevronsUpDown, Eye, Focus, ListPlus, Minus, Hand, Languages, LayoutGrid, Loader2, Maximize, MousePointer2, Network, PanelRight, Plus, Radio, Share2, Sparkles, Spline, Workflow,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { KINDS, layoutBoard, NODE_W, newId, outline, parseVideo } from "../../shared/board.js";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LogoGlyph } from "@/components/logo";
+import { CONTENT_LANGS, isContentLang, storedLang, storeLang, useTranslatedBoard, type ContentLang } from "@/lib/board-i18n";
 import { saveBoard, updateBoard, useBoard, type Board, type BoardNode, type NodeKind } from "@/lib/boards";
 import { usePrefs } from "@/lib/prefs";
+import { useSync, type SyncMessage } from "@/lib/sync";
+import { LOCALES, type Locale } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { BoardShareDialog } from "./board/share";
 import { KIND_ICON, NodeCard, videoPoster } from "./board/cards";
 import { ReelPlayer } from "./board/reel-player";
 import { Inspector, Overview } from "./board/side-panel";
 
 type Tool = "select" | "pan" | "connect";
 interface View { x: number; y: number; z: number }
+type Role = "owner" | "viewer";
+type Live = Extract<SyncMessage, { t: "board" }>;
 
+/** Owner page (passcode): edits the board and leads whoever follows it. */
 export default function BoardPage() {
+  return <BoardRoute role="owner" />;
+}
+
+/** Shared page (public link): follows the owner live, read-only, in the reader's own language. */
+export function BoardViewPage() {
+  return <BoardRoute role="viewer" />;
+}
+
+function BoardRoute({ role }: { role: Role }) {
   const { id } = useParams();
   const board = useBoard(id);
   const { t } = usePrefs();
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setWaited(true), 4000);
+    return () => clearTimeout(timer);
+  }, []);
+  if (!board && role === "viewer" && !waited) return <Loader2 className="mx-auto mt-[40vh] size-6 animate-spin text-muted-foreground" />;
   if (!board) {
     return (
       <div className="grid min-h-dvh place-items-center p-6 text-center">
         <div>
           <p className="text-muted-foreground">{t("board.notFound")}</p>
-          <Button asChild variant="outline" className="mt-4">
-            <Link to="/boards">
-              <ArrowLeft /> {t("nav.boards")}
-            </Link>
-          </Button>
+          {role === "owner" && (
+            <Button asChild variant="outline" className="mt-4">
+              <Link to="/boards">
+                <ArrowLeft /> {t("nav.boards")}
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     );
   }
-  return <BoardCanvas board={board} />;
+  return <BoardCanvas original={board} role={role} />;
 }
 
-function BoardCanvas({ board }: { board: Board }) {
-  const { t } = usePrefs();
+function BoardCanvas({ original, role }: { original: Board; role: Role }) {
+  const { t, locale, setLocale } = usePrefs();
+  const owner = role === "owner";
+  const [params] = useSearchParams();
+  const [lang, setLangState] = useState<ContentLang>(() => {
+    const q = params.get("lang");
+    return isContentLang(q) ? q : storedLang(original.id) ?? "original";
+  });
+  const setLang = (l: ContentLang) => {
+    setLangState(l);
+    storeLang(original.id, l);
+    // Readers also get the app's buttons in that language, when it has them.
+    if (!owner && (LOCALES as readonly string[]).includes(l) && l !== locale) setLocale(l as Locale);
+  };
+  const { board, translating, failed } = useTranslatedBoard(original, lang);
+  // A reader who opens a link with ?lang=en also gets the app's buttons in English (when the app has that language).
+  useEffect(() => {
+    if (!owner && (LOCALES as readonly string[]).includes(lang) && lang !== locale) setLocale(lang as Locale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [follow, setFollow] = useState(true);
+  const [live, setLive] = useState<Live | null>(null);
   const [view, setView] = useState<View>({ x: 0, y: 0, z: 1 });
   const [tool, setTool] = useState<Tool>("select");
   const [mode, setMode] = useState<"map" | "mood">("map");
@@ -57,6 +105,100 @@ function BoardCanvas({ board }: { board: Board }) {
 
   const nodes = board.nodes;
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  /* ───── flow lines: highlight one, collapse and open them one by one ───── */
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [focusMode, setFocusMode] = useState(true);
+  const kids = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const e of board.edges) m.set(e.from, [...(m.get(e.from) ?? []), e.to]);
+    // Open in reading order: funnel step first, then top to bottom.
+    for (const list of m.values()) list.sort((a, b) => (byId.get(a)?.step ?? 1e9) - (byId.get(b)?.step ?? 1e9) || (byId.get(a)?.y ?? 0) - (byId.get(b)?.y ?? 0));
+    return m;
+  }, [board.edges, byId]);
+  const parentsOf = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const e of board.edges) m.set(e.to, [...(m.get(e.to) ?? []), e.from]);
+    return m;
+  }, [board.edges]);
+  /** Nodes in reading order (roots first, then breadth-first). */
+  const order = useMemo(() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const queue = nodes.filter((n) => !parentsOf.has(n.id)).sort((a, b) => (a.kind === "idea" ? -1 : 0) - (b.kind === "idea" ? -1 : 0)).map((n) => n.id);
+    while (queue.length) {
+      const id = queue.shift()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(id);
+      queue.push(...(kids.get(id) ?? []));
+    }
+    return [...out, ...nodes.filter((n) => !seen.has(n.id)).map((n) => n.id)];
+  }, [nodes, parentsOf, kids]);
+  /** A card shows when it is a root, or when one of its parents is showing and open. */
+  const visible = useMemo(() => {
+    const shut = new Set(collapsed);
+    const vis = new Set<string>();
+    const queue = nodes.filter((n) => !parentsOf.has(n.id)).map((n) => n.id);
+    while (queue.length) {
+      const id = queue.shift()!;
+      if (vis.has(id)) continue;
+      vis.add(id);
+      if (!shut.has(id)) queue.push(...(kids.get(id) ?? []));
+    }
+    // Cards caught in a loop with no root stay visible.
+    for (const n of nodes) if (!vis.has(n.id) && ![...(parentsOf.get(n.id) ?? [])].some((p) => byId.has(p))) vis.add(n.id);
+    return vis;
+  }, [nodes, parentsOf, kids, collapsed, byId]);
+  /** The clicked card's line: everything it comes from and everything that branches from it. */
+  const line = useMemo(() => {
+    if (!focusMode || !selected || !visible.has(selected)) return null;
+    const set = new Set<string>([selected]);
+    const walk = (id: string, map: Map<string, string[]>) => {
+      for (const next of map.get(id) ?? []) if (!set.has(next)) {
+        set.add(next);
+        walk(next, map);
+      }
+    };
+    walk(selected, parentsOf);
+    walk(selected, kids);
+    return set;
+  }, [focusMode, selected, visible, parentsOf, kids]);
+  const shownNodes = useMemo(() => nodes.filter((n) => visible.has(n.id)), [nodes, visible]);
+  const toggleLine = (id: string) => {
+    unfollowRef.current();
+    const open = collapsed.includes(id);
+    setCollapsed((c) => (open ? c.filter((x) => x !== id) : [...c, id]));
+    if (open) setSelected(id);
+  };
+  const centerOn = (id: string) => {
+    const n = byId.get(id);
+    const el = stage.current;
+    if (!n || !el) return;
+    const sz = sizes[id] ?? { w: NODE_W[n.kind], h: 200 };
+    setView((v) => ({ ...v, x: el.clientWidth / 2 - ((n.x ?? 0) + sz.w + 200) * v.z, y: el.clientHeight / 2 - ((n.y ?? 0) + sz.h / 2) * v.z }));
+  };
+  const anyCollapsed = collapsed.some((id) => visible.has(id));
+  const collapseAll = () => {
+    unfollowRef.current();
+    setCollapsed([...kids.keys()]);
+    setSelected(null);
+    setTimeout(() => fitRef.current(), 80);
+  };
+  const expandAll = () => {
+    unfollowRef.current();
+    setCollapsed([]);
+    setTimeout(() => fitRef.current(), 80);
+  };
+  /** Presenting: opens the next closed line in reading order and moves to it. */
+  const openNext = () => {
+    unfollowRef.current();
+    const id = order.find((x) => visible.has(x) && collapsed.includes(x));
+    if (!id) return;
+    setCollapsed((c) => c.filter((x) => x !== id));
+    setSelected(id);
+    centerOn(id);
+  };
   const pos = (n: BoardNode) => ({ x: (n.x ?? 0) + (drag?.id === n.id ? drag.dx : 0), y: (n.y ?? 0) + (drag?.id === n.id ? drag.dy : 0) });
   const sizeOf = (n: BoardNode) => sizes[n.id] ?? { w: NODE_W[n.kind], h: 160 };
   const videos = useMemo(() => {
@@ -97,14 +239,18 @@ function BoardCanvas({ board }: { board: Board }) {
   /* ───── view ───── */
   const fit = useCallback(() => {
     const el = stage.current;
-    if (!el || !nodes.length) return;
-    const xs = nodes.map((n) => n.x ?? 0), ys = nodes.map((n) => n.y ?? 0);
-    const x2 = nodes.map((n) => (n.x ?? 0) + (sizes[n.id]?.w ?? NODE_W[n.kind]));
-    const y2 = nodes.map((n) => (n.y ?? 0) + (sizes[n.id]?.h ?? 200));
+    const list = shownNodes.length ? shownNodes : nodes;
+    if (!el || !list.length) return;
+    const xs = list.map((n) => n.x ?? 0), ys = list.map((n) => n.y ?? 0);
+    const x2 = list.map((n) => (n.x ?? 0) + (sizes[n.id]?.w ?? NODE_W[n.kind]));
+    const y2 = list.map((n) => (n.y ?? 0) + (sizes[n.id]?.h ?? 200));
     const minX = Math.min(...xs) - 80, minY = Math.min(...ys) - 80, maxX = Math.max(...x2) + 80, maxY = Math.max(...y2) + 140;
     const z = Math.max(0.2, Math.min(1.1, el.clientWidth / (maxX - minX), el.clientHeight / (maxY - minY)));
     setView({ z, x: (el.clientWidth - (maxX - minX) * z) / 2 - minX * z, y: (el.clientHeight - (maxY - minY) * z) / 2 - minY * z });
-  }, [nodes, sizes]);
+  }, [nodes, shownNodes, sizes]);
+
+  const fitRef = useRef(fit);
+  fitRef.current = fit;
 
   useLayoutEffect(() => {
     if (fitted.current || mode !== "map") return;
@@ -119,6 +265,7 @@ function BoardCanvas({ board }: { board: Board }) {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      unfollowRef.current();
       if (e.ctrlKey || e.metaKey) {
         const r = el.getBoundingClientRect();
         const px = e.clientX - r.left, py = e.clientY - r.top;
@@ -133,6 +280,13 @@ function BoardCanvas({ board }: { board: Board }) {
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, [mode]);
+
+  /* A reader who moves around on their own stops following the host (one tap brings it back). */
+  const unfollow = () => {
+    if (!owner) setFollow(false);
+  };
+  const unfollowRef = useRef(unfollow);
+  unfollowRef.current = unfollow;
 
   /* ───── pointer: pan the canvas, drag cards ───── */
   const gesture = useRef<{ kind: "pan" | "node"; id?: string; sx: number; sy: number; vx: number; vy: number; moved: boolean; pts: Map<number, { x: number; y: number }>; pinch?: number } | null>(null);
@@ -153,7 +307,7 @@ function BoardCanvas({ board }: { board: Board }) {
   const onNodeDown = (e: RPointerEvent<HTMLDivElement>, nid: string) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    if (tool === "pan") return onStageDown(e);
+    if (tool === "pan" || !owner) return onStageDown(e);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     gesture.current = { kind: "node", id: nid, sx: e.clientX, sy: e.clientY, vx: 0, vy: 0, moved: false, pts: new Map() };
   };
@@ -177,6 +331,7 @@ function BoardCanvas({ board }: { board: Board }) {
     }
     const dx = e.clientX - g.sx, dy = e.clientY - g.sy;
     if (!g.moved && Math.hypot(dx, dy) < 4) return;
+    if (!g.moved) unfollow();
     g.moved = true;
     if (g.kind === "pan") setView((v) => ({ ...v, x: g.vx + dx, y: g.vy + dy }));
     else if (tool === "select") setDrag({ id: g.id!, dx: dx / view.z, dy: dy / view.z });
@@ -262,7 +417,7 @@ function BoardCanvas({ board }: { board: Board }) {
     });
 
   const deleteNode = (nid: string) => {
-    const before = structuredClone(board);
+    const before = structuredClone(original);
     commit((b) => {
       b.nodes = b.nodes.filter((n) => n.id !== nid);
       b.edges = b.edges.filter((e) => e.from !== nid && e.to !== nid);
@@ -292,20 +447,68 @@ function BoardCanvas({ board }: { board: Board }) {
       if (e.key === "h") setTool("pan");
       if (e.key === "c") setTool("connect");
       if (e.key === "f") fit();
+      if (e.key === "n") openNext();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  /* ───── live: the owner leads, readers follow ───── */
+  const broadcastRef = useRef<() => void>(() => {});
+  const onSync = useCallback((m: SyncMessage) => {
+    if (m.t === "board") setLive(m);
+    if (m.t === "hello" && m.role === "viewer") broadcastRef.current();
+  }, []);
+  const sync = useSync(`board:${original.id}`, owner ? "presenter" : "viewer", onSync);
+  const lastCenter = useRef({ cx: 0, cy: 0, span: 1200 });
+  broadcastRef.current = () => {
+    if (!owner) return;
+    const el = stage.current;
+    if (el && mode === "map") lastCenter.current = { cx: (el.clientWidth / 2 - view.x) / view.z, cy: (el.clientHeight / 2 - view.y) / view.z, span: el.clientWidth / view.z };
+    sync.send({ t: "board", mode, focus: selected, ...lastCenter.current, player: player !== null ? videos[player]?.id ?? null : null, collapsed, dim: focusMode });
+  };
+  useEffect(() => {
+    if (!owner) return;
+    const timer = setTimeout(() => broadcastRef.current(), 200);
+    return () => clearTimeout(timer);
+  }, [owner, view, mode, selected, player, collapsed, focusMode]);
+  useEffect(() => {
+    if (!owner) return;
+    const timer = setInterval(() => broadcastRef.current(), 4000);
+    return () => clearInterval(timer);
+  }, [owner]);
+
+  const following = !owner && follow && live !== null;
+  useEffect(() => {
+    if (!following || !live) return;
+    setMode(live.mode);
+    setSelected(live.focus);
+    setCollapsed(live.collapsed ?? []);
+    setFocusMode(live.dim ?? true);
+    const el = stage.current;
+    if (live.mode === "map" && el) {
+      const z = Math.max(0.15, Math.min(2.5, el.clientWidth / Math.max(200, live.span)));
+      fitted.current = true;
+      setView({ z, x: el.clientWidth / 2 - live.cx * z, y: el.clientHeight / 2 - live.cy * z });
+    }
+    const i = live.player ? videos.findIndex((v) => v.id === live.player) : -1;
+    setPlayer(i >= 0 ? i : null);
+  }, [following, live, videos, mode]);
+
+  useEffect(() => {
+    if (failed) toast(t("board.translateFailed"));
+  }, [failed, t]);
+
   const play = (nid?: string) => {
     if (!videos.length) return;
+    unfollow();
     setPlayer(Math.max(0, videos.findIndex((v) => v.id === nid)));
   };
 
   /* ───── edges ───── */
   const edgePaths = board.edges.flatMap((e) => {
     const a = byId.get(e.from), b = byId.get(e.to);
-    if (!a || !b) return [];
+    if (!a || !b || !visible.has(a.id) || !visible.has(b.id)) return [];
     const pa = pos(a), pb = pos(b), sa = sizeOf(a), sb = sizeOf(b);
     let s: [number, number], d: [number, number], path: string;
     if (pb.x >= pa.x + sa.w * 0.6) {
@@ -325,10 +528,11 @@ function BoardCanvas({ board }: { board: Board }) {
       const k = Math.max(40, Math.abs(d[1] - s[1]) / 2) * (down ? 1 : -1);
       path = `M${s[0]},${s[1]} C${s[0]},${s[1] + k} ${d[0]},${d[1] - k} ${d[0]},${d[1]}`;
     }
-    return [{ e, s, d, path, hot: selected === e.from || selected === e.to }];
+    const inLine = line ? line.has(e.from) && line.has(e.to) : null;
+    return [{ e, s, d, path, opacity: inLine === null ? (selected === e.from || selected === e.to ? 0.9 : 0.45) : inLine ? 0.95 : 0.07 }];
   });
 
-  const sel = selected ? byId.get(selected) : undefined;
+  const sel = selected ? original.nodes.find((n) => n.id === selected) : undefined;
   const childCount = (nid: string) => board.edges.filter((e) => e.from === nid).length;
 
   return (
@@ -350,9 +554,22 @@ function BoardCanvas({ board }: { board: Board }) {
           >
             <div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
               <svg className="pointer-events-none absolute top-0 left-0 overflow-visible" width="1" height="1">
-                {edgePaths.map(({ e, s, d, path, hot }) => (
-                  <g key={e.id} className="text-foreground" opacity={hot ? 0.9 : 0.45}>
-                    <path d={path} fill="none" stroke="currentColor" strokeWidth={1.5 / Math.max(view.z, 0.6)} strokeDasharray="1 6" strokeLinecap="round" />
+                {edgePaths.map(({ e, s, d, path, opacity }) => (
+                  <g key={e.id} className="text-foreground transition-opacity duration-300" opacity={opacity}>
+                    {/* Wide invisible stroke: clicking a line highlights it. */}
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={18 / Math.max(view.z, 0.4)}
+                      style={{ pointerEvents: "stroke", cursor: "pointer" }}
+                      onPointerDown={(ev) => ev.stopPropagation()}
+                      onClick={() => {
+                        unfollow();
+                        setSelected(e.to);
+                      }}
+                    />
+                    <path d={path} fill="none" stroke="currentColor" strokeWidth={(opacity > 0.9 ? 2.2 : 1.5) / Math.max(view.z, 0.6)} strokeDasharray="1 6" strokeLinecap="round" />
                     <circle cx={s[0]} cy={s[1]} r={4} fill="var(--background)" stroke="currentColor" strokeWidth={1.5} />
                     <circle cx={d[0]} cy={d[1]} r={4} fill="currentColor" />
                     {e.label && (
@@ -363,15 +580,18 @@ function BoardCanvas({ board }: { board: Board }) {
                   </g>
                 ))}
               </svg>
-              {nodes.map((n) => {
+              {shownNodes.map((n) => {
                 const p = pos(n);
+                const branches = kids.get(n.id)?.length ?? 0;
+                const shut = collapsed.includes(n.id);
+                const dim = line !== null && !line.has(n.id);
                 return (
                   <div
                     key={n.id}
                     data-node={n.id}
                     ref={measure}
                     className={cn("absolute", tool === "select" && "cursor-grab active:cursor-grabbing", linkFrom === n.id && "outline-2 outline-dashed outline-offset-8")}
-                    style={{ left: p.x, top: p.y, zIndex: drag?.id === n.id ? 5 : selected === n.id ? 4 : 1, outlineColor: accent }}
+                    style={{ left: p.x, top: p.y, zIndex: drag?.id === n.id ? 5 : selected === n.id ? 4 : 1, outlineColor: accent, opacity: dim ? 0.16 : 1, transition: "opacity 0.3s" }}
                     onPointerDown={(e) => onNodeDown(e, n.id)}
                     onDoubleClick={() => n.kind === "video" && play(n.id)}
                   >
@@ -381,42 +601,79 @@ function BoardCanvas({ board }: { board: Board }) {
                       selected={selected === n.id}
                       childCount={childCount(n.id)}
                       onPlay={(vid) => (tool === "select" ? play(vid) : undefined)}
-                      onToggleItem={(i) => patchNode(n.id, { items: (n.items ?? []).map((it, j) => (j === i ? { ...it, done: !it.done } : it)) })}
+                      onToggleItem={(i) => owner && patchNode(n.id, { items: (original.nodes.find((x) => x.id === n.id)?.items ?? []).map((it, j) => (j === i ? { ...it, done: !it.done } : it)) })}
                     />
+                    {branches > 0 && (
+                      <button
+                        type="button"
+                        onPointerDown={(ev) => ev.stopPropagation()}
+                        onClick={() => toggleLine(n.id)}
+                        title={shut ? t("board.expand", { n: branches }) : t("board.collapse")}
+                        aria-label={shut ? t("board.expand", { n: branches }) : t("board.collapse")}
+                        className={cn(
+                          "label-xs absolute top-1/2 -right-[2.6rem] z-10 flex h-7 min-w-7 -translate-y-1/2 items-center justify-center gap-0.5 border px-1.5 text-[11px] transition-colors",
+                          shut ? "border-transparent text-white" : "border-border bg-card text-muted-foreground hover:text-foreground",
+                        )}
+                        style={shut ? { background: accent } : undefined}
+                      >
+                        {shut ? <>+{branches}</> : <Minus className="size-3.5" />}
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
         ) : (
-          <MoodView board={board} onPlay={play} onSelect={(nid) => { setSelected(nid); setPanel(true); }} />
+          <MoodView board={board} onPlay={play} onSelect={(nid) => { unfollow(); setSelected(nid); setPanel(true); }} />
         )}
 
         {/* Top-left: board name */}
-        <div className="absolute top-3 left-3 flex max-w-[calc(100%-1.5rem)] items-center gap-1 border border-border bg-card/90 p-1 pr-3 backdrop-blur sm:top-4 sm:left-4">
-          <Button asChild variant="ghost" size="icon-sm" aria-label={t("nav.back")}>
-            <Link to="/boards">
-              <ArrowLeft />
-            </Link>
-          </Button>
-          <span className="grid size-8 shrink-0 place-items-center text-white" style={{ background: accent }}>
+        <div className="absolute top-3 left-3 flex max-w-[calc(100%-15rem)] items-center gap-1 border border-border bg-card/90 p-1 pr-3 backdrop-blur sm:top-4 sm:left-4 sm:max-w-[calc(100%-26rem)] xl:max-w-[calc(100%-36rem)]">
+          {owner ? (
+            <Button asChild variant="ghost" size="icon-sm" aria-label={t("nav.back")}>
+              <Link to="/boards">
+                <ArrowLeft />
+              </Link>
+            </Button>
+          ) : (
+            <span className="grid size-8 place-items-center" aria-label="XLIDE">
+              <LogoGlyph className="size-5" />
+            </span>
+          )}
+          <span className="hidden size-8 shrink-0 place-items-center text-white sm:grid" style={{ background: accent }}>
             <Network className="size-4" />
           </span>
           <input
-            value={board.title}
+            value={owner && lang === "original" ? original.title : board.title}
+            readOnly={!owner || lang !== "original"}
             onChange={(e) =>
               commit((b) => {
                 b.title = e.target.value;
                 const idea = b.nodes.find((n) => n.kind === "idea");
-                if (idea && (idea.title === board.title || !idea.title)) idea.title = e.target.value;
+                if (idea && (idea.title === original.title || !idea.title)) idea.title = e.target.value;
               })
             }
-            className="min-w-0 bg-transparent px-1 text-sm font-medium outline-none"
+            className="min-w-0 shrink truncate bg-transparent px-1 text-sm font-medium outline-none"
             style={{ width: `${Math.max(6, board.title.length + 1)}ch` }}
             aria-label={t("board.field.title")}
           />
-          <span className="label-xs ml-1 hidden items-center gap-1.5 text-muted-foreground sm:flex">
-            <span className="size-1.5 animate-pulse" style={{ background: accent }} /> {t("board.live")}
+          <span
+            className="label-xs ml-1 hidden shrink-0 items-center gap-1.5 whitespace-nowrap text-muted-foreground lg:flex"
+            title={owner ? t("board.viewers", { n: sync.presence.viewer }) : t("board.readOnly")}
+          >
+            <span className={cn("size-1.5", sync.status === "live" && "animate-pulse")} style={{ background: sync.status === "live" ? accent : "var(--muted-foreground)" }} />
+            {owner ? (
+              sync.presence.viewer > 0 ? (
+                <>
+                  <Eye className="size-3.5" /> {sync.presence.viewer}
+                </>
+              ) : (
+                t("board.live")
+              )
+            ) : (
+              t("board.readOnly")
+            )}
           </span>
         </div>
 
@@ -427,7 +684,10 @@ function BoardCanvas({ board }: { board: Board }) {
               <button
                 key={m}
                 type="button"
-                onClick={() => setMode(m)}
+                onClick={() => {
+                  unfollow();
+                  setMode(m);
+                }}
                 className={cn("label-xs flex h-8 items-center gap-1.5 px-2.5", mode === m ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
               >
                 {m === "map" ? <Workflow className="size-3.5" /> : <LayoutGrid className="size-3.5" />}
@@ -435,9 +695,27 @@ function BoardCanvas({ board }: { board: Board }) {
               </button>
             ))}
           </div>
-          <Button onClick={() => setConnectOpen(true)} className="h-9">
-            <Cable /> <span className="hidden sm:inline">{t("board.connect")}</span>
-          </Button>
+          <LangMenu lang={lang} onChange={setLang} busy={translating} />
+          {owner ? (
+            <>
+              <Button onClick={() => setShareOpen(true)} className="h-9">
+                <Share2 /> <span className="hidden sm:inline">{t("board.share")}</span>
+              </Button>
+              <Button variant="outline" onClick={() => setConnectOpen(true)} className="h-9 bg-card/90" title={t("board.connect")}>
+                <Cable /> <span className="hidden 2xl:inline">{t("board.connect")}</span>
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant={following ? "default" : "outline"}
+              className={cn("h-9", !following && "bg-card/90")}
+              onClick={() => setFollow(true)}
+              title={following ? t("board.following") : t("board.follow")}
+            >
+              <Radio className={cn(following && "animate-pulse")} />
+              <span className="hidden sm:inline">{live === null ? t("board.waiting") : following ? t("board.following") : t("board.follow")}</span>
+            </Button>
+          )}
           <Button variant="outline" size="icon" className="size-9 bg-card/90" onClick={() => setPanel((p) => !p)} aria-label={t("board.panel")}>
             <PanelRight />
           </Button>
@@ -446,6 +724,7 @@ function BoardCanvas({ board }: { board: Board }) {
         {/* Bottom toolbar */}
         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 border border-border bg-card/95 p-1 shadow-[0_18px_40px_-20px_rgb(0_0_0/0.4)] backdrop-blur pb-safe sm:pb-1">
           {mode === "map" &&
+            owner &&
             ([
               ["select", MousePointer2, t("board.tool.select")],
               ["pan", Hand, t("board.tool.pan")],
@@ -470,10 +749,45 @@ function BoardCanvas({ board }: { board: Board }) {
               <button type="button" title={t("board.tool.fit")} aria-label={t("board.tool.fit")} onClick={fit} className="grid size-10 place-items-center hover:bg-accent">
                 <Maximize className="size-4" />
               </button>
-              <button type="button" title={t("board.tool.tidy")} aria-label={t("board.tool.tidy")} onClick={tidy} className="grid size-10 place-items-center hover:bg-accent">
-                <Sparkles className="size-4" />
+              <button
+                type="button"
+                title={t("board.tool.focus")}
+                aria-label={t("board.tool.focus")}
+                aria-pressed={focusMode}
+                onClick={() => {
+                  unfollow();
+                  setFocusMode((f) => !f);
+                }}
+                className={cn("grid size-10 place-items-center", focusMode ? "bg-foreground text-background" : "hover:bg-accent")}
+              >
+                <Focus className="size-4" />
               </button>
-              <span className="mx-1 h-6 border-l border-border" />
+              <button
+                type="button"
+                title={anyCollapsed ? t("board.tool.expandAll") : t("board.tool.collapseAll")}
+                aria-label={anyCollapsed ? t("board.tool.expandAll") : t("board.tool.collapseAll")}
+                onClick={anyCollapsed ? expandAll : collapseAll}
+                className="grid size-10 place-items-center hover:bg-accent"
+              >
+                {anyCollapsed ? <ChevronsUpDown className="size-4" /> : <ChevronsDownUp className="size-4" />}
+              </button>
+              {anyCollapsed && (
+                <button
+                  type="button"
+                  title={t("board.tool.nextLine")}
+                  onClick={openNext}
+                  className="label-xs flex h-10 items-center gap-1.5 px-3 text-white"
+                  style={{ background: accent }}
+                >
+                  <ListPlus className="size-4" /> <span className="hidden sm:inline">{t("board.tool.nextLine")}</span>
+                </button>
+              )}
+              {owner && (
+                <button type="button" title={t("board.tool.tidy")} aria-label={t("board.tool.tidy")} onClick={tidy} className="grid size-10 place-items-center hover:bg-accent">
+                  <Sparkles className="size-4" />
+                </button>
+              )}
+              {(owner || videos.length > 0) && <span className="mx-1 h-6 border-l border-border" />}
             </>
           )}
           {videos.length > 0 && (
@@ -482,6 +796,7 @@ function BoardCanvas({ board }: { board: Board }) {
               {videos.length}
             </button>
           )}
+          {owner && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" aria-label={t("board.add")} title={t("board.add")} className="grid size-10 place-items-center text-white" style={{ background: "var(--foreground)" }}>
@@ -499,6 +814,7 @@ function BoardCanvas({ board }: { board: Board }) {
               })}
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
 
         {mode === "map" && (
@@ -515,13 +831,14 @@ function BoardCanvas({ board }: { board: Board }) {
               {t("common.close")}
             </Button>
           </div>
-          {sel ? (
+          {owner && sel ? (
             <Inspector key={sel.id} node={sel} onChange={(p) => patchNode(sel.id, p)} onDelete={() => deleteNode(sel.id)} onDone={() => setSelected(null)} />
           ) : (
             <Overview
               board={board}
               onPlay={play}
               onSelect={(nid) => {
+                unfollow();
                 setSelected(nid);
                 const n = byId.get(nid);
                 const el = stage.current;
@@ -532,9 +849,22 @@ function BoardCanvas({ board }: { board: Board }) {
         </aside>
       )}
 
-      {player !== null && videos.length > 0 && <ReelPlayer videos={videos} start={player} stageOf={stageOf} onClose={() => setPlayer(null)} />}
+      {player !== null && videos.length > 0 && (
+        <ReelPlayer
+          videos={videos}
+          start={player}
+          index={following ? player : undefined}
+          onIndex={owner ? setPlayer : undefined}
+          stageOf={stageOf}
+          onClose={() => {
+            unfollow();
+            setPlayer(null);
+          }}
+        />
+      )}
 
-      <ConnectDialog open={connectOpen} onOpenChange={setConnectOpen} />
+      {owner && <ConnectDialog open={connectOpen} onOpenChange={setConnectOpen} />}
+      {owner && <BoardShareDialog board={original} open={shareOpen} onOpenChange={setShareOpen} />}
     </div>
   );
 }
@@ -652,5 +982,31 @@ function ConnectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Content language: each person reads the board in their own language, whatever the others chose. */
+function LangMenu({ lang, onChange, busy }: { lang: ContentLang; onChange: (l: ContentLang) => void; busy: boolean }) {
+  const { t } = usePrefs();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="h-9 gap-1.5 bg-card/90 px-2.5" title={t("board.language")} aria-label={t("board.language")}>
+          {busy ? <Loader2 className="animate-spin" /> : <Languages />}
+          <span className="label-xs">{lang === "original" ? t("board.original") : lang.toUpperCase()}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>{t("board.language")}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {CONTENT_LANGS.map((l) => (
+          <DropdownMenuItem key={l.code} onSelect={() => onChange(l.code)} className={cn(l.code === lang && "font-medium")}>
+            <span className="label-xs w-7 text-muted-foreground">{l.code === "original" ? "··" : l.code.toUpperCase()}</span>
+            {l.code === "original" ? t("board.original") : l.name}
+            {l.code === lang && <span className="ml-auto size-1.5 bg-foreground" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
