@@ -21,7 +21,7 @@
     }
   ],
   "functions": {
-    "api/music/lyrics.js": {
+    "api/music/[action].js": {
       "maxDuration": 30
     }
   }
