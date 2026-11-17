@@ -1,6 +1,6 @@
 import {
-  ArrowUpRight, BringToFront, Check, Circle, Copy, ExternalLink, Eye, Hand, ImagePlus, Link2, ListTodo, Maximize, Minus, MousePointer2, MoveRight,
-  Palette, Pencil, Play, Plus, Redo2, SendToBack, Slash, Square, StickyNote, Trash2, Triangle, Type, Undo2, Video,
+  ArrowUpRight, BringToFront, Check, Circle, Copy, Eye, Hand, ImagePlus, Link2, ListTodo, Maximize, Minus, MousePointer2, MoveRight,
+  Palette, Pencil, Plus, Redo2, SendToBack, Slash, Square, StickyNote, Trash2, Triangle, Type, Undo2, Video,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import { uploadImage } from "@/lib/images";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import type { MoodItem, MoodType, ShapeKind } from "../../../shared/board.js";
-import { InlineVideo } from "./inline-video";
+import { VideoTile } from "./inline-video";
 import { ReelPlayer } from "./reel-player";
 
 export interface View { x: number; y: number; z: number }
@@ -1020,33 +1020,16 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
         </div>
       );
     case "video": {
-      const info = parseVideo(it.video);
-      const poster = it.poster || info?.poster;
-      return (
-        <div className={cn(card, "relative bg-[#111] text-white")}>
-          {editing ? (
+      if (editing)
+        return (
+          <div className={cn(card, "relative bg-[#111] text-white")}>
             <div className="flex size-full flex-col justify-center gap-2 p-3">
               <input {...stop} autoFocus defaultValue={source.video ?? ""} placeholder="instagram.com/reel/…" onBlur={(e) => onEdit({ video: e.target.value.trim() })} className="bg-white/10 px-2 py-1.5 text-xs outline-none" />
               <input {...stop} defaultValue={source.caption ?? ""} placeholder={t("mood.caption")} onBlur={(e) => { onEdit({ caption: e.target.value }); onDoneEditing(); }} className="bg-white/10 px-2 py-1.5 text-xs outline-none" />
             </div>
-          ) : (
-            <>
-              <InlineVideo url={it.video} poster={poster} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
-              <span className="label-xs absolute top-2 left-2 bg-black/45 px-1.5 text-[10px]">{info?.provider ?? "video"}</span>
-              <button {...stop} type="button" onClick={onPlay} className="absolute top-1/2 left-1/2 grid size-12 -translate-1/2 place-items-center bg-white/90 text-black" aria-label="Play">
-                <Play className="size-5 fill-current" />
-              </button>
-              {it.caption && <p className="absolute inset-x-3 bottom-3 line-clamp-2 text-sm font-medium">{it.caption}</p>}
-              {info && (
-                <a {...stop} href={info.url} target="_blank" rel="noreferrer" className="absolute top-2 right-2 grid size-7 place-items-center bg-black/40" aria-label="Open">
-                  <ExternalLink className="size-3.5" />
-                </a>
-              )}
-            </>
-          )}
-        </div>
-      );
+          </div>
+        );
+      return <VideoTile url={it.video} poster={it.poster} title={it.caption} onExpand={onPlay} className={cn(card, "relative")} />;
     }
     case "text": {
       const style: CSSProperties = { fontSize: TEXT_SIZE[it.size ?? "md"], color: it.color ?? INK, lineHeight: 1.15, fontWeight: it.size === "xl" || it.size === "lg" ? 500 : 400 };

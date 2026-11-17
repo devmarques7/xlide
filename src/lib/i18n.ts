@@ -552,6 +552,9 @@ const en = {
   "mood.palette": "Mind map cards",
   "mood.paletteHint": "Drag a card onto the board to make it a moodboard card ({n} not placed yet).",
   "mood.dragHint": "Drag onto the moodboard",
+  "video.playHere": "Play here, with sound",
+  "video.expand": "Expand (or double click the card)",
+  "video.stop": "Back to the cover",
   "common.of": "of",
 } as const;
 
@@ -1096,6 +1099,9 @@ const pt: Dict = {
   "mood.palette": "Itens do mind map",
   "mood.paletteHint": "Arraste um item para o painel e ele vira um card do moodboard ({n} ainda não colocados).",
   "mood.dragHint": "Arraste para o moodboard",
+  "video.playHere": "Tocar aqui, com som",
+  "video.expand": "Expandir (ou dois cliques no card)",
+  "video.stop": "Voltar para a capa",
   "common.of": "de",
 };
 
@@ -1637,6 +1643,9 @@ const nl: Dict = {
   "mood.palette": "Kaarten van de mindmap",
   "mood.paletteHint": "Sleep een kaart naar het bord om er een moodboard-kaart van te maken ({n} nog niet geplaatst).",
   "mood.dragHint": "Sleep naar het moodboard",
+  "video.playHere": "Hier afspelen, met geluid",
+  "video.expand": "Vergroten (of dubbelklik op de kaart)",
+  "video.stop": "Terug naar de cover",
   "common.of": "van",
 };
 

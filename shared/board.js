@@ -46,7 +46,7 @@ export function parseVideo(url) {
     const type = m[1].toLowerCase() === "p" ? "p" : m[1].toLowerCase() === "tv" ? "tv" : "reel";
     const embed = `https://www.instagram.com/${type}/${m[2]}/embed/`;
     // Instagram has no autoplay in embeds: inline shows the embed itself (cover frame), one tap plays.
-    return { provider: "instagram", id: m[2], url: `https://www.instagram.com/${type}/${m[2]}/`, embed, inline: embed, autoplay: false, poster: null };
+    return { provider: "instagram", id: m[2], url: `https://www.instagram.com/${type}/${m[2]}/`, embed, inline: embed, play: embed, autoplay: false, poster: null };
   }
   m = u.match(/(?:youtube\.com\/(?:shorts\/|watch\?(?:.*&)?v=|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
   if (m) {
@@ -55,6 +55,8 @@ export function parseVideo(url) {
       provider: "youtube", id, url: u,
       embed: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${id}&rel=0`,
       inline: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist=${id}&rel=0&modestbranding=1&disablekb=1&iv_load_policy=3`,
+      // Played inside the card after a click: sound and controls.
+      play: `https://www.youtube.com/embed/${id}?autoplay=1&controls=1&playsinline=1&loop=1&playlist=${id}&rel=0&modestbranding=1`,
       autoplay: true,
       poster: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
     };
@@ -65,11 +67,12 @@ export function parseVideo(url) {
     return {
       provider: "tiktok", id: m[1], url: u, embed: base,
       inline: `${base}&controls=0&progress_bar=0&play_button=0&volume_control=0&fullscreen_button=0&timestamp=0&music_info=0&description=0&native_context_menu=0`,
+      play: base,
       autoplay: true, poster: null,
     };
   }
   if (/^https?:\/\/.+\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(u) || u.startsWith("/api/")) {
-    return { provider: "file", id: u, url: u, embed: u, inline: u, autoplay: true, poster: null };
+    return { provider: "file", id: u, url: u, embed: u, inline: u, play: u, autoplay: true, poster: null };
   }
   return null;
 }

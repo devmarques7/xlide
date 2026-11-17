@@ -1,8 +1,8 @@
 import {
-  ArrowRight, BarChart3, Check, CheckSquare, File, FileText, Film, Image as ImageIcon, Lightbulb, Link2, PenTool, Play, StickyNote, Target, type LucideIcon,
+  ArrowRight, BarChart3, Check, CheckSquare, File, FileText, Film, Image as ImageIcon, Lightbulb, Link2, PenTool, StickyNote, Target, type LucideIcon,
 } from "lucide-react";
 import type { CSSProperties } from "react";
-import { InlineVideo } from "./inline-video";
+import { VideoTile } from "./inline-video";
 import { NODE_W, parseVideo } from "../../../shared/board.js";
 import type { BoardNode, NodeKind } from "@/lib/boards";
 import { cn } from "@/lib/utils";
@@ -286,29 +286,16 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
 }
 
 function VideoCard({ node: n, ring, onPlay }: { node: BoardNode; ring: boolean; onPlay: (id: string) => void }) {
-  const info = parseVideo(n.video);
-  const poster = videoPoster(n);
   return (
     <div className={cn(ring && "outline-2 outline-offset-4 outline-foreground")}>
-      <div className="group relative block aspect-[9/16] w-full overflow-hidden border border-border bg-[#111] text-left text-white shadow-[0_18px_40px_-20px_rgb(0_0_0/0.55)]">
-        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_30%_10%,#3a3a38,#0d0d0c)]" />
-        <InlineVideo url={n.video} poster={poster} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
-        <span className="label-xs absolute top-3 left-3 bg-black/45 px-1.5 text-[10px] backdrop-blur">{info?.provider ?? "video"}</span>
-        <button
-          type="button"
-          aria-label="Play"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => onPlay(n.id)}
-          className="absolute top-1/2 left-1/2 grid size-14 -translate-x-1/2 -translate-y-1/2 place-items-center bg-white/90 text-black transition-transform group-hover:scale-110"
-        >
-          <Play className="size-6 fill-current" />
-        </button>
-        <div className="absolute inset-x-3 bottom-3">
-          <p className="line-clamp-2 text-sm leading-tight font-medium">{n.title}</p>
-          {n.text && <p className="mt-1 line-clamp-2 text-xs opacity-70">{n.text}</p>}
-        </div>
-      </div>
+      <VideoTile
+        url={n.video}
+        poster={videoPoster(n)}
+        title={n.title}
+        text={n.text}
+        onExpand={() => onPlay(n.id)}
+        className="aspect-[9/16] w-full border border-border shadow-[0_18px_40px_-20px_rgb(0_0_0/0.55)]"
+      />
     </div>
   );
 }

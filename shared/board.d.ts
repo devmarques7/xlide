@@ -99,6 +99,8 @@ export interface VideoInfo {
   embed: string;
   /** Muted, looping, no-controls version for cards (autoplay where the provider allows it). */
   inline: string;
+  /** Played inside the card after a click: sound and the provider's controls. */
+  play: string;
   /** False for Instagram: its embeds never start on their own. */
   autoplay: boolean;
   poster: string | null;

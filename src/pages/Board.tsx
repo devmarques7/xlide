@@ -4,7 +4,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { KINDS, layoutBoard, NODE_W, newId, outline, parseVideo } from "../../shared/board.js";
+import { KINDS, layoutBoard, NODE_W, newId, outline } from "../../shared/board.js";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -22,7 +22,7 @@ import { KIND_ICON, NodeCard, videoPoster } from "./board/cards";
 import { ReelPlayer } from "./board/reel-player";
 import { Moodboard, type View as MoodViewState } from "./board/moodboard";
 import { Inspector, MapPalette, Overview } from "./board/side-panel";
-import { InlineVideo, setAutoplay, useAutoplay } from "./board/inline-video";
+import { setAutoplay, useAutoplay, VideoTile } from "./board/inline-video";
 
 type Tool = "select" | "pan" | "connect";
 interface View { x: number; y: number; z: number }
@@ -1121,14 +1121,10 @@ function KanbanView({ board, onPlay, onSelect }: { board: Board; onPlay: (id: st
 
 function MoodItem({ node: n, accent, onPlay, onSelect }: { node: BoardNode; accent: string; onPlay: (id: string) => void; onSelect: (id: string) => void }) {
   if (n.kind === "video") {
-    const poster = videoPoster(n);
     return (
-      <button type="button" onClick={() => onPlay(n.id)} className="group relative block aspect-[9/16] w-full overflow-hidden bg-[#111] text-left text-white">
-        <InlineVideo url={n.video} poster={poster} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-        <span className="label-xs absolute top-2 left-2 bg-black/50 px-1.5 text-[10px]">{parseVideo(n.video)?.provider ?? "video"}</span>
-        <p className="absolute inset-x-3 bottom-3 text-sm font-medium">{n.title}</p>
-      </button>
+      <div onDoubleClick={() => onPlay(n.id)}>
+        <VideoTile url={n.video} poster={videoPoster(n)} title={n.title} onExpand={() => onPlay(n.id)} className="aspect-[9/16] w-full" />
+      </div>
     );
   }
   if (n.kind === "media" && n.images?.length) {
