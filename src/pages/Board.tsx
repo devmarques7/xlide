@@ -112,6 +112,8 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   const [playList, setPlayList] = useState<string[] | null>(null);
   /** Owners open the editor from a card's detail view; it closes again when the selection changes. */
   const [editCard, setEditCard] = useState(false);
+  /** The line under the cursor and where it is (canvas units): shows which line it is and where a click leads. */
+  const [hoverEdge, setHoverEdge] = useState<{ id: string; x: number; y: number } | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const fitted = useRef(false);
@@ -704,6 +706,19 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     const b = byId.get(e.to);
     return b?.kind === "stage" ? `${String(b.step ?? "").padStart(2, "0")} · ${b.title}` : "";
   };
+  /** A card's short name for line hints: "05 · How it runs" for stages, the value for metrics. */
+  const cardName = (id: string) => {
+    const n = byId.get(id);
+    if (!n) return "";
+    const name = n.kind === "stage" ? `${String(n.step ?? "").padStart(2, "0")} · ${n.title}` : n.kind === "metric" && n.value ? `${n.value} · ${n.title}` : n.title || t(`board.kind.${n.kind}`);
+    return name.length > 56 ? `${name.slice(0, 54)}…` : name;
+  };
+  const onEdgeHover = (id: string, ev: React.PointerEvent) => {
+    const el = stage.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setHoverEdge({ id, x: (ev.clientX - r.left - view.x) / view.z, y: (ev.clientY - r.top - view.y) / view.z });
+  };
   const edgePaths = board.edges.flatMap((e) => {
     const a = byId.get(e.from), b = byId.get(e.to);
     if (!a || !b || !visible.has(a.id) || !visible.has(b.id)) return [];
@@ -759,8 +774,11 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
           >
             <div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
               <svg className="pointer-events-none absolute top-0 left-0 overflow-visible" width="1" height="1">
-                {edgePaths.map(({ e, s, d, path, opacity }) => (
-                  <g key={e.id} className="text-foreground transition-opacity duration-300" opacity={opacity}>
+                {edgePaths.map(({ e, s, d, path, opacity }) => {
+                  const hot = hoverEdge?.id === e.id;
+                  const target = selected === e.to ? e.from : e.to;
+                  return (
+                  <g key={e.id} className="text-foreground transition-opacity duration-300" opacity={hot ? 1 : opacity}>
                     {/* Wide invisible stroke: clicking a line highlights it. */}
                     <path
                       d={path}
@@ -769,12 +787,25 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                       strokeWidth={18 / Math.max(view.z, 0.4)}
                       style={{ pointerEvents: "stroke", cursor: "pointer" }}
                       onPointerDown={(ev) => ev.stopPropagation()}
+                      onPointerEnter={(ev) => onEdgeHover(e.id, ev)}
+                      onPointerMove={(ev) => onEdgeHover(e.id, ev)}
+                      onPointerLeave={() => setHoverEdge((h) => (h?.id === e.id ? null : h))}
                       onClick={() => {
                         unfollow();
-                        goTo(selected === e.to ? e.from : e.to);
+                        setHoverEdge(null);
+                        goTo(target);
                       }}
+                    >
+                      <title>{`${cardName(e.from)} → ${cardName(e.to)}`}</title>
+                    </path>
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke={hot ? accent : "currentColor"}
+                      strokeWidth={(hot ? 3.2 : opacity > 0.9 ? 2.2 : 1.5) / Math.max(view.z, 0.6)}
+                      strokeDasharray={hot ? undefined : "1 6"}
+                      strokeLinecap="round"
                     />
-                    <path d={path} fill="none" stroke="currentColor" strokeWidth={(opacity > 0.9 ? 2.2 : 1.5) / Math.max(view.z, 0.6)} strokeDasharray="1 6" strokeLinecap="round" />
                     <circle cx={s[0]} cy={s[1]} r={4} fill="var(--background)" stroke="currentColor" strokeWidth={1.5} />
                     <circle cx={d[0]} cy={d[1]} r={4} fill="currentColor" />
                     {edgeLabel(e) && (
@@ -792,7 +823,8 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                       </text>
                     )}
                   </g>
-                ))}
+                  );
+                })}
               </svg>
               {shownNodes.map((n) => {
                 const p = pos(n);
@@ -850,6 +882,23 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                   </div>
                 );
               })}
+              {hoverEdge && (() => {
+                const e = board.edges.find((x) => x.id === hoverEdge.id);
+                if (!e) return null;
+                const siblings = kids.get(e.from) ?? [];
+                const i = siblings.indexOf(e.to) + 1;
+                const target = selected === e.to ? e.from : e.to;
+                return (
+                  <div
+                    className="pointer-events-none absolute z-50 max-w-80 border border-foreground bg-card px-3 py-2 text-card-foreground shadow-lg"
+                    style={{ left: hoverEdge.x, top: hoverEdge.y, transform: `translate(14px, 14px) scale(${1 / view.z})`, transformOrigin: "top left" }}
+                  >
+                    <p className="label-xs text-muted-foreground">{t("board.lineOf", { i: Math.max(1, i), n: Math.max(1, siblings.length), from: cardName(e.from) })}</p>
+                    {e.label && <p className="label-xs mt-1" style={{ color: accent }}>{e.label}</p>}
+                    <p className="mt-1 text-sm leading-tight font-medium">{t("board.lineGo", { to: cardName(target) })}</p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         ) : mode === "mood" ? (
