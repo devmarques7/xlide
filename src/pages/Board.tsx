@@ -102,6 +102,8 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [resize, setResize] = useState<{ id: string; w: number; h: number } | null>(null);
   const [editingNode, setEditingNode] = useState<string | null>(null);
+  /** A clicked highlight: the word and the cards it lights up. */
+  const [wordHits, setWordHits] = useState<{ word: string; ids: Set<string> } | null>(null);
   const autoplay = useAutoplay();
   const [sizes, setSizes] = useState<Record<string, { w: number; h: number }>>({});
   const [panel, setPanel] = useState(() => window.innerWidth >= 1024);
@@ -240,6 +242,22 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       b.arranged = false;
     });
     setTimeout(() => fitRef.current(), 80);
+  };
+  /** Clicking a highlighted word lights up the card it names (title first, then text) and travels there. */
+  const onWord = (word: string, from: string) => {
+    unfollowRef.current();
+    const w = word.toLowerCase().replace(/[.,;:!?"“”]/g, "").trim();
+    if (!w) return;
+    const clean = (s?: string) => (s ?? "").toLowerCase().replace(/==/g, "");
+    const byTitle = nodes.filter((n) => n.id !== from && clean(n.title).includes(w));
+    const byText = nodes.filter((n) => n.id !== from && !byTitle.includes(n) && (clean(n.text).includes(w) || (n.items ?? []).some((i) => clean(i.text).includes(w))));
+    const hits = byTitle.length ? byTitle : byText;
+    if (!hits.length) {
+      toast(t("board.wordNone", { w: word }));
+      return;
+    }
+    setWordHits({ word, ids: new Set([from, ...hits.map((n) => n.id)]) });
+    goTo(hits[0]!.id);
   };
   const centerOn = (id: string) => {
     const n = byId.get(id);
@@ -447,6 +465,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       if (!g.moved) {
         setSelected(null);
         setLinkFrom(null);
+        setWordHits(null);
       }
       return;
     }
@@ -550,6 +569,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       if (e.key === "Escape") {
         setSelected(null);
         setLinkFrom(null);
+        setWordHits(null);
       }
       if (e.key === "v") setTool("select");
       if (e.key === "h") setTool("pan");
@@ -660,7 +680,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       const k = Math.max(40, Math.abs(d[1] - s[1]) / 2) * (down ? 1 : -1);
       path = `M${s[0]},${s[1]} C${s[0]},${s[1] + k} ${d[0]},${d[1] - k} ${d[0]},${d[1]}`;
     }
-    const inLine = line ? line.has(e.from) && line.has(e.to) : null;
+    const inLine = wordHits ? wordHits.ids.has(e.from) && wordHits.ids.has(e.to) : line ? line.has(e.from) && line.has(e.to) : null;
     return [{ e, s, d, path, opacity: inLine === null ? (selected === e.from || selected === e.to ? 0.9 : 0.45) : inLine ? 0.95 : 0.07 }];
   });
 
@@ -717,13 +737,14 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                 const p = pos(n);
                 const branches = kids.get(n.id)?.length ?? 0;
                 const shut = collapsed.includes(n.id);
-                const dim = line !== null && !line.has(n.id);
+                const dim = wordHits ? !wordHits.ids.has(n.id) : line !== null && !line.has(n.id);
+                const hit = wordHits?.ids.has(n.id) && wordHits.ids.size > 1;
                 return (
                   <div
                     key={n.id}
                     data-node={n.id}
                     ref={measure}
-                    className={cn("absolute", tool === "select" && "cursor-grab active:cursor-grabbing", linkFrom === n.id && "outline-2 outline-dashed outline-offset-8")}
+                    className={cn("absolute", tool === "select" && "cursor-grab active:cursor-grabbing", (linkFrom === n.id || hit) && "outline-2 outline-dashed outline-offset-8")}
                     style={{ left: p.x, top: p.y, zIndex: drag?.id === n.id ? 5 : selected === n.id ? 4 : 1, outlineColor: accent, opacity: dim ? 0.16 : 1, transition: "opacity 0.3s" }}
                     onPointerDown={(e) => onNodeDown(e, n.id)}
                   >
@@ -733,6 +754,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                       onEdit={(p) => patchNode(n.id, p)}
                       onDone={() => setEditingNode(null)}
                       size={resize?.id === n.id ? { w: resize.w, h: resize.h } : undefined}
+                      onWord={(w) => onWord(w, n.id)}
                       accent={accent}
                       selected={selected === n.id}
                       childCount={childCount(n.id)}
@@ -912,6 +934,17 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
             <PanelRight />
           </Button>
         </div>
+
+        {wordHits && mode === "map" && (
+          <button
+            type="button"
+            onClick={() => setWordHits(null)}
+            className="label-xs absolute top-16 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 border border-border bg-card/95 px-3 py-2 shadow-[0_12px_30px_-16px_rgb(0_0_0/0.4)] backdrop-blur sm:top-20"
+          >
+            <span className="px-1 normal-case" style={{ background: `color-mix(in srgb, ${accent} 30%, transparent)` }}>{wordHits.word}</span>
+            {t("board.wordCards", { n: wordHits.ids.size - 1 })} · Esc
+          </button>
+        )}
 
         {/* Flow bar: where the selected card comes from and where its lines go. */}
         {mode === "map" && selected && byId.get(selected) && (

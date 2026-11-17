@@ -1,7 +1,8 @@
 import {
   ArrowRight, BarChart3, Check, CheckSquare, File, FileText, Film, Image as ImageIcon, Lightbulb, Link2, PenTool, StickyNote, Target, type LucideIcon,
 } from "lucide-react";
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
+import { usePrefs } from "@/lib/prefs";
 import { VideoTile } from "./inline-video";
 import { NODE_W, parseVideo } from "../../../shared/board.js";
 import type { BoardNode, NodeKind } from "@/lib/boards";
@@ -53,12 +54,60 @@ interface CardProps {
   onDone?: () => void;
   /** Live size while the corner is dragged. */
   size?: { w: number; h: number };
+  /** A highlighted word was clicked. */
+  onWord?: (word: string) => void;
+}
+
+/**
+ * Text with highlighted words: ==word== shows as a marker highlight. Clicking a
+ * highlight asks the board to light up the card that word refers to.
+ */
+export function RichText({ text, accent, onWord }: { text: string; accent: string; onWord?: (word: string) => void }) {
+  const parts = text.split(/==([^=\n]{1,80})==/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        i % 2 ? (
+          <mark
+            key={i}
+            role={onWord ? "button" : undefined}
+            tabIndex={onWord ? 0 : undefined}
+            onPointerDown={onWord ? (e) => e.stopPropagation() : undefined}
+            onClick={onWord ? () => onWord(p) : undefined}
+            onKeyDown={onWord ? (e) => e.key === "Enter" && onWord(p) : undefined}
+            className={cn("px-0.5 text-inherit", onWord && "cursor-pointer underline decoration-dotted underline-offset-2 hover:brightness-95")}
+            style={{ background: `color-mix(in srgb, ${accent} 30%, transparent)`, color: "inherit" }}
+          >
+            {p}
+          </mark>
+        ) : (
+          p
+        ),
+      )}
+    </>
+  );
+}
+
+/** Wraps the selected text of a textarea in ==…== (or removes the marks). */
+export function toggleHighlight(ta: HTMLTextAreaElement) {
+  const { selectionStart: a, selectionEnd: b, value } = ta;
+  if (a === b) return null;
+  const sel = value.slice(a, b);
+  const wrapped = /^==[\s\S]*==$/.test(sel) ? sel.slice(2, -2) : `==${sel.trim()}==`;
+  const next = value.slice(0, a) + wrapped + value.slice(b);
+  ta.value = next;
+  ta.setSelectionRange(a, a + wrapped.length);
+  return next;
 }
 
 /** Textareas grow with what is typed (CSS field-sizing), so nothing is hidden while writing. */
 const grow = { fieldSizing: "content" } as CSSProperties;
 
-export function NodeCard({ node: n, accent, selected, childCount, onPlay, onToggleItem, editing, onEdit, onDone, size }: CardProps) {
+export function NodeCard({ node: n, accent, selected, childCount, onPlay, onToggleItem, editing, onEdit, onDone, size, onWord }: CardProps) {
+  const rich = (text: string) => <RichText text={text} accent={accent} onWord={onWord} />;
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const hlLabel = usePrefs().t("board.highlight");
+  const lastFocus = useRef<HTMLTextAreaElement | null>(null);
   const w = size?.w ?? n.w ?? NODE_W[n.kind];
   const minH = size?.h ?? n.h;
   const shell = "relative flex-1 border border-border bg-card text-card-foreground shadow-[0_1px_0_rgb(0_0_0/0.03),0_18px_40px_-24px_rgb(0_0_0/0.45)]";
@@ -67,7 +116,22 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
 
   if (editing && onEdit) {
     const stop = { onPointerDown: (e: React.PointerEvent) => e.stopPropagation() };
+    const listPatch = (v: string) => ({ items: v.split("\n").filter((l) => l.trim()).map((l) => (/^\[x\]\s*/i.test(l) ? { text: l.replace(/^\[x\]\s*/i, ""), done: true } : { text: l })) });
+    const highlightFocused = () => {
+      const ta = lastFocus.current;
+      if (!ta) return;
+      const next = toggleHighlight(ta);
+      if (next !== null) onEdit(ta === titleRef.current ? { title: next } : n.kind === "list" ? listPatch(next) : { text: next });
+      ta.focus();
+    };
     const keys = (e: React.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        const ta = e.target as HTMLTextAreaElement;
+        const next = toggleHighlight(ta);
+        if (next !== null) onEdit(ta === titleRef.current ? { title: next } : n.kind === "list" ? listPatch(next) : { text: next });
+        return;
+      }
       if (e.key === "Escape" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) {
         e.preventDefault();
         // Keep the key from the board's shortcuts (Escape would also drop the selection).
@@ -79,6 +143,8 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
       <div style={style} className="relative flex flex-col">
         <div className={cn(shell, "flex flex-col gap-2 p-4 outline-2 outline-offset-4")} style={{ outlineColor: accent }} {...stop}>
           <textarea
+            ref={titleRef}
+            onFocus={(e) => (lastFocus.current = e.currentTarget)}
             autoFocus
             rows={1}
             defaultValue={n.title}
@@ -91,7 +157,8 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             <textarea
               rows={3}
               defaultValue={(n.items ?? []).map((i) => (i.done ? `[x] ${i.text}` : i.text)).join("\n")}
-              onChange={(e) => onEdit({ items: e.target.value.split("\n").filter((l) => l.trim()).map((l) => (/^\[x\]\s*/i.test(l) ? { text: l.replace(/^\[x\]\s*/i, ""), done: true } : { text: l })) })}
+              onFocus={(e) => (lastFocus.current = e.currentTarget)}
+              onChange={(e) => onEdit(listPatch(e.target.value))}
               onKeyDown={keys}
               className="w-full resize-none bg-transparent text-sm leading-6 outline-none"
               style={grow}
@@ -100,6 +167,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             <textarea
               rows={2}
               defaultValue={n.text ?? ""}
+              onFocus={(e) => (lastFocus.current = e.currentTarget)}
               onChange={(e) => onEdit({ text: e.target.value || undefined })}
               onKeyDown={keys}
               placeholder="…"
@@ -110,9 +178,23 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
           {n.kind === "metric" && (
             <input defaultValue={n.value ?? ""} onChange={(e) => onEdit({ value: e.target.value })} onKeyDown={keys} className="bg-transparent text-3xl font-medium outline-none" />
           )}
-          <button type="button" onClick={onDone} className="label-xs self-end text-muted-foreground hover:text-foreground">
-            ⌘↵ · Esc
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              // Keep the textarea's selection: act on mouse down, before focus moves.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                highlightFocused();
+              }}
+              className="label-xs flex items-center gap-1.5 px-1.5 py-1 hover:bg-accent"
+              title="⌘⇧H"
+            >
+              <span className="px-1" style={{ background: `color-mix(in srgb, ${accent} 30%, transparent)` }}>ab</span> {hlLabel}
+            </button>
+            <button type="button" onClick={onDone} className="label-xs text-muted-foreground hover:text-foreground">
+              ⌘↵ · Esc
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -134,8 +216,8 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             <span className="label-xs opacity-60">Idea</span>
             <Lightbulb className="size-4 opacity-60" />
           </div>
-          <h3 className="mt-6 text-3xl leading-[0.95] font-medium tracking-tight uppercase">{n.title}</h3>
-          {n.text && <p className="mt-4 text-sm opacity-75">{n.text}</p>}
+          <h3 className="mt-6 text-3xl leading-[0.95] font-medium tracking-tight uppercase">{rich(n.title)}</h3>
+          {n.text && <p className="mt-4 text-sm opacity-75">{rich(n.text)}</p>}
           <Tags node={n} dark />
         </div>
       )}
@@ -148,8 +230,8 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             </span>
             <span className="label-xs text-muted-foreground">{childCount}</span>
           </div>
-          <h3 className="mt-5 text-lg leading-tight font-medium uppercase">{n.title}</h3>
-          {n.text && <p className="mt-1.5 text-sm text-muted-foreground">{n.text}</p>}
+          <h3 className="mt-5 text-lg leading-tight font-medium uppercase">{rich(n.title)}</h3>
+          {n.text && <p className="mt-1.5 text-sm text-muted-foreground">{rich(n.text)}</p>}
           {n.progress !== undefined && (
             <div className="mt-4 flex items-center gap-2">
               <div className="h-1 flex-1 bg-muted">
@@ -168,8 +250,8 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             <span className="label-xs text-muted-foreground">Note</span>
             <StickyNote className="size-4 text-muted-foreground" />
           </div>
-          <h3 className="mt-3 font-medium">{n.title}</h3>
-          {n.text && <p className="mt-1.5 text-sm break-words whitespace-pre-line text-muted-foreground">{n.text}</p>}
+          <h3 className="mt-3 font-medium">{rich(n.title)}</h3>
+          {n.text && <p className="mt-1.5 text-sm break-words whitespace-pre-line text-muted-foreground">{rich(n.text)}</p>}
           {n.url && (
             <a
               href={n.url}
@@ -211,8 +293,8 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             })}
           </div>
           <div className="mt-3">
-            <h3 className="text-sm font-medium">{n.title}</h3>
-            {n.text && <p className="text-xs text-muted-foreground">{n.text}</p>}
+            <h3 className="text-sm font-medium">{rich(n.title)}</h3>
+            {n.text && <p className="text-xs text-muted-foreground">{rich(n.text)}</p>}
           </div>
         </div>
       )}
@@ -236,7 +318,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
             })()}
           </div>
           <div className="px-1 pt-2 pb-1 text-center">
-            <h3 className="break-words text-sm font-medium">{n.title}</h3>
+            <h3 className="break-words text-sm font-medium">{rich(n.title)}</h3>
             <p className="break-words text-xs text-muted-foreground">{n.subtitle ?? n.url?.replace(/^https?:\/\/(www\.)?/, "") ?? ""}</p>
           </div>
         </div>
@@ -245,7 +327,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
       {n.kind === "list" && (
         <div className={cn(shell, ring)}>
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h3 className="font-medium">{n.title}</h3>
+            <h3 className="font-medium">{rich(n.title)}</h3>
             <span className="label-xs text-muted-foreground">
               {n.items?.filter((i) => i.done).length ?? 0}/{n.items?.length ?? 0}
             </span>
@@ -265,7 +347,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
                   >
                     {it.done && <Check className="size-3" />}
                   </span>
-                  <span className={cn("flex-1 break-words", it.done && "text-muted-foreground line-through")}>{it.text}</span>
+                  <span className={cn("flex-1 break-words", it.done && "text-muted-foreground line-through")}>{rich(it.text)}</span>
                   {it.by && <span className="label-xs text-muted-foreground">{initials(it.by)}</span>}
                 </button>
               </li>
@@ -278,7 +360,7 @@ export function NodeCard({ node: n, accent, selected, childCount, onPlay, onTogg
         <div className={cn(shell, ring, "p-5")}>
           <span className="label-xs text-muted-foreground">{n.title}</span>
           <p className="mt-3 text-4xl leading-none font-medium tracking-tight">{n.value ?? "—"}</p>
-          {n.text && <p className="mt-2 text-xs text-muted-foreground">{n.text}</p>}
+          {n.text && <p className="mt-2 text-xs text-muted-foreground">{rich(n.text)}</p>}
         </div>
       )}
     </div>

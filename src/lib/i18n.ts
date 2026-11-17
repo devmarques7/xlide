@@ -579,6 +579,9 @@ const en = {
   "ig.error": "Could not load the numbers right now.",
   "ig.toMood": "Add these numbers to the moodboard as a card",
   "ig.toMoodShort": "+ Moodboard",
+  "board.highlight": "Highlight",
+  "board.wordNone": "No other card mentions “{w}”.",
+  "board.wordCards": "{n} cards",
   "common.of": "of",
 } as const;
 
@@ -1150,6 +1153,9 @@ const pt: Dict = {
   "ig.error": "Não foi possível carregar os números agora.",
   "ig.toMood": "Adicionar estes números ao moodboard como card",
   "ig.toMoodShort": "+ Moodboard",
+  "board.highlight": "Destacar",
+  "board.wordNone": "Nenhum outro card menciona “{w}”.",
+  "board.wordCards": "{n} cards",
   "common.of": "de",
 };
 
@@ -1718,6 +1724,9 @@ const nl: Dict = {
   "ig.error": "De cijfers konden nu niet geladen worden.",
   "ig.toMood": "Deze cijfers als kaart aan het moodboard toevoegen",
   "ig.toMoodShort": "+ Moodboard",
+  "board.highlight": "Markeren",
+  "board.wordNone": "Geen andere kaart noemt “{w}”.",
+  "board.wordCards": "{n} kaarten",
   "common.of": "van",
 };
 

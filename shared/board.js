@@ -477,7 +477,7 @@ const NODE_SCHEMA = {
     id: { type: "string", description: "Optional short key (e.g. 'stage-1'). Lets later nodes in the same call use it as `parent`." },
     kind: { type: "string", enum: KINDS, description: "idea = the central card · stage = a funnel step · note = insight/copy/brief · media = image moodboard (images[]) · video = a reel to watch (video: Instagram/YouTube/TikTok/mp4 link) · asset = a file or link deliverable (file_type: pdf, link, doc, x, instagram, figma…) · list = checklist (items[]) · metric = KPI (value + title)" },
     title: { type: "string" },
-    text: { type: "string", description: "Body text, a few sentences at most." },
+    text: { type: "string", description: "Body text, a few sentences at most. Wrap key words in ==double equals== to highlight them: in the app, clicking a highlight lights up the card that names that word (so name a card's title, e.g. ==Território==)." },
     parent: { type: "string", description: "Id of the node this one branches from (draws a dotted connection)." },
     parents: { type: "array", items: { type: "string" }, description: "Extra parents, for nodes that join two branches." },
     edge_label: { type: "string" },
