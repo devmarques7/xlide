@@ -32,10 +32,26 @@ export async function redis(...pipeline) {
     const out = await res.json();
     return out.map((r) => r.result);
   }
-  const c = await tcpClient();
-  const out = [];
-  for (const cmd of pipeline) out.push(await c.sendCommand(cmd.map(String)));
-  return out;
+  // A Redis plan allows a limited number of connections; when it is full (or a warm
+  // connection went stale) drop ours, wait a moment and try once more.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const c = await tcpClient();
+      const out = [];
+      for (const cmd of pipeline) out.push(await c.sendCommand(cmd.map(String)));
+      return out;
+    } catch (e) {
+      const msg = String(e?.message ?? e);
+      if (attempt >= 1 || !/max number of clients|closed|ECONNRESET|socket/i.test(msg)) throw e;
+      try {
+        await tcp?.disconnect();
+      } catch {
+        /* already gone */
+      }
+      tcp = undefined;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
 }
 
 export function noStore(res) {
