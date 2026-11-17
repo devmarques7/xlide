@@ -30,6 +30,7 @@ export function AppHeader({ children, className }: { children?: ReactNode; class
         </Link>
         <nav className="hidden items-center gap-1 sm:flex">
           {nav("/", t("nav.dashboard"))}
+          {nav("/boards", t("nav.boards"))}
           {nav("/identity", t("nav.identity"))}
         </nav>
         <div className="ml-auto flex items-center gap-1">
@@ -58,6 +59,7 @@ export function AppHeader({ children, className }: { children?: ReactNode; class
       </div>
       <nav className="flex gap-1 border-t border-border px-2 py-1 sm:hidden">
         {nav("/", t("nav.dashboard"))}
+        {nav("/boards", t("nav.boards"))}
         {nav("/identity", t("nav.identity"))}
       </nav>
     </header>

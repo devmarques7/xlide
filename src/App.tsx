@@ -3,9 +3,12 @@ import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation } from 
 import { Toaster } from "@/components/ui/sonner";
 import { isUnlocked } from "@/lib/auth";
 import { PrefsProvider } from "@/lib/prefs";
+import { syncBoards } from "@/lib/boards";
 import { syncFromServer } from "@/lib/store";
 import { startUpdateCheck } from "@/lib/update-check";
 import { LOCALES, type Locale } from "@/lib/types";
+import BoardPage from "@/pages/Board";
+import Boards from "@/pages/Boards";
 import Dashboard from "@/pages/Dashboard";
 import Editor from "@/pages/Editor";
 import Identity from "@/pages/Identity";
@@ -29,6 +32,7 @@ function RequireCode({ children }: { children: ReactNode }) {
 export default function App() {
   useEffect(() => {
     syncFromServer();
+    syncBoards();
     startUpdateCheck(() => {
       const l = document.documentElement.lang.slice(0, 2) as Locale;
       return LOCALES.includes(l) ? l : "en";
@@ -40,6 +44,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RequireCode><Dashboard /></RequireCode>} />
+          <Route path="/boards" element={<RequireCode><Boards /></RequireCode>} />
+          <Route path="/b/:id" element={<RequireCode><BoardPage /></RequireCode>} />
           <Route path="/identity" element={<RequireCode><Identity /></RequireCode>} />
           <Route path="/p/:id" element={<RequireCode><Editor /></RequireCode>} />
           <Route path="/present/:id" element={<RequireCode><Present /></RequireCode>} />

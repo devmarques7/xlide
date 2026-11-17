@@ -51,3 +51,18 @@ Texto simples também funciona: cada linha que começa com `# ` inicia um novo s
 React 19 + Vite + Tailwind v4, componentes no estilo shadcn/ui (Radix), ícones Lucide, dnd-kit, qrcode.react.
 O servidor é Express + ws. Ele guarda as apresentações em `server/data.json` e repassa a sincronização ao vivo.
 No navegador os dados também ficam em `localStorage`. Sem servidor, as abas do mesmo navegador continuam sincronizadas via BroadcastChannel.
+
+## Boards (moodboard + mind map) e MCP
+
+`/boards` lista os boards e `/b/:id` abre o canvas: mind map com conexões pontilhadas, cards por tipo (ideia, etapa do funil, nota, imagens, vídeo/reel, arquivo/link, checklist, métrica), visão **Moodboard** com o funil ponto a ponto e um player de Reels em tela cheia (Instagram, YouTube Shorts, TikTok, .mp4).
+
+Uma IA monta e expande os boards pelo MCP em `/api/mcp` (Streamable HTTP):
+
+```
+https://<seu-domínio>/api/mcp?key=<XLIDE_MCP_KEY>
+```
+
+- Claude: Configurações → Conectores → Adicionar conector personalizado → cole a URL.
+- A chave é a variável `XLIDE_MCP_KEY` na Vercel (enquanto não for definida, vale o código de acesso). Também aceita `Authorization: Bearer <chave>`.
+- Ferramentas: `list_boards`, `get_board`, `create_board`, `add_nodes`, `update_node`, `connect_nodes`, `remove_items`, `update_board`.
+- Boards abertos atualizam ao vivo (polling a cada 2,5 s). Na Vercel ficam no mesmo Redis das apresentações; localmente em `server/boards.json`.

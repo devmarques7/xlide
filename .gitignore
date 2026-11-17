@@ -4,3 +4,4 @@ dist
 dist-static
 .vercel
 server/images
+server/boards.json

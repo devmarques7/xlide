@@ -1,0 +1,566 @@
+// XLIDE boards: a moodboard connected to a mind map. Pure functions shared by
+// the app (src/lib/boards.ts), the local server and the Vercel API + MCP.
+
+export const KINDS = ["idea", "stage", "note", "media", "video", "asset", "list", "metric"];
+
+/** Card width per kind (canvas units). */
+export const NODE_W = { idea: 340, stage: 250, note: 290, media: 300, video: 200, asset: 170, list: 300, metric: 200 };
+
+/** Rough height per kind, used by the auto layout before the cards are measured. */
+export function estimateH(n) {
+  switch (n.kind) {
+    case "idea": return 230;
+    case "stage": return 170;
+    case "note": return 150 + (n.url ? 40 : 0);
+    case "media": return 280;
+    case "video": return 400;
+    case "asset": return 190;
+    case "list": return 70 + 40 * Math.min(8, n.items?.length ?? 1);
+    case "metric": return 130;
+    default: return 160;
+  }
+}
+
+const COL_GAP = 120;
+const ROW_GAP = 48;
+
+export function newId(prefix = "n_") {
+  return prefix + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+}
+
+/* ───────── video links ───────── */
+
+/**
+ * Reads a video link. Instagram (reel, p, tv), YouTube (shorts, watch, youtu.be),
+ * TikTok and direct files. `embed` asks for autoplay where the provider allows it.
+ */
+export function parseVideo(url) {
+  if (typeof url !== "string" || !url.trim()) return null;
+  const u = url.trim();
+  let m = u.match(/instagram\.com\/(?:[\w.]+\/)?(reels?|p|tv)\/([A-Za-z0-9_-]+)/i);
+  if (m) {
+    const type = m[1].toLowerCase() === "p" ? "p" : m[1].toLowerCase() === "tv" ? "tv" : "reel";
+    return { provider: "instagram", id: m[2], url: `https://www.instagram.com/${type}/${m[2]}/`, embed: `https://www.instagram.com/${type}/${m[2]}/embed/`, poster: null };
+  }
+  m = u.match(/(?:youtube\.com\/(?:shorts\/|watch\?(?:.*&)?v=|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i);
+  if (m) {
+    const id = m[1];
+    return {
+      provider: "youtube", id, url: u,
+      embed: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${id}&rel=0`,
+      poster: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+    };
+  }
+  m = u.match(/tiktok\.com\/.*\/video\/(\d+)/i);
+  if (m) {
+    return { provider: "tiktok", id: m[1], url: u, embed: `https://www.tiktok.com/player/v1/${m[1]}?autoplay=1&loop=1&rel=0`, poster: null };
+  }
+  if (/^https?:\/\/.+\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(u) || u.startsWith("/api/")) {
+    return { provider: "file", id: u, url: u, embed: u, poster: null };
+  }
+  return null;
+}
+
+/* ───────── normalize ───────── */
+
+const str = (v, max = 4000) => (typeof v === "string" ? v.slice(0, max) : v == null ? undefined : String(v).slice(0, max));
+const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+
+export function cleanNode(raw, fallbackId) {
+  const kind = KINDS.includes(raw?.kind) ? raw.kind : "note";
+  const n = { id: str(raw?.id, 64) || fallbackId || newId(), kind, title: str(raw?.title, 200) ?? "" };
+  const text = str(raw?.text);
+  if (text) n.text = text;
+  for (const k of ["tag", "url", "file_type", "value", "by", "poster", "subtitle"]) {
+    const v = str(raw?.[k], 2000);
+    if (v) n[k] = v;
+  }
+  const video = str(raw?.video, 2000);
+  if (video) n.video = video;
+  if (kind === "video" && !n.video && n.url) n.video = n.url;
+  if (Array.isArray(raw?.tags)) n.tags = raw.tags.map((t) => str(t, 40)).filter(Boolean).slice(0, 8);
+  if (Array.isArray(raw?.images)) n.images = raw.images.map((t) => str(t, 4000)).filter(Boolean).slice(0, 12);
+  if (Array.isArray(raw?.items)) {
+    n.items = raw.items
+      .map((it) => (typeof it === "string" ? { text: it } : { text: str(it?.text, 300) ?? "", done: !!it?.done, by: str(it?.by, 40) }))
+      .filter((it) => it.text)
+      .slice(0, 30);
+  }
+  const step = num(raw?.step);
+  if (step !== undefined) n.step = step;
+  const progress = num(raw?.progress);
+  if (progress !== undefined) n.progress = Math.max(0, Math.min(100, progress));
+  const x = num(raw?.x), y = num(raw?.y);
+  if (x !== undefined && y !== undefined) { n.x = x; n.y = y; }
+  return n;
+}
+
+export function normalizeBoard(raw) {
+  const now = Date.now();
+  const b = {
+    id: str(raw?.id, 64) || newId("b_"),
+    title: str(raw?.title, 200) || "Untitled board",
+    idea: str(raw?.idea) || "",
+    accent: /^#[0-9a-f]{6}$/i.test(raw?.accent ?? "") ? raw.accent : "#e0512b",
+    createdAt: num(raw?.createdAt) ?? now,
+    updatedAt: num(raw?.updatedAt) ?? now,
+    nodes: [],
+    edges: [],
+  };
+  if (raw?.summary) b.summary = str(raw.summary);
+  if (raw?.arranged) b.arranged = true;
+  const seen = new Set();
+  for (const n of Array.isArray(raw?.nodes) ? raw.nodes : []) {
+    const c = cleanNode(n);
+    if (seen.has(c.id)) c.id = newId();
+    seen.add(c.id);
+    b.nodes.push(c);
+  }
+  for (const e of Array.isArray(raw?.edges) ? raw.edges : []) {
+    if (!seen.has(e?.from) || !seen.has(e?.to) || e.from === e.to) continue;
+    b.edges.push({ id: str(e.id, 64) || newId("e_"), from: e.from, to: e.to, ...(e.label ? { label: str(e.label, 80) } : {}) });
+  }
+  return b;
+}
+
+/* ───────── layout: a left-to-right mind map ───────── */
+
+/** Places nodes without a position (or every node with `all`). Roots are nodes nobody points to. */
+export function layoutBoard(board, all = false) {
+  const nodes = board.nodes;
+  if (!nodes.length) return board;
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const kids = new Map(nodes.map((n) => [n.id, []]));
+  const hasParent = new Set();
+  for (const e of board.edges) {
+    if (!byId.has(e.from) || !byId.has(e.to) || hasParent.has(e.to)) continue;
+    kids.get(e.from).push(e.to);
+    hasParent.add(e.to);
+  }
+  for (const list of kids.values()) {
+    list.sort((a, b) => (byId.get(a).step ?? 1e9) - (byId.get(b).step ?? 1e9));
+  }
+  const roots = nodes.filter((n) => !hasParent.has(n.id)).sort((a, b) => (a.kind === "idea" ? -1 : 0) - (b.kind === "idea" ? -1 : 0));
+  const needs = (n) => all || n.x === undefined || n.y === undefined;
+  if (!nodes.some(needs)) return board;
+  if (!all && nodes.some((n) => !needs(n))) return placeNew(board, byId);
+
+  // Column x per depth: the widest card in the previous column + a gap.
+  const depth = new Map();
+  const visited = new Set();
+  const walkDepth = (id, d) => {
+    if (visited.has(id)) return;
+    visited.add(id);
+    depth.set(id, d);
+    for (const k of kids.get(id)) walkDepth(k, d + 1);
+  };
+  roots.forEach((r) => walkDepth(r.id, 0));
+  const colW = [];
+  for (const n of nodes) {
+    const d = depth.get(n.id) ?? 0;
+    colW[d] = Math.max(colW[d] ?? 0, NODE_W[n.kind] ?? 280);
+  }
+  const colX = [0];
+  for (let i = 1; i < colW.length; i++) colX[i] = colX[i - 1] + colW[i - 1] + COL_GAP;
+
+  // Subtree heights, then place each child block centred on its parent.
+  const sub = new Map();
+  const height = (id, seen = new Set()) => {
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    const own = estimateH(byId.get(id));
+    const ch = kids.get(id);
+    const total = ch.reduce((s, k, i) => s + height(k, seen) + (i ? ROW_GAP : 0), 0);
+    const h = Math.max(own, total);
+    sub.set(id, h);
+    return h;
+  };
+  const place = (id, top, placed) => {
+    if (placed.has(id)) return;
+    placed.add(id);
+    const n = byId.get(id);
+    const h = sub.get(id) ?? estimateH(n);
+    if (needs(n)) {
+      n.x = colX[depth.get(id) ?? 0];
+      n.y = Math.round(top + h / 2 - estimateH(n) / 2);
+    }
+    const ch = kids.get(id);
+    const total = ch.reduce((s, k, i) => s + (sub.get(k) ?? 0) + (i ? ROW_GAP : 0), 0);
+    let y = top + h / 2 - total / 2;
+    for (const k of ch) {
+      place(k, y, placed);
+      y += (sub.get(k) ?? 0) + ROW_GAP;
+    }
+  };
+  let top = 0;
+  const placed = new Set();
+  for (const r of roots) {
+    height(r.id);
+    place(r.id, top, placed);
+    top += (sub.get(r.id) ?? 0) + ROW_GAP * 3;
+  }
+  return board;
+}
+
+/** Cards added to an arranged board: right of their parent, below its other branches, never on top of another card. */
+function placeNew(board, byId) {
+  const rect = (n) => ({ x: n.x, y: n.y, w: NODE_W[n.kind] ?? 280, h: estimateH(n) });
+  const placed = board.nodes.filter((n) => n.x !== undefined && n.y !== undefined).map(rect);
+  const hits = (r) => placed.some((p) => r.x < p.x + p.w + 24 && r.x + r.w + 24 > p.x && r.y < p.y + p.h + 24 && r.y + r.h + 24 > p.y);
+  for (const n of board.nodes) {
+    if (n.x !== undefined && n.y !== undefined) continue;
+    const pe = board.edges.find((e) => e.to === n.id && byId.get(e.from)?.x !== undefined);
+    const parent = pe ? byId.get(pe.from) : null;
+    const r = { x: 0, y: 0, w: NODE_W[n.kind] ?? 280, h: estimateH(n) };
+    if (parent) {
+      const sibs = board.edges.filter((e) => e.from === parent.id && e.to !== n.id).map((e) => byId.get(e.to)).filter((s) => s?.x !== undefined);
+      r.x = sibs.length ? Math.min(...sibs.map((s) => s.x)) : parent.x + (NODE_W[parent.kind] ?? 280) + COL_GAP;
+      r.y = parent.y;
+    } else {
+      r.x = Math.min(...placed.map((p) => p.x));
+      r.y = Math.max(...placed.map((p) => p.y + p.h)) + ROW_GAP * 2;
+    }
+    for (let i = 0; i < 400 && hits(r); i++) r.y += 32;
+    n.x = Math.round(r.x);
+    n.y = Math.round(r.y);
+    placed.push(r);
+  }
+  return board;
+}
+
+/* ───────── edits (used by the MCP tools) ───────── */
+
+/** Adds nodes; each may name a `parent` (an existing id or the id of an earlier node in the list). */
+export function addNodes(board, list) {
+  const ids = new Set(board.nodes.map((n) => n.id));
+  const added = [];
+  for (const raw of Array.isArray(list) ? list : []) {
+    let id = str(raw?.id, 64);
+    if (!id || ids.has(id)) id = newId();
+    const n = cleanNode({ ...raw, id });
+    ids.add(n.id);
+    board.nodes.push(n);
+    added.push(n);
+    const parents = [raw?.parent, ...(Array.isArray(raw?.parents) ? raw.parents : [])].filter(Boolean);
+    for (const p of parents) {
+      if (ids.has(p) && p !== n.id) board.edges.push({ id: newId("e_"), from: p, to: n.id, ...(raw?.edge_label ? { label: str(raw.edge_label, 80) } : {}) });
+    }
+  }
+  // Until someone arranges the cards by hand, the whole map is re-laid out.
+  layoutBoard(board, !board.arranged);
+  return added;
+}
+
+export function connect(board, edges) {
+  const ids = new Set(board.nodes.map((n) => n.id));
+  const out = [];
+  for (const e of Array.isArray(edges) ? edges : []) {
+    if (!ids.has(e?.from) || !ids.has(e?.to) || e.from === e.to) continue;
+    if (board.edges.some((x) => x.from === e.from && x.to === e.to)) continue;
+    const edge = { id: newId("e_"), from: e.from, to: e.to, ...(e.label ? { label: str(e.label, 80) } : {}) };
+    board.edges.push(edge);
+    out.push(edge);
+  }
+  return out;
+}
+
+export function updateNode(board, id, patch) {
+  const i = board.nodes.findIndex((n) => n.id === id);
+  if (i < 0) return null;
+  const merged = cleanNode({ ...board.nodes[i], ...patch, id, kind: patch?.kind ?? board.nodes[i].kind });
+  board.nodes[i] = merged;
+  return merged;
+}
+
+export function removeItems(board, nodeIds = [], edgeIds = []) {
+  const drop = new Set(nodeIds);
+  board.nodes = board.nodes.filter((n) => !drop.has(n.id));
+  board.edges = board.edges.filter((e) => !drop.has(e.from) && !drop.has(e.to) && !edgeIds.includes(e.id));
+}
+
+/** Point-to-point outline: idea → stages (by step) → what hangs under each stage. */
+export function outline(board) {
+  const byId = new Map(board.nodes.map((n) => [n.id, n]));
+  const kids = (id) => board.edges.filter((e) => e.from === id).map((e) => byId.get(e.to)).filter(Boolean);
+  const stages = board.nodes.filter((n) => n.kind === "stage").sort((a, b) => (a.step ?? 1e9) - (b.step ?? 1e9));
+  const under = (id, seen = new Set()) => {
+    const out = [];
+    for (const k of kids(id)) {
+      if (seen.has(k.id) || k.kind === "stage") continue;
+      seen.add(k.id);
+      out.push(k, ...under(k.id, seen));
+    }
+    return out;
+  };
+  const assigned = new Set(stages.flatMap((s) => [s.id, ...under(s.id).map((n) => n.id)]));
+  return {
+    stages: stages.map((s) => ({ stage: s, items: under(s.id) })),
+    loose: board.nodes.filter((n) => !assigned.has(n.id) && n.kind !== "idea"),
+  };
+}
+
+/* ───────── MCP (Streamable HTTP, stateless JSON-RPC) ───────── */
+
+const NODE_SCHEMA = {
+  type: "object",
+  properties: {
+    id: { type: "string", description: "Optional short key (e.g. 'stage-1'). Lets later nodes in the same call use it as `parent`." },
+    kind: { type: "string", enum: KINDS, description: "idea = the central card · stage = a funnel step · note = insight/copy/brief · media = image moodboard (images[]) · video = a reel to watch (video: Instagram/YouTube/TikTok/mp4 link) · asset = a file or link deliverable (file_type: pdf, link, doc, x, instagram, figma…) · list = checklist (items[]) · metric = KPI (value + title)" },
+    title: { type: "string" },
+    text: { type: "string", description: "Body text, a few sentences at most." },
+    parent: { type: "string", description: "Id of the node this one branches from (draws a dotted connection)." },
+    parents: { type: "array", items: { type: "string" }, description: "Extra parents, for nodes that join two branches." },
+    edge_label: { type: "string" },
+    step: { type: "number", description: "Order of a stage in the funnel (1 = top)." },
+    tag: { type: "string", description: "One short chip, e.g. 'Topo', 'AI'." },
+    tags: { type: "array", items: { type: "string" } },
+    images: { type: "array", items: { type: "string" }, description: "https image URLs (media cards show up to 3 stacked)." },
+    video: { type: "string", description: "Video link: instagram.com/reel/…, youtube.com/shorts/…, tiktok.com/…/video/…, or an .mp4 URL." },
+    poster: { type: "string", description: "Optional cover image for a video card." },
+    url: { type: "string" },
+    file_type: { type: "string" },
+    subtitle: { type: "string" },
+    items: { type: "array", items: { type: "object", properties: { text: { type: "string" }, done: { type: "boolean" } }, required: ["text"] } },
+    value: { type: "string", description: "Metric value, e.g. '3.2%' or '12k'." },
+    progress: { type: "number", description: "0–100, shown on stage cards." },
+    by: { type: "string", description: "Owner name; shows initials beside the card." },
+    x: { type: "number" },
+    y: { type: "number" },
+  },
+  required: ["kind", "title"],
+};
+
+const TOOLS = [
+  {
+    name: "list_boards",
+    description: "List XLIDE boards (moodboard + mind map) with id, title, idea, node counts and link.",
+    inputSchema: { type: "object", properties: {} },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "get_board",
+    description: "Read one board: every node, edge and the point-to-point outline (idea → funnel stages → items).",
+    inputSchema: { type: "object", properties: { board_id: { type: "string" } }, required: ["board_id"] },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "create_board",
+    description:
+      "Create a board from an idea. Send the whole map in one call: one `idea` node, `stage` nodes with step 1..n and parent = the idea, " +
+      "then notes, media, videos, assets, lists and metrics with parent = their stage. Positions are laid out automatically as a mind map. " +
+      "Returns the board id and the link to open it live in XLIDE.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        idea: { type: "string", description: "The idea in one or two sentences, as the user gave it." },
+        summary: { type: "string", description: "The strategy in a short paragraph." },
+        accent: { type: "string", description: "Hex accent colour, default #e0512b." },
+        nodes: { type: "array", items: NODE_SCHEMA },
+      },
+      required: ["title", "idea"],
+    },
+  },
+  {
+    name: "add_nodes",
+    description: "Expand a board: add cards (each may branch from an existing node via `parent`). Open boards update live.",
+    inputSchema: { type: "object", properties: { board_id: { type: "string" }, nodes: { type: "array", items: NODE_SCHEMA } }, required: ["board_id", "nodes"] },
+  },
+  {
+    name: "update_node",
+    description: "Change fields of one card (title, text, images, video, items, progress, position…).",
+    inputSchema: {
+      type: "object",
+      properties: { board_id: { type: "string" }, node_id: { type: "string" }, patch: { ...NODE_SCHEMA, required: [] } },
+      required: ["board_id", "node_id", "patch"],
+    },
+  },
+  {
+    name: "connect_nodes",
+    description: "Draw dotted connections between existing cards.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board_id: { type: "string" },
+        edges: { type: "array", items: { type: "object", properties: { from: { type: "string" }, to: { type: "string" }, label: { type: "string" } }, required: ["from", "to"] } },
+      },
+      required: ["board_id", "edges"],
+    },
+  },
+  {
+    name: "remove_items",
+    description: "Delete cards (and their connections) or single connections.",
+    inputSchema: {
+      type: "object",
+      properties: { board_id: { type: "string" }, node_ids: { type: "array", items: { type: "string" } }, edge_ids: { type: "array", items: { type: "string" } } },
+      required: ["board_id"],
+    },
+    annotations: { destructiveHint: true },
+  },
+  {
+    name: "update_board",
+    description: "Rename a board, rewrite its idea/summary/accent, or re-run the mind-map layout (relayout: true).",
+    inputSchema: {
+      type: "object",
+      properties: { board_id: { type: "string" }, title: { type: "string" }, idea: { type: "string" }, summary: { type: "string" }, accent: { type: "string" }, relayout: { type: "boolean" } },
+      required: ["board_id"],
+    },
+  },
+];
+
+export const MCP_INSTRUCTIONS =
+  "XLIDE boards turn an idea into a visual strategy: a mind map (dotted connections) plus a moodboard and a point-to-point funnel view. " +
+  "Workflow: 1) create_board with the whole first version in one call — the idea card at the centre, 3–5 funnel stages (step 1 = top of funnel), " +
+  "and under each stage the insight (note), references (media images, video reels), deliverables (asset), tasks (list) and KPI (metric). " +
+  "2) Share the returned link; the board updates live while it is open. 3) Expand with add_nodes, refine with update_node. " +
+  "Use real https links for images and videos only — never invent URLs. Write in the user's language.";
+
+function summarize(b, origin) {
+  return { id: b.id, title: b.title, idea: b.idea, nodes: b.nodes.length, edges: b.edges.length, updatedAt: b.updatedAt, url: `${origin}/b/${b.id}` };
+}
+
+async function callTool(name, args, store, origin) {
+  const load = async () => {
+    const b = await store.get(String(args?.board_id ?? ""));
+    if (!b) throw new Error(`Board not found: ${args?.board_id}. Use list_boards.`);
+    return normalizeBoard(b);
+  };
+  const save = async (b) => {
+    b.updatedAt = Date.now();
+    await store.put(b);
+    return b;
+  };
+  switch (name) {
+    case "list_boards":
+      return { boards: (await store.list()).map((b) => summarize(b, origin)).sort((a, b) => b.updatedAt - a.updatedAt) };
+    case "get_board": {
+      const b = await load();
+      const o = outline(b);
+      return {
+        ...summarize(b, origin),
+        summary: b.summary,
+        accent: b.accent,
+        outline: o.stages.map((s) => ({ step: s.stage.step, stage: s.stage.title, id: s.stage.id, items: s.items.map((n) => `${n.kind}: ${n.title} (${n.id})`) })),
+        nodes: b.nodes,
+        edges: b.edges,
+      };
+    }
+    case "create_board": {
+      const b = normalizeBoard({ title: args?.title, idea: args?.idea, summary: args?.summary, accent: args?.accent });
+      const list = Array.isArray(args?.nodes) ? [...args.nodes] : [];
+      if (!list.some((n) => n?.kind === "idea")) list.unshift({ id: "idea", kind: "idea", title: b.title, text: b.idea });
+      addNodes(b, list);
+      await save(b);
+      return { ...summarize(b, origin), node_ids: b.nodes.map((n) => ({ id: n.id, kind: n.kind, title: n.title })) };
+    }
+    case "add_nodes": {
+      const b = await load();
+      const added = addNodes(b, args?.nodes);
+      await save(b);
+      return { added: added.map((n) => ({ id: n.id, kind: n.kind, title: n.title })), url: `${origin}/b/${b.id}` };
+    }
+    case "update_node": {
+      const b = await load();
+      const n = updateNode(b, String(args?.node_id), args?.patch ?? {});
+      if (!n) throw new Error(`Node not found: ${args?.node_id}`);
+      if (args?.patch?.parent) connect(b, [{ from: args.patch.parent, to: n.id }]);
+      await save(b);
+      return { node: n };
+    }
+    case "connect_nodes": {
+      const b = await load();
+      const added = connect(b, args?.edges);
+      await save(b);
+      return { added };
+    }
+    case "remove_items": {
+      const b = await load();
+      const before = [b.nodes.length, b.edges.length];
+      removeItems(b, args?.node_ids ?? [], args?.edge_ids ?? []);
+      await save(b);
+      return { removed_nodes: before[0] - b.nodes.length, removed_edges: before[1] - b.edges.length };
+    }
+    case "update_board": {
+      const b = await load();
+      if (args?.title) b.title = String(args.title).slice(0, 200);
+      if (args?.idea) b.idea = String(args.idea);
+      if (args?.summary !== undefined) b.summary = String(args.summary);
+      if (/^#[0-9a-f]{6}$/i.test(args?.accent ?? "")) b.accent = args.accent;
+      if (args?.relayout) {
+        layoutBoard(b, true);
+        b.arranged = false;
+      }
+      await save(b);
+      return summarize(b, origin);
+    }
+    default:
+      throw new Error(`Unknown tool: ${name}`);
+  }
+}
+
+const VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
+
+/** One JSON-RPC message in, one response out (null for notifications). */
+export async function handleMcpMessage(msg, store, origin) {
+  const id = msg?.id;
+  const reply = (result) => ({ jsonrpc: "2.0", id, result });
+  const fail = (code, message) => ({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
+  if (!msg || msg.jsonrpc !== "2.0" || typeof msg.method !== "string") return fail(-32600, "Invalid request");
+  if (id === undefined || id === null) return null; // notification
+  switch (msg.method) {
+    case "initialize": {
+      const asked = msg.params?.protocolVersion;
+      return reply({
+        protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: { name: "xlide-boards", title: "XLIDE Boards", version: "1.0.0" },
+        instructions: MCP_INSTRUCTIONS,
+      });
+    }
+    case "ping":
+      return reply({});
+    case "tools/list":
+      return reply({ tools: TOOLS });
+    case "tools/call": {
+      try {
+        const out = await callTool(msg.params?.name, msg.params?.arguments ?? {}, store, origin);
+        return reply({ content: [{ type: "text", text: JSON.stringify(out, null, 2) }], structuredContent: out, isError: false });
+      } catch (e) {
+        return reply({ content: [{ type: "text", text: String(e?.message ?? e) }], isError: true });
+      }
+    }
+    case "resources/list":
+      return reply({ resources: [] });
+    case "prompts/list":
+      return reply({ prompts: [] });
+    default:
+      return fail(-32601, `Method not found: ${msg.method}`);
+  }
+}
+
+/** Handles a POST body (single message or batch). Returns { status, body }. */
+export async function handleMcpBody(body, store, origin) {
+  const parsed = typeof body === "string" ? safeParse(body) : body;
+  if (parsed === undefined) return { status: 400, body: { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } } };
+  if (Array.isArray(parsed)) {
+    const out = (await Promise.all(parsed.map((m) => handleMcpMessage(m, store, origin)))).filter(Boolean);
+    return out.length ? { status: 200, body: out } : { status: 202, body: null };
+  }
+  const out = await handleMcpMessage(parsed, store, origin);
+  return out ? { status: 200, body: out } : { status: 202, body: null };
+}
+
+function safeParse(s) {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Accepts `Authorization: Bearer <key>` or `?key=<key>`. */
+export function mcpAuthorized(headers, query, key) {
+  const auth = headers?.authorization || headers?.Authorization || "";
+  const bearer = /^Bearer\s+(.+)$/i.exec(auth)?.[1];
+  return bearer === key || query?.key === key;
+}

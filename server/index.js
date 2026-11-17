@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { WebSocketServer } from "ws";
 import { getLyrics, searchBackgrounds, translateLines } from "../api/_music.js";
+import { handleMcpBody, mcpAuthorized } from "../shared/board.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.env.NODE_ENV === "production";
@@ -60,6 +61,56 @@ app.delete("/api/presentations/:id", (req, res) => {
   delete db[req.params.id];
   persist();
   res.json({ ok: true });
+});
+
+// Boards (moodboard + mind map), kept in boards.json, and the MCP endpoint.
+const BOARDS_FILE = path.join(__dirname, "boards.json");
+let boards = {};
+try {
+  boards = JSON.parse(fs.readFileSync(BOARDS_FILE, "utf8"));
+} catch {
+  boards = {};
+}
+let boardsTimer;
+function persistBoards() {
+  clearTimeout(boardsTimer);
+  boardsTimer = setTimeout(() => fs.writeFile(BOARDS_FILE, JSON.stringify(boards), () => {}), 300);
+}
+const boardStore = {
+  list: async () => Object.values(boards),
+  get: async (id) => boards[id] ?? null,
+  put: async (b) => {
+    boards[b.id] = b;
+    persistBoards();
+  },
+  del: async (id) => {
+    delete boards[id];
+    persistBoards();
+  },
+};
+app.get("/api/boards", (_req, res) => res.json(Object.values(boards)));
+app.get("/api/boards/:id", (req, res) => {
+  const b = boards[req.params.id];
+  if (!b) return res.status(404).json({ error: "not_found" });
+  res.json(b);
+});
+app.put("/api/boards/:id", (req, res) => {
+  const b = req.body;
+  if (!b || b.id !== req.params.id || !Array.isArray(b.nodes)) return res.status(400).json({ error: "invalid" });
+  boardStore.put(b);
+  res.json({ ok: true });
+});
+app.delete("/api/boards/:id", (req, res) => {
+  boardStore.del(req.params.id);
+  res.json({ ok: true });
+});
+const MCP_KEY = process.env.XLIDE_MCP_KEY || "1423";
+app.post("/api/mcp", async (req, res) => {
+  if (!mcpAuthorized(req.headers, req.query, MCP_KEY)) return res.status(401).json({ error: "unauthorized" });
+  const origin = `${req.protocol}://${req.headers["x-forwarded-host"] || req.headers.host}`;
+  const { status, body } = await handleMcpBody(req.body, boardStore, origin);
+  if (!body) return res.status(status).end();
+  res.status(status).json(body);
 });
 
 // Images uploaded from the editor, stored as files next to data.json.
