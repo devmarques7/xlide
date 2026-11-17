@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, Cable, ChevronsDownUp, ChevronsUpDown, Eye, Focus, ListPlus, Minus, Hand, Languages, LayoutGrid, Loader2, Maximize, MousePointer2, Network, PanelRight, Plus, Radio, Share2, Sparkles, Spline, Workflow,
+  ArrowLeft, Cable, Columns3, Shapes, ChevronsDownUp, ChevronsUpDown, Eye, Focus, ListPlus, Minus, Hand, Languages, Loader2, Maximize, MousePointer2, Network, PanelRight, Plus, Radio, Share2, Sparkles, Spline, Workflow,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { BoardShareDialog } from "./board/share";
 import { KIND_ICON, NodeCard, videoPoster } from "./board/cards";
 import { ReelPlayer } from "./board/reel-player";
+import { Moodboard, type View as MoodViewState } from "./board/moodboard";
 import { Inspector, Overview } from "./board/side-panel";
 
 type Tool = "select" | "pan" | "connect";
@@ -91,7 +92,9 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   const [live, setLive] = useState<Live | null>(null);
   const [view, setView] = useState<View>({ x: 0, y: 0, z: 1 });
   const [tool, setTool] = useState<Tool>("select");
-  const [mode, setMode] = useState<"map" | "mood">("map");
+  const [mode, setMode] = useState<"map" | "mood" | "kanban">("map");
+  const [moodView, setMoodView] = useState<MoodViewState>({ x: 0, y: 0, z: 1 });
+  const moodStage = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null);
@@ -270,7 +273,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
         const r = el.getBoundingClientRect();
         const px = e.clientX - r.left, py = e.clientY - r.top;
         setView((v) => {
-          const z = Math.max(0.15, Math.min(2.5, v.z * Math.exp(-e.deltaY * 0.01)));
+          const z = Math.max(0.15, Math.min(2.5, v.z * Math.exp(-Math.max(-25, Math.min(25, e.deltaY)) * 0.01)));
           return { z, x: px - ((px - v.x) / v.z) * z, y: py - ((py - v.y) / v.z) * z };
         });
       } else {
@@ -465,13 +468,15 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
     if (!owner) return;
     const el = stage.current;
     if (el && mode === "map") lastCenter.current = { cx: (el.clientWidth / 2 - view.x) / view.z, cy: (el.clientHeight / 2 - view.y) / view.z, span: el.clientWidth / view.z };
+    const me = moodStage.current;
+    if (me && mode === "mood") lastCenter.current = { cx: (me.clientWidth / 2 - moodView.x) / moodView.z, cy: (me.clientHeight / 2 - moodView.y) / moodView.z, span: me.clientWidth / moodView.z };
     sync.send({ t: "board", mode, focus: selected, ...lastCenter.current, player: player !== null ? videos[player]?.id ?? null : null, collapsed, dim: focusMode });
   };
   useEffect(() => {
     if (!owner) return;
     const timer = setTimeout(() => broadcastRef.current(), 200);
     return () => clearTimeout(timer);
-  }, [owner, view, mode, selected, player, collapsed, focusMode]);
+  }, [owner, view, moodView, mode, selected, player, collapsed, focusMode]);
   useEffect(() => {
     if (!owner) return;
     const timer = setInterval(() => broadcastRef.current(), 4000);
@@ -490,6 +495,11 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
       const z = Math.max(0.15, Math.min(2.5, el.clientWidth / Math.max(200, live.span)));
       fitted.current = true;
       setView({ z, x: el.clientWidth / 2 - live.cx * z, y: el.clientHeight / 2 - live.cy * z });
+    }
+    const me = moodStage.current;
+    if (live.mode === "mood" && me) {
+      const z = Math.max(0.1, Math.min(4, me.clientWidth / Math.max(200, live.span)));
+      setMoodView({ z, x: me.clientWidth / 2 - live.cx * z, y: me.clientHeight / 2 - live.cy * z });
     }
     const i = live.player ? videos.findIndex((v) => v.id === live.player) : -1;
     setPlayer(i >= 0 ? i : null);
@@ -624,8 +634,24 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
               })}
             </div>
           </div>
+        ) : mode === "mood" ? (
+          <Moodboard
+            items={board.mood?.items ?? []}
+            original={original.mood?.items ?? []}
+            accent={accent}
+            readOnly={!owner}
+            view={moodView}
+            setView={setMoodView}
+            stageRef={moodStage}
+            onChange={(next) =>
+              commit((b) => {
+                b.mood = { items: next };
+              })
+            }
+            onUserMove={unfollow}
+          />
         ) : (
-          <MoodView board={board} onPlay={play} onSelect={(nid) => { unfollow(); setSelected(nid); setPanel(true); }} />
+          <KanbanView board={board} onPlay={play} onSelect={(nid) => { unfollow(); setSelected(nid); setPanel(true); }} />
         )}
 
         {/* Top-left: board name */}
@@ -680,7 +706,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
         {/* Top-right: view + connect */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5 sm:top-4 sm:right-4">
           <div className="flex border border-border bg-card/90 p-0.5 backdrop-blur">
-            {(["map", "mood"] as const).map((m) => (
+            {(["map", "mood", "kanban"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
@@ -690,8 +716,8 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
                 }}
                 className={cn("label-xs flex h-8 items-center gap-1.5 px-2.5", mode === m ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
               >
-                {m === "map" ? <Workflow className="size-3.5" /> : <LayoutGrid className="size-3.5" />}
-                <span className="hidden sm:inline">{m === "map" ? t("board.map") : t("board.moodboard")}</span>
+                {m === "map" ? <Workflow className="size-3.5" /> : m === "mood" ? <Shapes className="size-3.5" /> : <Columns3 className="size-3.5" />}
+                <span className="hidden md:inline">{m === "map" ? t("board.map") : m === "mood" ? t("board.moodboard") : t("board.kanban")}</span>
               </button>
             ))}
           </div>
@@ -722,7 +748,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
         </div>
 
         {/* Bottom toolbar */}
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 border border-border bg-card/95 p-1 shadow-[0_18px_40px_-20px_rgb(0_0_0/0.4)] backdrop-blur pb-safe sm:pb-1">
+        <div className={cn("absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 border border-border bg-card/95 p-1 shadow-[0_18px_40px_-20px_rgb(0_0_0/0.4)] backdrop-blur pb-safe sm:pb-1", mode === "mood" && "hidden")}>
           {mode === "map" &&
             owner &&
             ([
@@ -869,8 +895,8 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   );
 }
 
-/** Moodboard: one column per funnel stage, point to point, with everything that hangs under it. */
-function MoodView({ board, onPlay, onSelect }: { board: Board; onPlay: (id: string) => void; onSelect: (id: string) => void }) {
+/** Kanban: one column per funnel stage, point to point, with everything that hangs under it. */
+function KanbanView({ board, onPlay, onSelect }: { board: Board; onPlay: (id: string) => void; onSelect: (id: string) => void }) {
   const { t } = usePrefs();
   const o = outline(board);
   const cols = [...o.stages.map((s, i) => ({ key: s.stage.id, head: s.stage, n: s.stage.step ?? i + 1, items: s.items })), ...(o.loose.length ? [{ key: "_loose", head: null, n: 0, items: o.loose }] : [])];

@@ -35,6 +35,39 @@ export interface BoardEdge {
   label?: string;
 }
 
+export type MoodType = "image" | "note" | "todo" | "color" | "link" | "video" | "text" | "draw" | "shape";
+export type ShapeKind = "rect" | "ellipse" | "triangle" | "line" | "arrow";
+
+/** A moodboard item. Drawings and lines keep their points in a viewBox (vw × vh) scaled to the item box. */
+export interface MoodItem {
+  id: string;
+  type: MoodType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  src?: string;
+  caption?: string;
+  text?: string;
+  title?: string;
+  name?: string;
+  url?: string;
+  video?: string;
+  poster?: string;
+  color?: string;
+  fill?: string;
+  size?: string;
+  shape?: ShapeKind;
+  items?: BoardItem[];
+  points?: number[];
+  vw?: number;
+  vh?: number;
+  stroke?: number;
+  rot?: number;
+  flipX?: boolean;
+  flipY?: boolean;
+}
+
 export interface Board {
   id: string;
   title: string;
@@ -47,6 +80,7 @@ export interface Board {
   updatedAt: number;
   nodes: BoardNode[];
   edges: BoardEdge[];
+  mood?: { items: MoodItem[] };
 }
 
 export interface VideoInfo {
@@ -71,3 +105,7 @@ export function connect(board: Board, edges: { from: string; to: string; label?:
 export function updateNode(board: Board, id: string, patch: Partial<BoardNode>): BoardNode | null;
 export function removeItems(board: Board, nodeIds?: string[], edgeIds?: string[]): void;
 export function outline(board: Board): { stages: { stage: BoardNode; items: BoardNode[] }[]; loose: BoardNode[] };
+export const MOOD_TYPES: MoodType[];
+export const SHAPES: ShapeKind[];
+export function cleanMoodItem(raw: unknown): MoodItem;
+export function addMoodItems(board: Board, list: unknown[]): MoodItem[];

@@ -61,6 +61,87 @@ export function parseVideo(url) {
   return null;
 }
 
+/* ───────── moodboard (free canvas, Milanote-style) ───────── */
+
+export const MOOD_TYPES = ["image", "note", "todo", "color", "link", "video", "text", "draw", "shape"];
+export const SHAPES = ["rect", "ellipse", "triangle", "line", "arrow"];
+const MOOD_SIZE = {
+  image: [280, 210], note: [260, 140], todo: [280, 150], color: [170, 190], link: [280, 120],
+  video: [200, 356], text: [240, 60], draw: [200, 200], shape: [160, 120],
+};
+
+export function cleanMoodItem(raw) {
+  const type = MOOD_TYPES.includes(raw?.type) ? raw.type : "note";
+  const [dw, dh] = MOOD_SIZE[type];
+  const it = {
+    id: str(raw?.id, 64) || newId("m_"),
+    type,
+    x: num(raw?.x) ?? 0,
+    y: num(raw?.y) ?? 0,
+    w: Math.max(16, num(raw?.w) ?? dw),
+    h: Math.max(16, num(raw?.h) ?? dh),
+  };
+  for (const k of ["src", "caption", "text", "title", "name", "url", "video", "poster", "color", "fill", "size"]) {
+    const v = str(raw?.[k], k === "src" ? 3_000_000 : 4000);
+    if (v) it[k] = v;
+  }
+  if (type === "shape") it.shape = SHAPES.includes(raw?.shape) ? raw.shape : "rect";
+  if (Array.isArray(raw?.items)) {
+    it.items = raw.items.map((i) => (typeof i === "string" ? { text: i } : { text: str(i?.text, 300) ?? "", done: !!i?.done })).filter((i) => i.text).slice(0, 40);
+  }
+  if (Array.isArray(raw?.points)) it.points = raw.points.filter((n) => typeof n === "number" && Number.isFinite(n)).map((n) => Math.round(n * 10) / 10).slice(0, 8000);
+  for (const k of ["vw", "vh", "stroke", "rot"]) {
+    const v = num(raw?.[k]);
+    if (v !== undefined) it[k] = v;
+  }
+  if (raw?.flipX) it.flipX = true;
+  if (raw?.flipY) it.flipY = true;
+  return it;
+}
+
+/** Adds moodboard items; ones without a position go into a tidy grid to the right of what is there. */
+export function addMoodItems(board, list) {
+  board.mood = board.mood ?? { items: [] };
+  const items = board.mood.items;
+  const ids = new Set(items.map((i) => i.id));
+  const startX = items.length ? Math.max(...items.map((i) => i.x + i.w)) + 80 : 0;
+  const colW = 300, gap = 28;
+  const colY = [0, 0, 0, 0];
+  const added = [];
+  for (const raw of Array.isArray(list) ? list : []) {
+    const it = cleanMoodItem({ ...raw, id: raw?.id && !ids.has(raw.id) ? raw.id : undefined });
+    if (it.type === "text" && it.text) {
+      // Room for the lines the text will wrap into (same sizes as the app: sm 14 · md 20 · lg 34 · xl 60).
+      const px = { sm: 14, md: 20, lg: 34, xl: 60 }[it.size ?? "md"] ?? 20;
+      const perLine = Math.max(1, Math.floor(it.w / (px * 0.52)));
+      const lines = it.text.split("\n").reduce((n, l) => n + Math.max(1, Math.ceil(l.length / perLine)), 0);
+      it.h = Math.max(it.h, Math.ceil(lines * px * 1.15 + 8));
+    }
+    if ((num(raw?.x) === undefined || num(raw?.y) === undefined) && it.w > colW * 1.5) {
+      // Wide items (titles, banners) take a full row across the columns.
+      const top = Math.max(...colY);
+      it.w = Math.min(it.w, colW * 4 - gap);
+      it.x = startX;
+      it.y = top;
+      colY.fill(top + it.h + gap);
+    } else if (num(raw?.x) === undefined || num(raw?.y) === undefined) {
+      // Masonry: the shortest of four columns.
+      const c = colY.indexOf(Math.min(...colY));
+      if (it.w > colW - gap) {
+        it.h = Math.round(it.h * ((colW - gap) / it.w));
+        it.w = colW - gap;
+      }
+      it.x = startX + c * colW;
+      it.y = colY[c];
+      colY[c] += it.h + gap;
+    }
+    ids.add(it.id);
+    items.push(it);
+    added.push(it);
+  }
+  return added;
+}
+
 /* ───────── normalize ───────── */
 
 const str = (v, max = 4000) => (typeof v === "string" ? v.slice(0, max) : v == null ? undefined : String(v).slice(0, max));
@@ -109,6 +190,7 @@ export function normalizeBoard(raw) {
   };
   if (raw?.summary) b.summary = str(raw.summary);
   if (raw?.arranged) b.arranged = true;
+  if (Array.isArray(raw?.mood?.items)) b.mood = { items: raw.mood.items.map((i) => cleanMoodItem(i)) };
   const seen = new Set();
   for (const n of Array.isArray(raw?.nodes) ? raw.nodes : []) {
     const c = cleanNode(n);
@@ -274,6 +356,7 @@ export function updateNode(board, id, patch) {
 
 export function removeItems(board, nodeIds = [], edgeIds = []) {
   const drop = new Set(nodeIds);
+  if (board.mood) board.mood.items = board.mood.items.filter((i) => !drop.has(i.id));
   board.nodes = board.nodes.filter((n) => !drop.has(n.id));
   board.edges = board.edges.filter((e) => !drop.has(e.from) && !drop.has(e.to) && !edgeIds.includes(e.id));
 }
@@ -398,6 +481,35 @@ const TOOLS = [
     annotations: { destructiveHint: true },
   },
   {
+    name: "add_mood_items",
+    description:
+      "Add items to the board's moodboard: a free white canvas (like Milanote) next to the mind map. Types: image (src = https image URL, caption), " +
+      "note (text), todo (title + items), color (color hex + name), link (url + title + text), video (video = Instagram/YouTube/TikTok/mp4 link), " +
+      "text (a free label), shape (shape: rect|ellipse|triangle|line|arrow, color, fill). Without x/y the items are arranged in a masonry grid.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board_id: { type: "string" },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: MOOD_TYPES.filter((t) => t !== "draw") },
+              src: { type: "string" }, caption: { type: "string" }, text: { type: "string" }, title: { type: "string" },
+              items: { type: "array", items: { type: "string" } }, color: { type: "string" }, name: { type: "string" },
+              url: { type: "string" }, video: { type: "string" }, poster: { type: "string" }, shape: { type: "string", enum: SHAPES },
+              fill: { type: "string" }, size: { type: "string", enum: ["sm", "md", "lg", "xl"] },
+              x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" },
+            },
+            required: ["type"],
+          },
+        },
+      },
+      required: ["board_id", "items"],
+    },
+  },
+  {
     name: "update_board",
     description: "Rename a board, rewrite its idea/summary/accent, or re-run the mind-map layout (relayout: true).",
     inputSchema: {
@@ -413,7 +525,8 @@ export const MCP_INSTRUCTIONS =
   "Workflow: 1) create_board with the whole first version in one call — the idea card at the centre, 3–5 funnel stages (step 1 = top of funnel), " +
   "and under each stage the insight (note), references (media images, video reels), deliverables (asset), tasks (list) and KPI (metric). " +
   "2) Share the returned link; the board updates live while it is open. 3) Expand with add_nodes, refine with update_node. " +
-  "Use real https links for images and videos only — never invent URLs. Write in the user's language.";
+  "Use real https links for images and videos only — never invent URLs. Write in the user's language. " +
+  "The moodboard (add_mood_items) is a free white canvas for references: images, notes, to-dos, colour swatches, links, reels, labels and shapes.";
 
 function summarize(b, origin) {
   return { id: b.id, title: b.title, idea: b.idea, nodes: b.nodes.length, edges: b.edges.length, updatedAt: b.updatedAt, url: `${origin}/b/${b.id}` };
@@ -443,6 +556,7 @@ async function callTool(name, args, store, origin) {
         outline: o.stages.map((s) => ({ step: s.stage.step, stage: s.stage.title, id: s.stage.id, items: s.items.map((n) => `${n.kind}: ${n.title} (${n.id})`) })),
         nodes: b.nodes,
         edges: b.edges,
+        moodboard: (b.mood?.items ?? []).map((i) => ({ ...i, points: i.points ? `${i.points.length / 2} points` : undefined, src: i.src?.startsWith("data:") ? "(uploaded image)" : i.src })),
       };
     }
     case "create_board": {
@@ -479,6 +593,12 @@ async function callTool(name, args, store, origin) {
       removeItems(b, args?.node_ids ?? [], args?.edge_ids ?? []);
       await save(b);
       return { removed_nodes: before[0] - b.nodes.length, removed_edges: before[1] - b.edges.length };
+    }
+    case "add_mood_items": {
+      const b = await load();
+      const added = addMoodItems(b, args?.items);
+      await save(b);
+      return { added: added.map((i) => ({ id: i.id, type: i.type })), url: `${origin}/b/${b.id}` };
     }
     case "update_board": {
       const b = await load();

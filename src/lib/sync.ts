@@ -10,7 +10,7 @@ export type SyncMessage =
   | { t: "hello"; role: Role }
   | { t: "presence"; presenter: number; remote: number; viewer: number }
   /** Boards: where the host is looking, so people who follow see the same thing. */
-  | { t: "board"; mode: "map" | "mood"; focus: string | null; cx: number; cy: number; span: number; player: string | null; collapsed?: string[]; dim?: boolean };
+  | { t: "board"; mode: "map" | "mood" | "kanban"; focus: string | null; cx: number; cy: number; span: number; player: string | null; collapsed?: string[]; dim?: boolean };
 
 type Envelope = SyncMessage & { _id?: string };
 

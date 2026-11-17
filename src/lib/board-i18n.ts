@@ -85,6 +85,7 @@ function texts(b: Board) {
     out.push(n.title, n.text, n.subtitle, n.value, n.tag, ...(n.tags ?? []), ...(n.items ?? []).map((i) => i.text));
   }
   for (const e of b.edges) out.push(e.label);
+  for (const m of b.mood?.items ?? []) out.push(m.text, m.caption, m.title, m.name, ...(m.items ?? []).map((i) => i.text));
   return out.filter((s): s is string => !!s);
 }
 
@@ -106,6 +107,16 @@ function apply(b: Board, tr: (s: string) => string): Board {
       items: n.items?.map((i) => ({ ...i, text: tr(i.text) })),
     })),
     edges: b.edges.map((e) => ({ ...e, label: t(e.label) })),
+    mood: b.mood && {
+      items: b.mood.items.map((m) => ({
+        ...m,
+        text: t(m.text),
+        caption: t(m.caption),
+        title: t(m.title),
+        name: t(m.name),
+        items: m.items?.map((i) => ({ ...i, text: tr(i.text) })),
+      })),
+    },
   };
 }
 
