@@ -936,7 +936,13 @@ export async function handleMcpBody(body, store, origin, ctx = {}) {
   const parsed = typeof body === "string" ? safeParse(body) : body;
   if (parsed === undefined) return { status: 400, body: { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } } };
   if (Array.isArray(parsed)) {
-    const out = (await Promise.all(parsed.map((m) => handleMcpMessage(m, store, origin, ctx)))).filter(Boolean);
+    // One after the other: each write reads the board saved by the previous one
+    // (in parallel they would overwrite each other).
+    const out = [];
+    for (const m of parsed) {
+      const r = await handleMcpMessage(m, store, origin, ctx);
+      if (r) out.push(r);
+    }
     return out.length ? { status: 200, body: out } : { status: 202, body: null };
   }
   const out = await handleMcpMessage(parsed, store, origin, ctx);
