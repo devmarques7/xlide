@@ -43,6 +43,40 @@ function persist(lang: string) {
   }
 }
 
+/**
+ * Translates in the reader's own browser (Google's endpoint allows it), so each
+ * person uses their own quota; the XLIDE server is the fallback. Same approach
+ * as translateLines in api/_music.js: newline-joined batches, line by line if
+ * the count drifts.
+ */
+async function translateInBrowser(lines: string[], target: string): Promise<string[]> {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i += 40) {
+    const chunk = lines.slice(i, i + 40);
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(target)}&dt=t`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: new URLSearchParams({ q: chunk.join("\n") }),
+    });
+    if (!res.ok) throw new Error(`translate_${res.status}`);
+    const data = (await res.json()) as [[string, ...unknown[]][]];
+    const parts = (data[0] ?? []).map((p) => p[0]).join("").split("\n").map((x) => x.trim());
+    if (parts.length === chunk.length) out.push(...parts);
+    else for (const l of chunk) out.push((await translateInBrowser([l], target))[0] ?? l);
+  }
+  return out;
+}
+
+async function translateViaServer(lines: string[], target: string): Promise<string[]> {
+  const res = await fetch("/api/music/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lines, target }),
+  });
+  if (!res.ok || !res.headers.get("content-type")?.includes("json")) throw new Error(String(res.status));
+  return ((await res.json()) as { lines: string[] }).lines;
+}
+
 const skip = (l: string) => !l.trim() || /^https?:\/\//i.test(l.trim()) || /^[\d\s.,%:+\-/#·→]+$/.test(l);
 
 function texts(b: Board) {
@@ -111,13 +145,7 @@ export function useTranslatedBoard(board: Board, lang: ContentLang) {
     let failedAny = false;
     const run = async (chunk: string[]) => {
       try {
-        const res = await fetch("/api/music/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lines: chunk, target: lang }),
-        });
-        if (!res.ok || !res.headers.get("content-type")?.includes("json")) throw new Error(String(res.status));
-        const { lines } = (await res.json()) as { lines: string[] };
+        const lines = await translateInBrowser(chunk, lang).catch(() => translateViaServer(chunk, lang));
         chunk.forEach((l, j) => c.set(l, lines[j] || l));
         persist(lang);
         setVersion((v) => v + 1);
