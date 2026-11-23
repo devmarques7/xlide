@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { newId, parseVideo } from "../../../shared/board.js";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { BoardNode } from "@/lib/boards";
+import { fontStack, useBrandFonts } from "@/lib/brand-fonts";
 import { uploadImage } from "@/lib/images";
+import { luminance, parseWeights, WEIGHT_NAMES } from "../../../shared/brand.js";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import type { MoodItem, MoodType, ShapeKind } from "../../../shared/board.js";
@@ -117,6 +119,7 @@ export function Moodboard({ items, original, accent, readOnly: viewerOnly, view,
   const fitted = useRef(false);
 
   const origById = useMemo(() => new Map(original.map((i) => [i.id, i])), [original]);
+  useBrandFonts(items);
 
   /* ───── history ───── */
   const commit = useCallback(
@@ -224,8 +227,8 @@ export function Moodboard({ items, original, accent, readOnly: viewerOnly, view,
   /* ───── adding things ───── */
   const place = (it: Partial<MoodItem> & { type: MoodType }, at?: [number, number]) => {
     const [cx, cy] = at ?? center();
-    const w = it.w ?? { image: 280, note: 260, todo: 280, color: 170, link: 280, video: 200, text: 260, draw: 200, shape: 160 }[it.type];
-    const h = it.h ?? { image: 210, note: 150, todo: 160, color: 190, link: 120, video: 356, text: 60, draw: 200, shape: 120 }[it.type];
+    const w = it.w ?? { image: 280, note: 260, todo: 280, color: 170, link: 280, video: 200, text: 260, draw: 200, shape: 160, type: 560, divider: 800 }[it.type];
+    const h = it.h ?? { image: 210, note: 150, todo: 160, color: 190, link: 120, video: 356, text: 60, draw: 200, shape: 120, type: 340, divider: 40 }[it.type];
     const item = { id: newId("m_"), x: Math.round(cx - w / 2), y: Math.round(cy - h / 2), w, h, ...it } as MoodItem;
     commit((list) => [...list, item]);
     setSelected([item.id]);
@@ -1001,6 +1004,24 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
     }
     case "color": {
       const c = it.color ?? accent;
+      if (it.style === "dot") {
+        const d = Math.min(b.w, b.h - 50);
+        return (
+          <div className="flex size-full flex-col items-center">
+            {/* An SVG circle: the app's no-radius rule would square a rounded div. */}
+            <div className="relative shrink-0" style={{ width: d, height: d }}>
+              <svg width={d} height={d} className="block"><circle cx={d / 2} cy={d / 2} r={d / 2 - 0.5} fill={c} stroke={luminance(c) > 0.8 ? "rgb(0 0 0 / 0.15)" : "none"} /></svg>
+              {editing && <input {...stop} type="color" defaultValue={/^#[0-9a-f]{6}$/i.test(c) ? c : "#e0512b"} onChange={(e) => onEdit({ color: e.target.value })} className="absolute right-0 bottom-0 size-8 cursor-pointer" />}
+            </div>
+            {editing ? (
+              <input {...stop} autoFocus defaultValue={source.name ?? ""} placeholder={t("mood.colorName")} onBlur={(e) => { onEdit({ name: e.target.value || undefined }); onDoneEditing(); }} onKeyDown={(e) => (e.key === "Enter" || e.key === "Escape") && (e.target as HTMLInputElement).blur()} className="mt-2 w-full bg-transparent text-center text-sm font-semibold outline-none" />
+            ) : (
+              <p className="mt-2 w-full truncate text-center text-sm font-semibold">{it.name}</p>
+            )}
+            <p className="font-mono text-[11px] text-black/50">{c.toUpperCase()}</p>
+          </div>
+        );
+      }
       const rgb = /^#([0-9a-f]{6})$/i.test(c) ? [0, 2, 4].map((i) => parseInt(c.slice(1 + i, 3 + i), 16)).join(",") : c;
       const light = /^#([0-9a-f]{6})$/i.test(c) && [0, 2, 4].map((i) => parseInt(c.slice(1 + i, 3 + i), 16)).reduce((a, v) => a + v, 0) > 600;
       return (
@@ -1070,11 +1091,73 @@ function ItemView({ item: it, source, box: b, accent, editing, readOnly, onEdit,
       return <VideoTile url={it.video} poster={it.poster} title={it.caption} onExpand={onPlay} className={cn(card, "relative")} />;
     }
     case "text": {
-      const style: CSSProperties = { fontSize: TEXT_SIZE[it.size ?? "md"], color: it.color ?? INK, lineHeight: 1.15, fontWeight: it.size === "xl" || it.size === "lg" ? 500 : 400 };
-      return editing ? area(source.text ?? "", (v) => onEdit({ text: v }), t("mood.textPlaceholder"), style) : (
-        <p className="break-words whitespace-pre-wrap" style={style}>{it.text || <span className="opacity-30">{t("mood.textPlaceholder")}</span>}</p>
+      const style: CSSProperties = {
+        fontSize: it.fontSize ? `${it.fontSize}px` : TEXT_SIZE[it.size ?? "md"],
+        color: it.color ?? INK,
+        lineHeight: 1.15,
+        fontWeight: it.weight ?? (it.size === "xl" || it.size === "lg" ? 500 : 400),
+        fontFamily: fontStack(it.font),
+        textAlign: it.align,
+        textTransform: it.upper ? "uppercase" : undefined,
+        letterSpacing: it.tracking ? `${it.tracking}em` : undefined,
+      };
+      const fontRow = editing && (source.font || source.bg) && (
+        <div {...stop} className="mb-2 flex w-full gap-1 bg-white/90 p-1 text-xs text-black">
+          <input defaultValue={source.font ?? ""} placeholder={t("mood.fontFamily")} onBlur={(e) => onEdit({ font: e.target.value.trim() || undefined })} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} className="min-w-0 flex-1 px-1 outline-none" />
+          <select defaultValue={source.weight ?? 400} onChange={(e) => onEdit({ weight: Number(e.target.value) })} className="outline-none">
+            {Object.entries(WEIGHT_NAMES).map(([w, n]) => <option key={w} value={w}>{n}</option>)}
+          </select>
+          <input type="number" min={8} max={400} defaultValue={source.fontSize ?? ""} placeholder="px" onBlur={(e) => onEdit({ fontSize: e.target.value ? Number(e.target.value) : undefined })} className="w-14 px-1 outline-none" />
+        </div>
+      );
+      const body = editing ? <div className="w-full">{fontRow}{area(source.text ?? "", (v) => onEdit({ text: v }), t("mood.textPlaceholder"), style)}</div> : (
+        <p className="w-full break-words whitespace-pre-wrap" style={style}>{it.text || <span className="opacity-30">{t("mood.textPlaceholder")}</span>}</p>
+      );
+      if (!it.bg) return body;
+      // A colour application: the text on its brand ground, centred like a post.
+      return (
+        <div className="flex w-full flex-1 items-center" style={{ background: it.bg, padding: Math.max(16, Math.round(b.w * 0.08)), boxShadow: luminance(it.bg) > 0.85 ? "inset 0 0 0 1px rgb(0 0 0 / 0.1)" : undefined }}>
+          {body}
+        </div>
       );
     }
+    case "type": {
+      const c = it.color ?? INK, fam = fontStack(it.font);
+      const ws = parseWeights(it.weights);
+      const big = Math.min(150, b.h * 0.42);
+      return (
+        <div className="flex size-full flex-col overflow-hidden" style={{ color: c, background: it.bg, padding: it.bg ? 20 : 0 }}>
+          {editing && (
+            <div {...stop} className="mb-2 flex gap-1 bg-white p-1 text-xs text-black shadow">
+              <input autoFocus defaultValue={source.font ?? ""} placeholder={t("mood.fontFamily")} onBlur={(e) => onEdit({ font: e.target.value.trim() || undefined })} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} className="min-w-0 flex-1 px-1 outline-none" />
+              <input defaultValue={source.weights ?? "400,700"} placeholder="300,400,700" onBlur={(e) => { onEdit({ weights: e.target.value }); onDoneEditing(); }} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} className="w-28 px-1 font-mono outline-none" />
+            </div>
+          )}
+          <div className="flex gap-4">
+            <p className="w-[42%] shrink-0 break-words" style={{ fontFamily: fam, fontSize: 40, lineHeight: 1.05, fontWeight: 500 }}>{it.font ?? "Inter"}</p>
+            <ul className="space-y-0.5" style={{ fontFamily: fam, fontSize: 18 }}>
+              {ws.slice(0, 5).map((w) => <li key={w} style={{ fontWeight: w }}>{WEIGHT_NAMES[w] ?? w}</li>)}
+            </ul>
+          </div>
+          <div className="mt-auto flex items-end gap-4">
+            <p className="w-[42%] shrink-0" style={{ fontFamily: fam, fontSize: big, lineHeight: 1 }}>Aa</p>
+            <p className="text-sm leading-snug break-all" style={{ fontFamily: fam }}>abcdefghijklmn<br />opqrstuvwxyz<br />ABCDEFGHIJKLMN<br />OPQRSTUVWXYZ<br />0123456789!?&amp;</p>
+          </div>
+          {it.name && <p className="label-xs mt-2 text-black/50">{it.name}</p>}
+        </div>
+      );
+    }
+    case "divider":
+      return (
+        <div className="flex size-full flex-col items-center">
+          <div className="h-px w-full" style={{ background: it.color && it.color !== INK ? it.color : "#bebdb7" }} />
+          {editing ? (
+            <input {...stop} autoFocus defaultValue={source.text ?? ""} onBlur={(e) => { onEdit({ text: e.target.value }); onDoneEditing(); }} onKeyDown={(e) => (e.key === "Enter" || e.key === "Escape") && (e.target as HTMLInputElement).blur()} className="label-xs mt-2 bg-transparent text-center outline-none" />
+          ) : (
+            it.text && <p className="label-xs mt-2 tracking-[0.15em] text-black/55 uppercase">{it.text}</p>
+          )}
+        </div>
+      );
     case "draw": {
       const sx = b.w / (it.vw || b.w), sy = b.h / (it.vh || b.h);
       const pts = pairs(it.points).map(([x, y]) => [x * sx, y * sy] as [number, number]);

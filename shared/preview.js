@@ -2,6 +2,7 @@
 // functions: no DOM. Mirrors the app's look closely enough for an AI (or a
 // person) to judge layout, order and density at a glance.
 import { estimateH, NODE_W, outline, parseVideo } from "./board.js";
+import { luminance, parseWeights, WEIGHT_NAMES } from "./brand.js";
 
 const INK = "#161615";
 const MUTED = "#6f6e69";
@@ -36,9 +37,10 @@ export function wrap(text, width, size, maxLines = 999) {
   return out;
 }
 
-function textBlock(x, y, lines, size, color = INK, weight = 400, lh = 1.3) {
+function textBlock(x, y, lines, size, color = INK, weight = 400, lh = 1.3, family = FONT, extra = "") {
   if (!lines.length) return { svg: "", h: 0 };
-  const svg = `<text x="${x}" y="${y + size}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${color}">${lines
+  const fam = family === FONT ? FONT : `'${family}', ${FONT}`;
+  const svg = `<text x="${x}" y="${y + size}" font-family="${fam}" font-size="${size}" font-weight="${weight}" fill="${color}"${extra}>${lines
     .map((l, i) => `<tspan x="${x}" dy="${i ? size * lh : 0}">${esc(l)}</tspan>`)
     .join("")}</text>`;
   return { svg, h: size + (lines.length - 1) * size * lh };
@@ -202,6 +204,13 @@ function moodItem(it, accent, images) {
       break;
     }
     case "color": {
+      if (it.style === "dot") {
+        const d = Math.min(w, h - 50), c = it.color ?? accent;
+        parts.push(`<circle cx="${x + w / 2}" cy="${y + d / 2}" r="${d / 2 - 0.5}" fill="${c}"${luminance(c) > 0.8 ? ` stroke="#cfcec8"` : ""}/>`);
+        parts.push(textBlock(x + w / 2, y + d + 12, wrap(it.name ?? "", w + 40, 13, 1), 13, INK, 600, 1.3, FONT, ` text-anchor="middle"`).svg);
+        parts.push(textBlock(x + w / 2, y + d + 31, [String(c).toUpperCase()], 11, MUTED, 400, 1.3, FONT, ` text-anchor="middle"`).svg);
+        break;
+      }
       parts.push(card(h));
       parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h * 0.7}" fill="${it.color ?? accent}"/>`);
       parts.push(textBlock(x + 12, y + 10, [String(it.color ?? "").toUpperCase()], 11, "#fff", 600).svg);
@@ -226,8 +235,37 @@ function moodItem(it, accent, images) {
       break;
     }
     case "text": {
-      const px = TEXT_PX[it.size ?? "md"] ?? 20;
-      parts.push(textBlock(x, y, wrap(it.text ?? "", w, px), px, it.color ?? INK, px >= 34 ? 600 : 400, 1.15).svg);
+      const px = it.fontSize ?? TEXT_PX[it.size ?? "md"] ?? 20;
+      const pad = it.bg ? Math.max(16, Math.round(w * 0.08)) : 0;
+      const raw = it.upper ? String(it.text ?? "").toUpperCase() : it.text ?? "";
+      const lines = wrap(raw, w - pad * 2, px * 1.05);
+      const lh = 1.15, th = px + (lines.length - 1) * px * lh;
+      if (it.bg) {
+        h = Math.max(h, th + pad * 2);
+        parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${it.bg}"${luminance(it.bg) > 0.85 ? ` stroke="#d6d5cf"` : ""}/>`);
+      }
+      const anchor = it.align === "center" ? "middle" : it.align === "right" ? "end" : "start";
+      const tx = anchor === "middle" ? x + w / 2 : anchor === "end" ? x + w - pad : x + pad;
+      const ty = it.bg ? y + (h - th) / 2 - px * 0.15 : y;
+      const extra = (anchor !== "start" ? ` text-anchor="${anchor}"` : "") + (it.tracking ? ` letter-spacing="${(it.tracking * px).toFixed(2)}"` : "");
+      parts.push(textBlock(tx, ty, lines, px, it.color ?? INK, it.weight ?? (px >= 34 ? 600 : 400), lh, it.font ?? FONT, extra).svg);
+      break;
+    }
+    case "type": {
+      const fam = it.font ?? FONT, c = it.color ?? INK, ws = parseWeights(it.weights);
+      if (it.bg) parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${it.bg}"/>`);
+      const left = w * 0.42, p = it.bg ? 20 : 0;
+      parts.push(textBlock(x + p, y + p, wrap(fam, left - p, 40 * 1.05, 2), 40, c, 500, 1.05, fam).svg);
+      ws.slice(0, 5).forEach((wt, i) => parts.push(textBlock(x + left + p, y + p + 4 + i * 24, [WEIGHT_NAMES[wt] ?? String(wt)], 18, c, wt, 1.3, fam).svg));
+      const big = Math.min(150, h * 0.42);
+      parts.push(textBlock(x + p, y + h - big * 1.2 - 26, ["Aa"], big, c, 400, 1, fam).svg);
+      parts.push(textBlock(x + left + p, y + h - 120, ["abcdefghijklmn", "opqrstuvwxyz", "ABCDEFGHIJKLMN", "OPQRSTUVWXYZ", "0123456789!?&"], 14, c, 400, 1.35, fam).svg);
+      if (it.name) parts.push(textBlock(x + p, y + h - 14, [String(it.name).toUpperCase()], 10, MUTED, 600, 1.3, FONT, ` letter-spacing="1.2"`).svg);
+      break;
+    }
+    case "divider": {
+      parts.push(`<line x1="${x}" y1="${y + 1}" x2="${x + w}" y2="${y + 1}" stroke="${it.color && it.color !== INK ? it.color : "#bebdb7"}" stroke-width="1"/>`);
+      if (it.text) parts.push(textBlock(x + w / 2, y + 12, [String(it.text).toUpperCase()], 10, MUTED, 600, 1.3, FONT, ` text-anchor="middle" letter-spacing="1.5"`).svg);
       break;
     }
     case "draw": {

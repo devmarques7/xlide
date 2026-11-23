@@ -42,7 +42,7 @@ export interface BoardEdge {
   label?: string;
 }
 
-export type MoodType = "image" | "note" | "todo" | "color" | "link" | "video" | "text" | "draw" | "shape";
+export type MoodType = "image" | "note" | "todo" | "color" | "link" | "video" | "text" | "draw" | "shape" | "type" | "divider";
 export type ShapeKind = "rect" | "ellipse" | "triangle" | "line" | "arrow";
 
 /** A moodboard item. Drawings and lines keep their points in a viewBox (vw × vh) scaled to the item box. */
@@ -77,6 +77,21 @@ export interface MoodItem {
   ref?: string;
   /** Lines/arrows: straight horizontal (h) or vertical (v) through the middle of the box. */
   axis?: "h" | "v";
+  /** Brand typography (text, type): a Google Fonts / Fontshare family. */
+  font?: string;
+  weight?: number;
+  /** type specimens: the weights shown, "300,400,700". */
+  weights?: string;
+  fontSize?: number;
+  tracking?: number;
+  /** Text tiles: coloured ground. */
+  bg?: string;
+  align?: "left" | "center" | "right";
+  upper?: boolean;
+  /** color items: "dot" = round swatch with name + hex underneath. */
+  style?: "card" | "dot";
+  /** Tag for a set of items (brand_sheet uses "brand"). */
+  group?: string;
 }
 
 export interface Board {

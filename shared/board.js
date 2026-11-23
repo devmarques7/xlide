@@ -1,5 +1,6 @@
 // XLIDE boards: a moodboard connected to a mind map. Pure functions shared by
 // the app (src/lib/boards.ts), the local server and the Vercel API + MCP.
+import { brandSheet, cleanFamily, parseWeights } from "./brand.js";
 
 export const KINDS = ["idea", "stage", "note", "media", "video", "asset", "list", "metric"];
 
@@ -79,11 +80,11 @@ export function parseVideo(url) {
 
 /* ───────── moodboard (free canvas, Milanote-style) ───────── */
 
-export const MOOD_TYPES = ["image", "note", "todo", "color", "link", "video", "text", "draw", "shape"];
+export const MOOD_TYPES = ["image", "note", "todo", "color", "link", "video", "text", "draw", "shape", "type", "divider"];
 export const SHAPES = ["rect", "ellipse", "triangle", "line", "arrow"];
 const MOOD_SIZE = {
   image: [280, 210], note: [260, 140], todo: [280, 150], color: [170, 190], link: [280, 120],
-  video: [200, 356], text: [240, 60], draw: [200, 200], shape: [160, 120],
+  video: [200, 356], text: [240, 60], draw: [200, 200], shape: [160, 120], type: [560, 340], divider: [800, 40],
 };
 
 export function cleanMoodItem(raw) {
@@ -110,6 +111,22 @@ export function cleanMoodItem(raw) {
     const v = num(raw?.[k]);
     if (v !== undefined) it[k] = v;
   }
+  // Brand typography: a real font family (Google Fonts / Fontshare), weight, size, ground.
+  const font = cleanFamily(raw?.font);
+  if (font) it.font = font;
+  const weight = num(raw?.weight);
+  if (weight !== undefined) it.weight = Math.max(100, Math.min(900, Math.round(weight / 100) * 100));
+  const fontSize = num(raw?.fontSize);
+  if (fontSize !== undefined) it.fontSize = Math.max(8, Math.min(400, Math.round(fontSize)));
+  const tracking = num(raw?.tracking);
+  if (tracking !== undefined) it.tracking = Math.max(-0.2, Math.min(1, tracking));
+  if (raw?.weights !== undefined) it.weights = parseWeights(raw.weights).join(",");
+  if (/^#[0-9a-f]{3,8}$/i.test(raw?.bg ?? "")) it.bg = raw.bg;
+  if (["left", "center", "right"].includes(raw?.align)) it.align = raw.align;
+  if (raw?.upper) it.upper = true;
+  if (type === "color" && (raw?.style === "dot" || raw?.style === "card")) it.style = raw.style;
+  const group = str(raw?.group, 40);
+  if (group) it.group = group;
   if (raw?.axis === "h" || raw?.axis === "v") it.axis = raw.axis;
   if (raw?.flipX) it.flipX = true;
   if (raw?.flipY) it.flipY = true;
@@ -129,7 +146,7 @@ export function addMoodItems(board, list) {
     const it = cleanMoodItem({ ...raw, id: raw?.id && !ids.has(raw.id) ? raw.id : undefined });
     if (it.type === "text" && it.text) {
       // Room for the lines the text will wrap into (same sizes as the app: sm 14 · md 20 · lg 34 · xl 60).
-      const px = { sm: 14, md: 20, lg: 34, xl: 60 }[it.size ?? "md"] ?? 20;
+      const px = it.fontSize ?? { sm: 14, md: 20, lg: 34, xl: 60 }[it.size ?? "md"] ?? 20;
       const perLine = Math.max(1, Math.floor(it.w / (px * 0.52)));
       const lines = it.text.split("\n").reduce((n, l) => n + Math.max(1, Math.ceil(l.length / perLine)), 0);
       it.h = Math.max(it.h, Math.ceil(lines * px * 1.15 + 8));
@@ -589,7 +606,11 @@ const TOOLS = [
     description:
       "Add items to the board's moodboard: a free white canvas (like Milanote) next to the mind map. Types: image (src = https image URL, caption), " +
       "note (text), todo (title + items), color (color hex + name), link (url + title + text), video (video = Instagram/YouTube/TikTok/mp4 link), " +
-      "text (a free label), shape (shape: rect|ellipse|triangle|line|arrow, color, fill). Without x/y the items are arranged in a masonry grid.",
+      "text (a free label), shape (shape: rect|ellipse|triangle|line|arrow, color, fill), " +
+      "type (a typography specimen: font + weights + color, name = its role), divider (a rule with a small caps label in text). " +
+      "Brand typography on text items: font (any Google Fonts or Fontshare family, e.g. 'Space Grotesk', 'Satoshi'), weight (100–900), fontSize (px), " +
+      "color, bg (a coloured ground: the item becomes a tile, e.g. a colour application), align, upper, tracking (em). color items take style: dot for round swatches. " +
+      "For a whole brand board in one call use brand_sheet. Without x/y the items are arranged in a masonry grid.",
     inputSchema: {
       type: "object",
       properties: {
@@ -604,6 +625,16 @@ const TOOLS = [
               items: { type: "array", items: { type: "string" } }, color: { type: "string" }, name: { type: "string" },
               url: { type: "string" }, video: { type: "string" }, poster: { type: "string" }, shape: { type: "string", enum: SHAPES },
               fill: { type: "string" }, size: { type: "string", enum: ["sm", "md", "lg", "xl"] },
+              font: { type: "string", description: "Font family from Google Fonts or Fontshare (text and type items)." },
+              weight: { type: "number", description: "Font weight 100–900." },
+              weights: { type: "string", description: "type items: the weights to show, e.g. '300,400,700'." },
+              fontSize: { type: "number", description: "Text size in px (overrides size)." },
+              bg: { type: "string", description: "Background colour hex for a text tile." },
+              align: { type: "string", enum: ["left", "center", "right"] },
+              upper: { type: "boolean", description: "Uppercase." },
+              tracking: { type: "number", description: "Letter spacing in em (e.g. 0.05)." },
+              style: { type: "string", enum: ["card", "dot"], description: "color items: dot = round swatch with name + hex underneath." },
+              group: { type: "string", description: "Optional tag to find/replace a set of items later." },
               stroke: { type: "number", description: "Line width for shapes, lines and arrows (2–14)." },
               axis: { type: "string", enum: ["h", "v"], description: "Lines/arrows: h = straight horizontal across w, v = straight vertical down h. Omit for a diagonal from the top-left to the bottom-right corner." },
               flipX: { type: "boolean", description: "Lines/arrows point the other way (right→left, or bottom-left→top-right for diagonals)." },
@@ -615,6 +646,34 @@ const TOOLS = [
         },
       },
       required: ["board_id", "items"],
+    },
+  },
+  {
+    name: "brand_sheet",
+    description:
+      "Build a designer-style brand board on the moodboard in one call, in labelled sections: LOGOTYPES (the name set in the display font + logo images), " +
+      "COLOR PALETTE (round swatches with name + hex), TYPOGRAPHY (a specimen per font: name, weights, Aa, alphabet; then a heading + paragraph in the brand fonts), " +
+      "APPLICATIONS (square tiles: each palette colour as the ground with the tagline in the colour that reads best on it, or your own list), ILLUSTRATIONS (images). " +
+      "Fonts are real Google Fonts / Fontshare families and render in the app and in preview_board. Running it again replaces the previous sheet (items with group 'brand'). " +
+      "Afterwards tweak any item with update_mood_item (font, weight, fontSize, color, bg, text) and check with preview_board view moodboard.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board_id: { type: "string" },
+        name: { type: "string", description: "Brand name: the default wordmark." },
+        tagline: { type: "string", description: "Short line used on the application tiles." },
+        heading: { type: "string", description: "Heading of the text application (default 'This is <name>')." },
+        paragraph: { type: "string", description: "Body text of the text application." },
+        wordmarks: { type: "array", items: { type: "object", properties: { text: { type: "string" }, font: { type: "string" }, weight: { type: "number" }, color: { type: "string" } }, required: ["text"] } },
+        logos: { type: "array", items: { type: "object", properties: { src: { type: "string" }, caption: { type: "string" } }, required: ["src"] } },
+        colors: { type: "array", items: { type: "object", properties: { hex: { type: "string" }, name: { type: "string" } }, required: ["hex"] }, description: "First colour = primary." },
+        fonts: { type: "array", items: { type: "object", properties: { family: { type: "string" }, role: { type: "string" }, weights: { type: "array", items: { type: "number" } } }, required: ["family"] }, description: "First = display, second = text/paragraph." },
+        applications: { type: "array", items: { type: "object", properties: { text: { type: "string" }, bg: { type: "string" }, color: { type: "string" }, font: { type: "string" }, weight: { type: "number" } } }, description: "Optional: your own tiles (default: one per palette colour)." },
+        illustrations: { type: "array", items: { type: "object", properties: { src: { type: "string" }, caption: { type: "string" } }, required: ["src"] } },
+        labels: { type: "object", properties: { logos: { type: "string" }, palette: { type: "string" }, typography: { type: "string" }, applications: { type: "string" }, illustrations: { type: "string" } }, description: "Section labels in the user's language." },
+        x: { type: "number" }, y: { type: "number" }, width: { type: "number", description: "Sheet width in px (800–2400, default 1200)." },
+      },
+      required: ["board_id"],
     },
   },
   {
@@ -724,7 +783,8 @@ export const MCP_INSTRUCTIONS =
   "and under each stage the insight (note), references (media images, video reels), deliverables (asset), tasks (list) and KPI (metric). " +
   "2) Share the returned link; the board updates live while it is open. 3) Expand with add_nodes, refine with update_node. " +
   "Use real https links for images and videos only — never invent URLs. Write in the user's language. " +
-  "The moodboard (add_mood_items) is a free white canvas for references: images, notes, to-dos, colour swatches, links, reels, labels and shapes.";
+  "The moodboard (add_mood_items) is a free white canvas for references: images, notes, to-dos, colour swatches, links, reels, labels and shapes. " +
+  "For a visual identity use brand_sheet (logotypes, colour dots, type specimens with real Google Fonts / Fontshare families, colour applications), then refine items with update_mood_item.";
 
 function summarize(b, origin) {
   return { id: b.id, title: b.title, idea: b.idea, nodes: b.nodes.length, edges: b.edges.length, updatedAt: b.updatedAt, url: `${origin}/b/${b.id}` };
@@ -868,6 +928,19 @@ async function callTool(name, args, store, origin, ctx = {}) {
         preview_urls: { map: `${origin}/api/boards/${b.id}?preview=map`, moodboard: `${origin}/api/boards/${b.id}?preview=moodboard`, kanban: `${origin}/api/boards/${b.id}?preview=kanban` },
         note: "The follow link needs no passcode: people see it live, read-only, in the language they pick.",
       };
+    }
+    case "brand_sheet": {
+      const b = await load();
+      b.mood = b.mood ?? { items: [] };
+      const before = b.mood.items.filter((i) => i.group === "brand").length;
+      const raw = brandSheet(args ?? {}, b.mood.items);
+      b.mood.items = b.mood.items.filter((i) => i.group !== "brand");
+      const added = addMoodItems(b, raw);
+      await save(b);
+      const box = added.length
+        ? { x: Math.min(...added.map((i) => i.x)), y: Math.min(...added.map((i) => i.y)), w: Math.max(...added.map((i) => i.x + i.w)) - Math.min(...added.map((i) => i.x)), h: Math.max(...added.map((i) => i.y + i.h)) - Math.min(...added.map((i) => i.y)) }
+        : null;
+      return { replaced: before, added: added.map((i) => ({ id: i.id, type: i.type, text: i.text ?? i.name ?? i.font })), bounds: box, url: `${origin}/b/${b.id}` };
     }
     case "add_mood_items": {
       const b = await load();
