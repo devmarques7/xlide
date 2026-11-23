@@ -186,7 +186,10 @@ export function brandSheet(brand, existing = []) {
       const bg = hex6(a?.bg) ?? palette[i % Math.max(1, palette.length)] ?? "#ffffff";
       const fg = hex6(a?.color) ?? bestOn(bg, palette.length ? palette : [ink, "#ffffff"]);
       const text = String(a?.text ?? brand?.tagline ?? name).slice(0, 160);
-      const px = Math.max(20, Math.min(64, Math.floor((tw * 2.2) / Math.max(6, text.length))));
+      // Fit the longest word on one line inside the tile padding (≈0.6em per glyph).
+      const longest = Math.max(1, ...text.split(/\s+/).map((w) => w.length));
+      const inner = tw - 2 * Math.max(16, Math.round(tw * 0.08));
+      const px = Math.max(18, Math.min(64, Math.floor((tw * 2.2) / Math.max(6, text.length)), Math.floor(inner / (longest * 0.6))));
       push({ type: "text", text, font: cleanFamily(a?.font) ?? display, weight: a?.weight ?? 700, fontSize: px, color: fg, bg, align: "center", x: Math.round(x0 + (i % cols) * (tw + gap)), y, w: Math.round(tw), h: Math.round(tw) });
     });
     y += tw + gap;
