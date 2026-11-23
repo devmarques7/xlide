@@ -238,7 +238,9 @@ function moodItem(it, accent, images) {
       const px = it.fontSize ?? TEXT_PX[it.size ?? "md"] ?? 20;
       const pad = it.bg ? Math.max(16, Math.round(w * 0.08)) : 0;
       const raw = it.upper ? String(it.text ?? "").toUpperCase() : it.text ?? "";
-      const lines = wrap(raw, w - pad * 2, px * 1.05);
+      // Condensed families are far narrower than Inter, the width the wrap assumes.
+      const narrow = /condensed|compressed|narrow|shoulders|bebas|anton|oswald|league gothic|tanker/i.test(it.font ?? "") ? 0.78 : 1.05;
+      const lines = wrap(raw, w - pad * 2, px * narrow);
       const lh = 1.15, th = px + (lines.length - 1) * px * lh;
       if (it.bg) {
         h = Math.max(h, th + pad * 2);

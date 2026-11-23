@@ -89,7 +89,7 @@ async function familyFiles({ family, weights }) {
 }
 
 async function loadFonts(board) {
-  const list = moodFonts(board.mood?.items).slice(0, 8);
+  const list = moodFonts(board.mood?.items).slice(0, 16);
   return (await Promise.all(list.map(familyFiles))).flat();
 }
 
