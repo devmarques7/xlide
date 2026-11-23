@@ -245,12 +245,44 @@ export function Moodboard({ items, original, accent, readOnly: viewerOnly, view,
       return;
     }
     const [x0, y0] = at ?? center();
-    let i = 0;
-    for (const f of imgs) {
-      const { url } = await uploadImage(f);
-      await addImage(url, [x0 + i * 36, y0 + i * 36], f.name.replace(/\.[a-z0-9]+$/i, ""));
-      i++;
+    // Upload every file first, then add them in ONE commit: committing per image
+    // reused the board as it was when the files were dropped, so each new image
+    // replaced the one before it.
+    const loaded = await Promise.allSettled(
+      imgs.map(async (f) => {
+        const { url } = await uploadImage(f);
+        const { w, h } = await imageSize(url);
+        return { url, w, h, caption: f.name.replace(/\.[a-z0-9]+$/i, "") };
+      }),
+    );
+    const ok = loaded.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+    if (!ok.length) return;
+
+    // Side by side in a grid (rows of up to 4), centred on the drop point.
+    const GAP = 24, MAX_W = 320, cols = Math.min(ok.length, 4);
+    const sized = ok.map((o) => {
+      const W = Math.min(MAX_W, o.w);
+      return { ...o, W, H: Math.round((W * o.h) / o.w) };
+    });
+    const rows: (typeof sized)[] = [];
+    for (let i = 0; i < sized.length; i += cols) rows.push(sized.slice(i, i + cols));
+    const rowW = (r: typeof sized) => r.reduce((s, o) => s + o.W, 0) + GAP * (r.length - 1);
+    const rowH = (r: typeof sized) => Math.max(...r.map((o) => o.H));
+    const totalW = Math.max(...rows.map(rowW));
+    const totalH = rows.reduce((s, r) => s + rowH(r), 0) + GAP * (rows.length - 1);
+    const added: MoodItem[] = [];
+    let y = y0 - totalH / 2;
+    for (const r of rows) {
+      let x = x0 - totalW / 2;
+      for (const o of r) {
+        added.push({ id: newId("m_"), type: "image", src: o.url, caption: o.caption, x: Math.round(x), y: Math.round(y), w: o.W, h: o.H } as MoodItem);
+        x += o.W + GAP;
+      }
+      y += rowH(r) + GAP;
     }
+    commit((list) => [...list, ...added]);
+    setSelected(added.map((i) => i.id));
+    if (ok.length < imgs.length) toast(t("mood.someFailed"));
   };
 
   /** Text from a drop or a paste: image link, video link, web link or a note. */
