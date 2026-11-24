@@ -6,6 +6,7 @@ import { FillImage } from "./fill";
 import { onAccent, useLook } from "./look";
 import { Rich } from "./rich";
 import { SlideImage } from "./slide-image";
+import { loadFont } from "./fonts";
 import "./brand.css";
 
 /* "Brand Guidelines" template (white label): a quiet header with a reserved
@@ -34,9 +35,12 @@ function Lines({ text }: { text: string }) {
 /** Logo area: the deck logo, or a labelled box that keeps its place. */
 function Logo({ className }: { className?: string }) {
   const look = useLook();
+  const onDark = look.theme?.logoDark;
+  const alt = look.company || "Logo";
   return (
-    <span className={cn("br-logo", className)} data-empty={look.logo ? undefined : ""}>
-      {look.logo ? <img src={look.logo} alt={look.company || "Logo"} draggable={false} /> : <span>{look.company || "Logo"}</span>}
+    <span className={cn("br-logo", className)} data-empty={look.logo ? undefined : ""} data-ondark={onDark ? "" : undefined}>
+      {look.logo ? <img src={look.logo} alt={alt} draggable={false} className="br-logo-main" /> : <span>{alt}</span>}
+      {look.logo && onDark && <img src={onDark} alt={alt} draggable={false} className="br-logo-dark" />}
     </span>
   );
 }
@@ -85,18 +89,9 @@ function Body({ text, className }: { text: string; className?: string }) {
   );
 }
 
-/** Loads a Google Fonts family once, for type specimens. */
+/** Loads a type specimen's family once. */
 function useFont(family?: string) {
-  useEffect(() => {
-    if (!family) return;
-    const id = "brf-" + family.replace(/\s+/g, "-");
-    if (document.getElementById(id)) return;
-    const l = document.createElement("link");
-    l.id = id;
-    l.rel = "stylesheet";
-    l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:wght@300;400;500;600;700;800&display=swap`;
-    document.head.appendChild(l);
-  }, [family]);
+  useEffect(() => loadFont(family), [family]);
 }
 const fontStyle = (family?: string): CSSProperties | undefined => (family ? { fontFamily: `"${family}", var(--font-sans)` } : undefined);
 
@@ -443,7 +438,7 @@ export function BrandIcons({ s, T }: BrandProps) {
         const Icon = it.icon ? ICONS[it.icon] : undefined;
         return (
           <div key={it.id} className="br-icon">
-            {Icon ? <Icon strokeWidth={1.4} /> : <span className="br-icon-ph" />}
+            {it.image ? <img src={it.image} alt="" /> : Icon ? <Icon strokeWidth={1.4} /> : <span className="br-icon-ph" />}
             <span>{T(it.label)}</span>
           </div>
         );

@@ -1,10 +1,11 @@
 import { ArrowUpRight, CornerDownRight } from "lucide-react";
-import { type CSSProperties } from "react";
+import { type CSSProperties, useEffect } from "react";
 import { LogoGlyph } from "@/components/logo";
 import { ICONS } from "@/lib/icons";
 import { tx, type Locale, type LText, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { onAccent, useLook } from "./look";
+import { loadFont } from "./fonts";
 import { BrandAbout, BrandCover, BrandFeature, BrandGlyphs, BrandHierarchy, BrandIcons, BrandImage, BrandIndex, BrandMission, BrandMockup, BrandNumbers, BrandPalette, BrandSection, BrandText, BrandTones, BrandTypeface, BrandUsage, BrandWelcome } from "./brand";
 import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchStatement, PitchTeam, PitchToc } from "./pitch";
 import { FillImage, FillText } from "./fill";
@@ -35,6 +36,12 @@ export function SlideView({ slide, lang, fallback, live, scale = 1, animate, cla
   const pitch = slide.layout.startsWith("pitch-");
   const brand = slide.layout.startsWith("brand-");
   const tone = slide.tone ?? (slide.layout === "pitch-cover" ? "dark" : BRAND_DEFAULT_TONE[slide.layout]);
+  const theme = brand ? look.theme : undefined;
+  useEffect(() => {
+    loadFont(theme?.heading);
+    loadFont(theme?.body);
+  }, [theme?.heading, theme?.body]);
+  const onAcc = onAccent(look.accent);
   return (
     <div
       className={cn("xs", slide.inverse && "inverse", pitch && "tpl-pitch", brand && "tpl-brand", className)}
@@ -42,7 +49,20 @@ export function SlideView({ slide, lang, fallback, live, scale = 1, animate, cla
       data-tone={tone}
       data-live={live ? "" : undefined}
       data-animate={animate || live ? "" : undefined}
-      style={{ "--k": scale, "--accent": look.accent, "--on-accent": onAccent(look.accent) } as CSSProperties}
+      style={
+        {
+          "--k": scale,
+          "--accent": look.accent,
+          // brand decks: dark text on a light accent uses the deck's own dark colour
+          "--on-accent": theme?.dark && onAcc !== "#ffffff" ? theme.dark : onAcc,
+          ...(theme && {
+            "--br-light": theme.light,
+            "--br-dark": theme.dark,
+            "--br-head-font": theme.heading ? `"${theme.heading}"` : undefined,
+            "--br-body-font": theme.body ? `"${theme.body}"` : undefined,
+          }),
+        } as CSSProperties
+      }
       lang={lang}
     >
       <Layout s={slide} T={T} />

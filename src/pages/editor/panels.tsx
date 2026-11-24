@@ -339,6 +339,36 @@ export function DeckPanel({ deck, lang, onChange }: { deck: Presentation; lang: 
         <Label>{t("editor.deckLogo")}</Label>
         <ImageInput value={deck.logo} onChange={(logo) => onChange({ logo: logo || undefined })} />
       </div>
+      {deck.template === "brand" && (
+        <div className="flex flex-col gap-1.5">
+          <Label>{t("editor.theme.logoDark")}</Label>
+          <ImageInput value={deck.theme?.logoDark} onChange={(v) => onChange({ theme: { ...deck.theme, logoDark: v || undefined } })} />
+        </div>
+      )}
+      {deck.template === "brand" && (
+        <div className="grid grid-cols-2 gap-3">
+          {(["light", "dark"] as const).map((k) => (
+            <div key={k} className="flex flex-col gap-1.5">
+              <Label>{t(`editor.theme.${k}`)}</Label>
+              <Input
+                type="color"
+                value={deck.theme?.[k] ?? (k === "light" ? "#f3f3ef" : "#2b2b27")}
+                onChange={(e) => onChange({ theme: { ...deck.theme, [k]: e.target.value } })}
+              />
+            </div>
+          ))}
+          {(["heading", "body"] as const).map((k) => (
+            <div key={k} className="flex flex-col gap-1.5">
+              <Label>{t(`editor.theme.${k}`)}</Label>
+              <Input
+                defaultValue={deck.theme?.[k] ?? ""}
+                placeholder="Fraunces"
+                onBlur={(e) => onChange({ theme: { ...deck.theme, [k]: e.target.value.trim() || undefined } })}
+              />
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex flex-col gap-1.5">
         <Label>{t("editor.deckTags")}</Label>
         <Input

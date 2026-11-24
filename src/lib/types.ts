@@ -109,6 +109,19 @@ export interface MusicTrack {
   sections?: boolean;
 }
 
+/** Deck-level colours and fonts for the brand template. Fonts are Google Fonts
+ *  or Fontshare family names. */
+export interface BrandTheme {
+  /** Background of light slides. */
+  light?: string;
+  /** Background of dark slides and text colour on light ones. */
+  dark?: string;
+  heading?: string;
+  body?: string;
+  /** Logo version used on dark slides (the deck logo is used on the others). */
+  logoDark?: string;
+}
+
 export interface Presentation {
   id: string;
   title: LText;
@@ -123,6 +136,8 @@ export interface Presentation {
   accent?: string;
   /** Logo (image URL) shown in the header area of templates that reserve one. */
   logo?: string;
+  /** Brand template: deck colours and typefaces (white label). */
+  theme?: BrandTheme;
   slides: Slide[];
   /** Lyrics decks: the YouTube song played in Play mode. */
   music?: MusicTrack;

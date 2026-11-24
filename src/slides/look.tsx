@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { DEFAULT_ACCENT, tx, type Locale, type MusicTrack, type Presentation, type Template } from "@/lib/types";
+import { DEFAULT_ACCENT, tx, type BrandTheme, type Locale, type MusicTrack, type Presentation, type Template } from "@/lib/types";
 
 /** Deck-level look shared by every slide: template, attention colour, meta line. */
 export interface Look {
@@ -7,6 +7,7 @@ export interface Look {
   accent: string;
   company?: string;
   logo?: string;
+  theme?: BrandTheme;
   deckTitle?: string;
   /** Music decks: lyric colours and section labels. */
   music?: MusicTrack;
@@ -21,6 +22,7 @@ export function lookOf(deck: Presentation | undefined, lang?: Locale): Look {
     accent: deck?.accent ?? DEFAULT_ACCENT,
     company: deck?.author,
     logo: deck?.logo,
+    theme: deck?.theme,
     deckTitle: deck ? tx(deck.title, lang ?? deck.defaultLanguage, deck.defaultLanguage) : undefined,
     music: deck?.music,
     lang: lang ?? deck?.defaultLanguage,

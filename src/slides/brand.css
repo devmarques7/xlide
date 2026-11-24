@@ -5,9 +5,12 @@
    leaves the slide. */
 
 .xs.tpl-brand {
-  --paper: #f3f3ef;
-  --ink: #232320;
-  --mute: #6f6e68;
+  /* deck theme (Deck settings) with the white-label defaults */
+  --light: var(--br-light, #f3f3ef);
+  --dark: var(--br-dark, #2b2b27);
+  --paper: var(--light);
+  --ink: var(--br-dark, #232320);
+  --mute: color-mix(in oklab, var(--ink) 66%, var(--paper));
   --line: color-mix(in oklab, var(--ink) 16%, transparent);
   --chip: color-mix(in oklab, var(--ink) 7%, transparent);
   --hl: var(--ink);
@@ -16,10 +19,12 @@
   --bottom: 7cqh;
   --br-small: max(var(--min-label), calc(1.3cqmin * var(--k)));
   --br-text: max(var(--min-body), calc(1.95cqmin * var(--k)));
+  font-family: var(--br-body-font, var(--font-sans)), var(--font-sans);
 }
-.xs.tpl-brand[data-tone="dark"] { --paper: #2b2b27; --ink: #f3f3ef; --mute: #aeada6; --line: color-mix(in oklab, #f3f3ef 16%, transparent); --chip: color-mix(in oklab, #f3f3ef 9%, transparent); }
+.xs.tpl-brand[data-tone="dark"] { --paper: var(--dark); --ink: var(--light); --mute: color-mix(in oklab, var(--light) 68%, var(--dark)); --line: color-mix(in oklab, var(--light) 16%, transparent); --chip: color-mix(in oklab, var(--light) 9%, transparent); }
 .xs.tpl-brand[data-tone="accent"] { --paper: var(--accent); --ink: var(--on-accent); --mute: color-mix(in oklab, var(--on-accent) 68%, var(--accent)); --chip: color-mix(in oklab, var(--on-accent) 9%, transparent); }
 .xs.tpl-brand[data-tone="light"] { --paper: #ffffff; }
+.tpl-brand :is(.br-title, .br-stat strong, .br-text-lead, .br-index-list strong, .br-section-num) { font-family: var(--br-head-font, inherit), var(--font-sans); }
 
 .br { position: absolute; inset: 0; letter-spacing: -0.01em; overflow: hidden; }
 .br > * { position: absolute; }
@@ -39,6 +44,8 @@
 .br-head-end { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .br-logo { position: relative; display: flex; align-items: center; height: 100%; width: 14cqw; max-width: 100%; }
 .br-logo img { height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
+.br-logo-dark, .tpl-brand[data-tone="dark"] .br-logo[data-ondark] .br-logo-main { display: none; }
+.tpl-brand[data-tone="dark"] .br-logo[data-ondark] .br-logo-dark { display: block; }
 .br-logo[data-empty] {
   border: 1px dashed color-mix(in oklab, var(--ink) 40%, transparent);
   justify-content: center; color: var(--mute); text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--br-small);
@@ -218,6 +225,7 @@
 .br-level-spec { font-family: var(--font-mono); font-size: var(--br-small); color: var(--mute); white-space: nowrap; }
 .br-level-text { font-size: calc(max(1.6, 6.4 - var(--lv) * 1.25) * 1cqmin * var(--k)); font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .br-level:nth-child(n + 4) .br-level-text { font-weight: 400; }
+.tpl-brand .br-level:nth-child(-n + 2) .br-level-text { font-family: var(--br-head-font, inherit), var(--font-sans); }
 .br-hierarchy-img { right: var(--px); top: var(--top); bottom: var(--bottom); width: 30%; }
 
 /* text columns */
@@ -231,7 +239,7 @@
 /* icons (dark by default) */
 .br-icons-grid { left: var(--px); right: var(--px); top: 25%; bottom: var(--bottom); display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 1cqmin; }
 .br-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8cqmin; color: var(--accent); font-size: var(--br-small); background: var(--chip); overflow: hidden; }
-.br-icon svg { width: 5cqmin; height: 5cqmin; }
+.br-icon svg, .br-icon img { width: 5cqmin; height: 5cqmin; object-fit: contain; }
 .br-icon > span:not(.br-icon-ph) { color: var(--mute); font-family: var(--font-mono); }
 .br-icon-ph { width: 5cqmin; height: 5cqmin; border: 1px dashed color-mix(in oklab, var(--accent) 70%, transparent); }
 

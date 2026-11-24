@@ -1,4 +1,4 @@
-import { LAYOUTS, LOCALES, TEMPLATES, TONES, type Layout, type Template, type Tone, type Locale, type LText, type MusicTrack, type Presentation, type Slide, type SlideItem, SONG_SECTIONS, type SongSection } from "./types";
+import { LAYOUTS, LOCALES, TEMPLATES, TONES, type BrandTheme, type Layout, type Template, type Tone, type Locale, type LText, type MusicTrack, type Presentation, type Slide, type SlideItem, SONG_SECTIONS, type SongSection } from "./types";
 import { uid } from "./utils";
 
 function asLText(v: unknown): LText | undefined {
@@ -79,6 +79,7 @@ export interface ParsedImport {
   title?: LText;
   author?: string;
   logo?: string;
+  theme?: BrandTheme;
   template?: Template;
   accent?: string;
   description?: LText;
@@ -104,6 +105,15 @@ function asMusic(raw: unknown): MusicTrack | undefined {
   };
 }
 
+function asTheme(raw: unknown): BrandTheme | undefined {
+  const r = raw as Record<string, unknown> | undefined;
+  if (!r || typeof r !== "object") return undefined;
+  const hex = (v: unknown) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : undefined);
+  const font = (v: unknown) => (typeof v === "string" && /^[\w\s-]{1,40}$/.test(v) ? v.trim() : undefined);
+  const t: BrandTheme = { light: hex(r.light), dark: hex(r.dark), heading: font(r.heading), body: font(r.body), logoDark: typeof r.logoDark === "string" ? r.logoDark : undefined };
+  return Object.values(t).some(Boolean) ? t : undefined;
+}
+
 export function parseImport(input: string): ParsedImport {
   const trimmed = input.trim();
   if (!trimmed) throw new Error("empty");
@@ -118,6 +128,7 @@ export function parseImport(input: string): ParsedImport {
       title: asLText(obj.title),
       author: typeof obj.author === "string" ? obj.author : undefined,
       logo: typeof obj.logo === "string" ? obj.logo : undefined,
+      theme: asTheme(obj.theme),
       template: (TEMPLATES as readonly string[]).includes(obj.template) ? obj.template : undefined,
       accent: typeof obj.accent === "string" && /^#[0-9a-f]{6}$/i.test(obj.accent) ? obj.accent : undefined,
       description: asLText(obj.description),
@@ -140,6 +151,7 @@ export function presentationFromImport(p: ParsedImport, fallbackLang: Locale): P
     description: p.description,
     author: p.author,
     logo: p.logo,
+    theme: p.theme,
     template: p.template,
     accent: p.accent,
     languages,
@@ -163,6 +175,7 @@ export function exportPresentation(p: Presentation) {
     description: p.description,
     author: p.author,
     logo: p.logo,
+    theme: p.theme,
     template: p.template,
     accent: p.accent,
     tags: p.tags,
