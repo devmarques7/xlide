@@ -1,5 +1,5 @@
 import { ArrowLeft, Download, Loader2, Printer } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { downloadPdf } from "@/lib/pdf";
 import { usePrefs } from "@/lib/prefs";
 import { builtinDeck, usePresentation } from "@/lib/store";
 import { LOCALES, tx, type Locale } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { FillProvider, FillSlide } from "@/slides/fill";
 import { DeckLook } from "@/slides/look";
 import { SlideView } from "@/slides/SlideView";
@@ -53,11 +54,20 @@ export default function Print({ fill = false }: { fill?: boolean }) {
 
   const pagesRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState<string | null>(null);
+  const [fit, setFit] = useState(1);
+  useEffect(() => {
+    const onResize = () => setFit(Math.min(1, (window.innerWidth - 32) / 1600));
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const exportPdf = async () => {
     if (!deck || progress) return;
     const pages = [...(pagesRef.current?.querySelectorAll<HTMLElement>(".print-page > .xs") ?? [])];
     setProgress(`0/${pages.length}`);
     try {
+      // Let the "exporting" class drop the on-screen zoom before capturing.
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       await downloadPdf(pages, `${tx(deck.title, lang, deck.defaultLanguage)}.pdf`, (n, total) => setProgress(`${n}/${total}`));
     } catch (e) {
       console.error(e);
@@ -74,7 +84,7 @@ export default function Print({ fill = false }: { fill?: boolean }) {
   if (!deck) return <p className="p-8 text-muted-foreground">{t("editor.notFound")}</p>;
 
   return (
-    <div className="print-deck">
+    <div className={cn("print-deck", progress && "exporting")} style={{ "--fit": fit } as CSSProperties}>
       <div className="print-bar">
         {fill ? (
           <span />

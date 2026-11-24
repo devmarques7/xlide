@@ -6,7 +6,7 @@ export type LText = string | Partial<Record<Locale, string>>;
 
 export const EDITORIAL_LAYOUTS = ["aura", "cover", "stats", "services", "gallery", "split", "statement", "contact", "image", "chapter", "questions", "reel", "moodboard", "lyrics"] as const;
 export const PITCH_LAYOUTS = ["pitch-cover", "pitch-statement", "pitch-numbers", "pitch-feature", "pitch-toc", "pitch-split", "pitch-team"] as const;
-export const BRAND_LAYOUTS = ["brand-cover", "brand-welcome", "brand-index", "brand-section", "brand-numbers", "brand-about", "brand-mission", "brand-feature", "brand-palette", "brand-usage", "brand-tones", "brand-typeface", "brand-glyphs", "brand-hierarchy", "brand-text", "brand-icons", "brand-mockup"] as const;
+export const BRAND_LAYOUTS = ["brand-cover", "brand-welcome", "brand-index", "brand-section", "brand-numbers", "brand-about", "brand-mission", "brand-feature", "brand-image", "brand-palette", "brand-usage", "brand-tones", "brand-typeface", "brand-glyphs", "brand-hierarchy", "brand-text", "brand-icons", "brand-mockup"] as const;
 export const LAYOUTS = [...EDITORIAL_LAYOUTS, ...PITCH_LAYOUTS, ...BRAND_LAYOUTS] as const;
 
 export const TEMPLATES = ["editorial", "pitch", "brand"] as const;
@@ -31,7 +31,9 @@ export const VARIANTS: Partial<Record<string, readonly string[]>> = {
   cover: ["band", "full", "dim", "color"],
   "pitch-feature": ["side", "collage", "row"],
   "pitch-split": ["left", "right"],
+  "brand-cover": ["arc", "image"],
   "brand-section": ["arc", "orb", "image"],
+  "brand-image": ["full", "duo", "trio", "grid"],
   "brand-feature": ["left", "right"],
   "brand-mockup": ["card", "letterhead", "envelope", "devices", "social"],
 };
@@ -119,6 +121,8 @@ export interface Presentation {
   template?: Template;
   /** Attention colour (hex) used for highlights and accent-toned slides. */
   accent?: string;
+  /** Logo (image URL) shown in the header area of templates that reserve one. */
+  logo?: string;
   slides: Slide[];
   /** Lyrics decks: the YouTube song played in Play mode. */
   music?: MusicTrack;

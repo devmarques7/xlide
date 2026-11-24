@@ -5,7 +5,7 @@ import { ICONS } from "@/lib/icons";
 import { tx, type Locale, type LText, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { onAccent, useLook } from "./look";
-import { BrandAbout, BrandCover, BrandFeature, BrandGlyphs, BrandHierarchy, BrandIcons, BrandIndex, BrandMission, BrandMockup, BrandNumbers, BrandPalette, BrandSection, BrandText, BrandTones, BrandTypeface, BrandUsage, BrandWelcome } from "./brand";
+import { BrandAbout, BrandCover, BrandFeature, BrandGlyphs, BrandHierarchy, BrandIcons, BrandImage, BrandIndex, BrandMission, BrandMockup, BrandNumbers, BrandPalette, BrandSection, BrandText, BrandTones, BrandTypeface, BrandUsage, BrandWelcome } from "./brand";
 import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchStatement, PitchTeam, PitchToc } from "./pitch";
 import { FillImage, FillText } from "./fill";
 import { Lyrics } from "./lyrics";
@@ -500,6 +500,7 @@ const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.React
   "brand-about": BrandAbout,
   "brand-mission": BrandMission,
   "brand-feature": BrandFeature,
+  "brand-image": BrandImage,
   "brand-palette": BrandPalette,
   "brand-usage": BrandUsage,
   "brand-tones": BrandTones,

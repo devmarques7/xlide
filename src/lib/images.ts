@@ -40,7 +40,7 @@ export async function uploadImage(file: File): Promise<UploadResult> {
 }
 
 const base = (s: string) => s.split(/[\\/]/).pop()!.replace(/\.[a-z0-9]+$/i, "").toLowerCase();
-const LAYOUTS_WITH_IMAGE = new Set(["cover", "image", "pitch-cover", "pitch-feature", "pitch-split", "brand-welcome", "brand-feature", "brand-about", "brand-mockup"]);
+const LAYOUTS_WITH_IMAGE = new Set(["cover", "image", "pitch-cover", "pitch-feature", "pitch-split", "brand-welcome", "brand-feature", "brand-about", "brand-mockup", "brand-image", "brand-cover"]);
 
 /**
  * Bulk import: link files to slides. First by file name (slide02.jpg replaces

@@ -12,6 +12,7 @@ import { exportPresentation, presentationFromImport } from "@/lib/importer";
 import { usePrefs } from "@/lib/prefs";
 import { savePresentation } from "@/lib/store";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, LAYOUTS, layoutGroups, LOCALES, TEMPLATES, TONES, tx, VARIANTS, type Locale, type Presentation, type Slide, type Template } from "@/lib/types";
+import { ImageInput } from "@/components/image-input";
 import { cn } from "@/lib/utils";
 import { SlideFrame } from "@/slides/SlideView";
 import { LTextField } from "./fields";
@@ -333,6 +334,10 @@ export function DeckPanel({ deck, lang, onChange }: { deck: Presentation; lang: 
       <div className="flex flex-col gap-1.5">
         <Label>{t("editor.deckAuthor")}</Label>
         <Input value={deck.author ?? ""} onChange={(e) => onChange({ author: e.target.value })} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label>{t("editor.deckLogo")}</Label>
+        <ImageInput value={deck.logo} onChange={(logo) => onChange({ logo: logo || undefined })} />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label>{t("editor.deckTags")}</Label>

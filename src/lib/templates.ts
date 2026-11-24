@@ -176,7 +176,7 @@ export function pitchDeck(): Presentation {
 
 /** "Brand Guidelines" template: white label structure with labelled image slots. */
 export function brandDeck(): Presentation {
-  const p = presentationFromImport(parseImport(JSON.stringify(brandGuidelines)), "pt");
+  const p = presentationFromImport(parseImport(JSON.stringify(brandGuidelines)), "en");
   return { ...p, id: "p_brand", createdAt: SHIPPED_AT, updatedAt: SHIPPED_AT };
 }
 
@@ -223,7 +223,7 @@ export function templateJson(id: Template) {
         "pitch-toc": "title, items[{ label }] (numbered automatically)",
         "pitch-split": "title, subtitle, image, items[{ value, text }], cta; variant: left | right",
         "pitch-team": "title, subtitle, items[{ label: name, text: role, image }], cta",
-        "brand-cover": "title, eyebrow (brand), subtitle (meta, bottom), cta (date); tone dark | light",
+        "brand-cover": "title, subtitle (meta, bottom), cta (date), image; variant: arc | image (photo background); tone dark | light. The deck logo (top-level `logo`, an image URL) fills the reserved logo area",
         "brand-welcome": "title, body, image (portrait), eyebrow (header label)",
         "brand-index": "title, items[{ label, text, value? }] (numbered automatically)",
         "brand-section": "eyebrow (number, e.g. 01), title, image; variant: arc | orb | image; tone accent | dark | light",
@@ -231,6 +231,7 @@ export function templateJson(id: Template) {
         "brand-about": "title, body, image, images[1], items[{ value, label }] x2",
         "brand-mission": "items[{ label, text }] x2, image (symbol in the middle)",
         "brand-feature": "title, body, image, cta (tag); variant: left | right",
+        "brand-image": "image, images[] (full-page photos), title (optional caption), eyebrow; variant: full | duo | trio | grid",
         "brand-palette": "title, items[{ label: name, value: hex, text: role }] up to 8",
         "brand-usage": "title, body, items[{ value: hex, label: '28%' }] up to 9",
         "brand-tones": "title, items[{ label, value: hex }] (tints 100 → 10%)",

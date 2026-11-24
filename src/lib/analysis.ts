@@ -31,6 +31,7 @@ const CAPACITY: Record<Layout, number> = {
   "brand-about": 70,
   "brand-mission": 90,
   "brand-feature": 80,
+  "brand-image": 20,
   "brand-palette": 60,
   "brand-usage": 50,
   "brand-tones": 30,

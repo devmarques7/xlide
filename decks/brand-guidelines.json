@@ -1,71 +1,74 @@
 {
  "title": "Brand Guidelines",
- "description": "Template white label de Brand Guidelines: capa, índice, divisores, paleta, tipografia, ícones, papelaria e mockups.",
- "author": "Marca",
+ "description": "White-label Brand Guidelines template: cover, index, introduction, section dividers, logo, colour, typography, icons, full-page photos, stationery and mockups.",
+ "author": "Brand",
  "tags": [
   "template",
   "brand"
  ],
  "languages": [
-  "pt"
+  "en"
  ],
- "defaultLanguage": "pt",
+ "defaultLanguage": "en",
  "template": "brand",
  "accent": "#EEF23D",
  "slides": [
   {
    "layout": "brand-cover",
    "tone": "dark",
-   "eyebrow": "Marca",
+   "variant": "arc",
    "title": "Brand\nGuidelines",
-   "subtitle": "Versão 1.0\nNome do estúdio",
-   "cta": "Data\nMês 2026",
-   "notes": "Capa escura. Troque marca, versão e data."
+   "subtitle": "Version 1.0\nStudio name",
+   "cta": "Date\nMonth 2026",
+   "notes": "Dark cover. The logo area (top left) shows the deck logo from Deck settings."
   },
   {
    "layout": "brand-cover",
-   "tone": "light",
-   "eyebrow": "Marca",
+   "tone": "dark",
+   "variant": "image",
    "title": "Brand\nGuidelines",
-   "subtitle": "Versão 1.0",
-   "cta": "Mês 2026",
-   "notes": "Capa clara (alternativa)."
+   "subtitle": "Version 1.0",
+   "cta": "Month 2026",
+   "notes": "Alternative cover with a full-bleed photo."
   },
   {
    "layout": "brand-welcome",
-   "eyebrow": "Boas-vindas",
-   "title": "Bem-vindo ao nosso\nBrand Guidelines",
-   "body": "Texto de abertura: por que este guia existe, para quem é e como usar. Duas ou três frases.",
-   "notes": "Retrato de quem assina o guia."
+   "eyebrow": "Welcome",
+   "title": "Welcome to our\nBrand Guidelines",
+   "body": "This guide brings together everything that makes our brand recognisable: who we are, how we look and how we speak.\n\nUse it as the reference for every piece we create, from a business card to a full campaign, so each touchpoint feels like the same brand."
   },
   {
    "layout": "brand-index",
-   "eyebrow": "Índice",
-   "title": "Índice",
+   "eyebrow": "Index",
+   "title": "Index",
    "items": [
     {
-     "label": "Introdução",
-     "text": "Propósito, números e voz"
+     "label": "Introduction",
+     "text": "Story, mission and personality"
     },
     {
      "label": "Logo",
-     "text": "Símbolo, assinatura e usos"
+     "text": "Symbol, wordmark and usage"
     },
     {
-     "label": "Paleta de cores",
-     "text": "Cores, proporção e tons"
+     "label": "Colour palette",
+     "text": "Colours, proportions and tones"
     },
     {
-     "label": "Tipografia",
-     "text": "Famílias e hierarquia"
+     "label": "Typography",
+     "text": "Typefaces and hierarchy"
     },
     {
-     "label": "Elementos",
-     "text": "Ícones e grafismos"
+     "label": "Graphic elements",
+     "text": "Icons and photography"
     },
     {
-     "label": "Aplicações",
-     "text": "Papelaria e mockups"
+     "label": "Stationery",
+     "text": "Cards, letterhead, envelope"
+    },
+    {
+     "label": "Applications",
+     "text": "Digital and social media"
     }
    ]
   },
@@ -74,66 +77,80 @@
    "tone": "accent",
    "variant": "arc",
    "eyebrow": "01",
-   "title": "Introdução"
+   "title": "Introduction"
   },
   {
    "layout": "brand-numbers",
-   "eyebrow": "Introdução",
-   "title": "Uma frase forte sobre\nquem é a marca.",
-   "body": "Parágrafo curto de apoio. Contexto, propósito e o que torna a marca única.",
+   "eyebrow": "Introduction",
+   "title": "A brand is a promise\nkept every day.",
+   "body": "These numbers show where we stand today. Replace them with the facts that best describe the reach and impact of the brand.",
    "items": [
     {
      "value": "000+",
-     "label": "Indicador principal"
+     "label": "Projects delivered"
     },
     {
      "value": "00M",
-     "label": "Indicador 2"
+     "label": "People reached"
     },
     {
      "value": "00K",
-     "label": "Indicador 3"
+     "label": "Community members"
     }
    ]
   },
   {
    "layout": "brand-about",
-   "eyebrow": "Introdução",
-   "title": "Título curto sobre a história\nou o propósito da marca.",
-   "body": "Texto de apoio com duas ou três frases.",
+   "eyebrow": "Introduction",
+   "title": "Our story started with\none simple idea.",
+   "body": "Tell how the brand began, the problem it set out to solve and what has stayed the same since day one.",
    "items": [
     {
-     "value": "00K",
-     "label": "Indicador"
+     "value": "00",
+     "label": "Years of history"
     },
     {
-     "value": "00M",
-     "label": "Indicador"
+     "value": "00",
+     "label": "Cities"
     }
    ]
   },
   {
    "layout": "brand-mission",
    "tone": "dark",
-   "eyebrow": "Introdução",
+   "eyebrow": "Introduction",
    "items": [
     {
-     "label": "Missão",
-     "text": "Uma frase sobre o que a marca faz todos os dias e para quem."
+     "label": "Mission",
+     "text": "What we do every day, for whom, and why it matters."
     },
     {
-     "label": "Visão",
-     "text": "Uma frase sobre o futuro que a marca quer construir."
+     "label": "Vision",
+     "text": "The future we want to help build, in one clear sentence."
     }
    ]
   },
   {
    "layout": "brand-feature",
    "variant": "left",
-   "eyebrow": "Introdução",
-   "title": "Título sobre a\npersonalidade da marca.",
-   "body": "Como a marca fala e se comporta. Três adjetivos e o que eles significam na prática.",
-   "cta": "Voz e tom"
+   "eyebrow": "Introduction",
+   "title": "Confident, warm\nand clear.",
+   "body": "Three traits guide every decision.\n\n*Confident* We say things simply and stand behind them.\n*Warm* We write like people, not institutions.\n*Clear* One idea per message, no jargon.",
+   "cta": "Brand personality"
+  },
+  {
+   "layout": "brand-text",
+   "eyebrow": "Introduction",
+   "title": "We speak the way we would\ntalk to a friend: direct,\nkind and honest.",
+   "subtitle": "Tone of voice",
+   "body": "Our voice is the same everywhere, but the tone adapts to the moment: lighter on social media, calmer in a letter, precise in a guide like this one.\n\nShort sentences, active verbs and concrete words. When in doubt, read it out loud: if it does not sound like us, rewrite it.",
+   "cta": "Voice"
+  },
+  {
+   "layout": "brand-image",
+   "variant": "full",
+   "eyebrow": "Introduction",
+   "title": "The brand in one picture"
   },
   {
    "layout": "brand-section",
@@ -148,69 +165,75 @@
    "eyebrow": "Logo",
    "items": [
     {
-     "label": "Símbolo",
-     "text": "O que o símbolo representa e de onde vem a ideia."
+     "label": "Symbol",
+     "text": "What the symbol represents and where the idea comes from."
     },
     {
-     "label": "Assinatura",
-     "text": "Como o símbolo e o nome se combinam."
+     "label": "Wordmark",
+     "text": "How the symbol and the name work together, and the clear space around them."
     }
    ]
+  },
+  {
+   "layout": "brand-image",
+   "variant": "duo",
+   "eyebrow": "Logo",
+   "title": "Logo on light and dark backgrounds"
   },
   {
    "layout": "brand-section",
    "tone": "light",
    "variant": "orb",
    "eyebrow": "03",
-   "title": "Paleta de cores"
+   "title": "Colour palette"
   },
   {
    "layout": "brand-palette",
-   "eyebrow": "Paleta de cores",
-   "title": "Cores principais",
+   "eyebrow": "Colour palette",
+   "title": "Main colours",
    "items": [
     {
-     "label": "Primária",
+     "label": "Primary",
      "value": "#EEF23D",
-     "text": "destaque"
+     "text": "accent"
     },
     {
-     "label": "Escura",
+     "label": "Dark",
      "value": "#2B2B27",
-     "text": "texto"
+     "text": "text"
     },
     {
-     "label": "Clara",
+     "label": "Light",
      "value": "#F3F3EF",
-     "text": "fundo"
+     "text": "background"
     },
     {
-     "label": "Apoio 1",
+     "label": "Support 1",
      "value": "#B9A6F2",
-     "text": "secundária"
+     "text": "secondary"
     },
     {
-     "label": "Apoio 2",
+     "label": "Support 2",
      "value": "#A9C8F5",
-     "text": "secundária"
+     "text": "secondary"
     },
     {
-     "label": "Apoio 3",
+     "label": "Support 3",
      "value": "#F2A9C8",
-     "text": "secundária"
+     "text": "secondary"
     },
     {
-     "label": "Neutra",
+     "label": "Neutral",
      "value": "#8C8B85",
-     "text": "legendas"
+     "text": "captions"
     }
    ]
   },
   {
    "layout": "brand-usage",
-   "eyebrow": "Paleta de cores",
-   "title": "Uso das cores",
-   "body": "Proporção de cada cor nas peças. A primária é acento, nunca fundo de texto longo.",
+   "eyebrow": "Colour palette",
+   "title": "Colour usage",
+   "body": "How much of each colour appears in our pieces. The primary colour is an accent, never the background of long text.",
    "items": [
     {
      "value": "#F3F3EF",
@@ -240,27 +263,27 @@
   },
   {
    "layout": "brand-tones",
-   "eyebrow": "Paleta de cores",
-   "title": "Tons",
+   "eyebrow": "Colour palette",
+   "title": "Tones",
    "items": [
     {
-     "label": "Primária",
+     "label": "Primary",
      "value": "#EEF23D"
     },
     {
-     "label": "Escura",
+     "label": "Dark",
      "value": "#2B2B27"
     },
     {
-     "label": "Apoio 1",
+     "label": "Support 1",
      "value": "#B9A6F2"
     },
     {
-     "label": "Apoio 2",
+     "label": "Support 2",
      "value": "#A9C8F5"
     },
     {
-     "label": "Apoio 3",
+     "label": "Support 3",
      "value": "#F2A9C8"
     }
    ]
@@ -270,15 +293,15 @@
    "tone": "dark",
    "variant": "arc",
    "eyebrow": "04",
-   "title": "Tipografia"
+   "title": "Typography"
   },
   {
    "layout": "brand-typeface",
    "tone": "accent",
-   "eyebrow": "Tipografia",
+   "eyebrow": "Typography",
    "font": "Fustat",
    "title": "Fustat",
-   "subtitle": "Fonte de títulos. Use em destaques, capas e números.",
+   "subtitle": "Headline typeface. Covers, titles and numbers.",
    "items": [
     {
      "label": "Light",
@@ -304,16 +327,16 @@
   },
   {
    "layout": "brand-glyphs",
-   "eyebrow": "Tipografia",
+   "eyebrow": "Typography",
    "font": "DM Sans",
    "title": "DM Sans",
-   "subtitle": "Fonte de texto. Interface, parágrafos e legendas.",
+   "subtitle": "Text typeface. Interface, paragraphs and captions.",
    "cta": "%*"
   },
   {
    "layout": "brand-hierarchy",
-   "eyebrow": "Tipografia",
-   "title": "Hierarquia",
+   "eyebrow": "Typography",
+   "title": "Hierarchy",
    "items": [
     {
      "label": "Heading 01",
@@ -324,88 +347,112 @@
      "value": "40 / Medium"
     },
     {
-     "label": "Subtítulo",
+     "label": "Subtitle",
      "value": "24 / Medium"
     },
     {
-     "label": "Texto corrido para leitura em tela e papel.",
+     "label": "Body text for screen and print.",
      "value": "16 / Regular"
     },
     {
-     "label": "LEGENDA",
+     "label": "CAPTION",
      "value": "12 / Mono"
     }
    ]
   },
   {
    "layout": "brand-text",
-   "eyebrow": "Tipografia",
-   "title": "Frase de destaque em\nduas ou três linhas.",
-   "subtitle": "Citação ou texto de apoio ao lado.",
-   "body": "Exemplo de texto corrido em duas colunas. Mostra espaçamento, tamanho e cor do texto longo nas peças da marca. Substitua por um trecho real do manifesto ou de uma peça.\n\nSegundo parágrafo para mostrar a quebra entre colunas e o ritmo da leitura.",
-   "cta": "Destaque"
+   "eyebrow": "Typography",
+   "title": "A highlighted sentence\nin two or three lines.",
+   "subtitle": "A quote or supporting text on the side.",
+   "body": "Example of running text in two columns. It shows spacing, size and colour of long copy in our pieces. Replace it with a real excerpt from the manifesto or a campaign.\n\nA second paragraph shows the break between columns and the rhythm of reading.",
+   "cta": "Highlight"
+  },
+  {
+   "layout": "brand-section",
+   "tone": "dark",
+   "variant": "image",
+   "eyebrow": "05",
+   "title": "Graphic elements"
   },
   {
    "layout": "brand-icons",
    "tone": "dark",
-   "eyebrow": "Elementos",
-   "title": "Ícones"
+   "eyebrow": "Graphic elements",
+   "title": "Icons"
+  },
+  {
+   "layout": "brand-image",
+   "variant": "grid",
+   "eyebrow": "Graphic elements",
+   "title": "Photography style"
+  },
+  {
+   "layout": "brand-image",
+   "variant": "trio",
+   "eyebrow": "Graphic elements"
   },
   {
    "layout": "brand-section",
    "tone": "light",
    "variant": "orb",
-   "eyebrow": "05",
-   "title": "Papelaria"
+   "eyebrow": "06",
+   "title": "Stationery"
   },
   {
    "layout": "brand-mockup",
    "variant": "card",
-   "eyebrow": "Papelaria",
-   "title": "Cartão de visita",
-   "body": "Frente e verso. 85 × 55 mm."
+   "eyebrow": "Stationery",
+   "title": "Business card",
+   "body": "Front and back. 85 × 55 mm."
   },
   {
    "layout": "brand-mockup",
    "variant": "letterhead",
-   "eyebrow": "Papelaria",
-   "title": "Papel timbrado",
-   "body": "A4. Margens e posição do logo."
+   "eyebrow": "Stationery",
+   "title": "Letterhead",
+   "body": "A4. Margins and logo position."
   },
   {
    "layout": "brand-mockup",
    "variant": "envelope",
-   "eyebrow": "Papelaria",
+   "eyebrow": "Stationery",
    "title": "Envelope",
-   "body": "DL. Frente e verso."
+   "body": "DL. Front and back."
   },
   {
    "layout": "brand-section",
    "tone": "accent",
    "variant": "arc",
-   "eyebrow": "06",
-   "title": "Aplicações"
+   "eyebrow": "07",
+   "title": "Applications"
   },
   {
    "layout": "brand-mockup",
    "variant": "devices",
-   "eyebrow": "Aplicações",
+   "eyebrow": "Applications",
    "title": "Digital",
-   "body": "Site, app e tablet."
+   "body": "Website, app and tablet."
   },
   {
    "layout": "brand-mockup",
    "variant": "social",
-   "eyebrow": "Aplicações",
-   "title": "Redes sociais",
-   "body": "Posts 1:1."
+   "eyebrow": "Applications",
+   "title": "Social media",
+   "body": "1:1 posts."
+  },
+  {
+   "layout": "brand-image",
+   "variant": "full",
+   "eyebrow": "Applications",
+   "title": "Campaign"
   },
   {
    "layout": "brand-cover",
    "tone": "dark",
-   "eyebrow": "Marca",
-   "title": "Obrigado.",
-   "subtitle": "Contato\nnome@marca.com",
+   "variant": "arc",
+   "title": "Thank you.",
+   "subtitle": "Contact\nname@brand.com",
    "cta": "Brand Guidelines\nv1.0"
   }
  ]

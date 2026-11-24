@@ -203,6 +203,7 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
   },
   "brand-cover": {
     fields: [
+      { key: "image", label: "editor.fields.image" },
       { key: "title", label: "editor.fields.title", multiline: true },
       { key: "eyebrow", label: "editor.fields.eyebrow" },
       { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
@@ -263,6 +264,14 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
       { key: "body", label: "editor.fields.body", multiline: true },
       { key: "image", label: "editor.fields.image" },
       { key: "cta", label: "editor.fields.meta" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+  },
+  "brand-image": {
+    fields: [
+      { key: "image", label: "editor.fields.image" },
+      { key: "images", label: "editor.fields.images" },
+      { key: "title", label: "editor.fields.caption" },
       { key: "eyebrow", label: "editor.fields.eyebrow" },
     ],
   },

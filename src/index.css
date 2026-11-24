@@ -220,6 +220,8 @@ html.immersive-ios body {
   padding: 0.6rem 1rem; background: var(--background); border-bottom: 1px solid var(--border);
 }
 .print-page { width: 1600px; height: 900px; margin: 1.5rem auto 0; overflow: hidden; }
+/* On screen the 1600×900 pages shrink to the window (zoom keeps the layout identical); export renders them at full size. */
+@media screen { .print-deck:not(.exporting) .print-page { zoom: var(--fit, 1); } }
 @page { size: 1600px 900px; margin: 0; }
 @media print {
   .print-bar { display: none; }

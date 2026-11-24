@@ -78,6 +78,7 @@ function parsePlainText(text: string): Slide[] {
 export interface ParsedImport {
   title?: LText;
   author?: string;
+  logo?: string;
   template?: Template;
   accent?: string;
   description?: LText;
@@ -116,6 +117,7 @@ export function parseImport(input: string): ParsedImport {
     return {
       title: asLText(obj.title),
       author: typeof obj.author === "string" ? obj.author : undefined,
+      logo: typeof obj.logo === "string" ? obj.logo : undefined,
       template: (TEMPLATES as readonly string[]).includes(obj.template) ? obj.template : undefined,
       accent: typeof obj.accent === "string" && /^#[0-9a-f]{6}$/i.test(obj.accent) ? obj.accent : undefined,
       description: asLText(obj.description),
@@ -137,6 +139,7 @@ export function presentationFromImport(p: ParsedImport, fallbackLang: Locale): P
     title: p.title ?? "Imported",
     description: p.description,
     author: p.author,
+    logo: p.logo,
     template: p.template,
     accent: p.accent,
     languages,
@@ -159,6 +162,7 @@ export function exportPresentation(p: Presentation) {
     title: p.title,
     description: p.description,
     author: p.author,
+    logo: p.logo,
     template: p.template,
     accent: p.accent,
     tags: p.tags,

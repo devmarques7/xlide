@@ -6,6 +6,7 @@ export interface Look {
   template: Template;
   accent: string;
   company?: string;
+  logo?: string;
   deckTitle?: string;
   /** Music decks: lyric colours and section labels. */
   music?: MusicTrack;
@@ -19,6 +20,7 @@ export function lookOf(deck: Presentation | undefined, lang?: Locale): Look {
     template: deck?.template ?? "editorial",
     accent: deck?.accent ?? DEFAULT_ACCENT,
     company: deck?.author,
+    logo: deck?.logo,
     deckTitle: deck ? tx(deck.title, lang ?? deck.defaultLanguage, deck.defaultLanguage) : undefined,
     music: deck?.music,
     lang: lang ?? deck?.defaultLanguage,
