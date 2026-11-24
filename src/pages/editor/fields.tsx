@@ -201,6 +201,146 @@ export const LAYOUT_FIELDS: Record<Layout, { fields: FieldDef[]; items?: (ItemKe
     ],
     items: ["image", "label", "text"],
   },
+  "brand-cover": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "cta", label: "editor.fields.meta" },
+    ],
+  },
+  "brand-welcome": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+  },
+  "brand-index": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["value", "label", "text"],
+  },
+  "brand-section": {
+    fields: [
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+    ],
+  },
+  "brand-numbers": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["value", "label"],
+  },
+  "brand-about": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "images", label: "editor.fields.images" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["value", "label"],
+  },
+  "brand-mission": {
+    fields: [
+      { key: "image", label: "editor.fields.image" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["label", "text"],
+  },
+  "brand-feature": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "cta", label: "editor.fields.meta" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+  },
+  "brand-palette": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["label", "value", "text"],
+  },
+  "brand-usage": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["value", "label"],
+  },
+  "brand-tones": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["label", "value"],
+  },
+  "brand-typeface": {
+    fields: [
+      { key: "font", label: "editor.fields.font" },
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["label", "value"],
+  },
+  "brand-glyphs": {
+    fields: [
+      { key: "font", label: "editor.fields.font" },
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "cta", label: "editor.fields.meta" },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+  },
+  "brand-hierarchy": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["label", "value"],
+  },
+  "brand-text": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "subtitle", label: "editor.fields.subtitle", multiline: true },
+      { key: "cta", label: "editor.fields.meta" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+  },
+  "brand-icons": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+    items: ["icon", "label"],
+  },
+  "brand-mockup": {
+    fields: [
+      { key: "title", label: "editor.fields.title", multiline: true },
+      { key: "body", label: "editor.fields.body", multiline: true },
+      { key: "image", label: "editor.fields.image" },
+      { key: "images", label: "editor.fields.images" },
+      { key: "eyebrow", label: "editor.fields.eyebrow" },
+    ],
+  },
 };
 
 /**
@@ -300,7 +440,7 @@ export function SlideContentForm({
 
   return (
     <div className="flex flex-col gap-4">
-      {slide.layout.startsWith("pitch-") && <p className="text-xs text-muted-foreground">{t("editor.highlightHint")}</p>}
+      {(slide.layout.startsWith("pitch-") || slide.layout.startsWith("brand-")) && <p className="text-xs text-muted-foreground">{t("editor.highlightHint")}</p>}
       {def.fields.map((f) =>
         f.key === "images" ? (
           <div key="images" className="flex flex-col gap-1.5">
@@ -341,7 +481,11 @@ export function SlideContentForm({
           <div key="font" className="flex flex-col gap-1.5">
             <Label>{t(f.label)}</Label>
             {everywhereBox}
-            <FontPicker value={slide.font} onChange={(font) => setLook({ font })} />
+            {slide.layout.startsWith("brand-") ? (
+              <Input value={slide.font ?? ""} placeholder="Google Fonts · ex.: DM Sans" onChange={(e) => onChange({ font: e.target.value || undefined })} />
+            ) : (
+              <FontPicker value={slide.font} onChange={(font) => setLook({ font })} />
+            )}
           </div>
         ) : f.key === "image" ? (
           <div key="image" className="flex flex-col gap-1.5">

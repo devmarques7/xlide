@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { samplePresentations } from "./samples";
 import { SHIPPED_DECKS } from "./decks";
-import { pitchDeck } from "./templates";
+import { brandDeck, pitchDeck } from "./templates";
 import type { Presentation } from "./types";
 import { uid } from "./utils";
 
@@ -12,7 +12,7 @@ type Listener = () => void;
 /* Decks that ship with the app. They are always present unless the user
    deleted them on purpose, so an older tab rewriting the list cannot lose them. */
 const DELETED_KEY = "xlide.deletedBuiltins";
-const BUILTINS: Record<string, () => Presentation> = { ...SHIPPED_DECKS, p_pitch: pitchDeck };
+const BUILTINS: Record<string, () => Presentation> = { ...SHIPPED_DECKS, p_pitch: pitchDeck, p_brand: brandDeck };
 export const isBuiltin = (id: string) => id in BUILTINS;
 
 function deletedBuiltins(): string[] {

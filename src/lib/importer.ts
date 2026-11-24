@@ -174,6 +174,11 @@ export function blankSlide(layout: Layout): Slide {
   if (["stats"].includes(layout)) base.items = [0, 1, 2, 3].map(() => ({ id: uid("i_"), value: "", label: "" }));
   if (layout.startsWith("pitch-") && layout !== "pitch-cover") base.items = [0, 1, 2].map(() => ({ id: uid("i_"), label: "", text: "" }));
   if (layout === "pitch-cover") base.tone = "dark";
+  if (layout === "brand-index") base.items = [0, 1, 2, 3, 4, 5].map(() => ({ id: uid("i_"), label: "", text: "" }));
+  if (["brand-numbers", "brand-about", "brand-mission"].includes(layout)) base.items = [0, 1, 2].map(() => ({ id: uid("i_"), label: "", value: "", text: "" }));
+  if (["brand-palette", "brand-usage", "brand-tones"].includes(layout)) base.items = ["#232320", "#f3f3ef", "#e4f53b"].map((value) => ({ id: uid("i_"), label: "", value }));
+  if (layout === "brand-typeface") base.items = [["Light", "300"], ["Regular", "400"], ["Medium", "500"], ["Bold", "700"]].map(([label, value]) => ({ id: uid("i_"), label, value }));
+  if (layout === "brand-hierarchy") base.items = [["Heading 01", "64 / 500"], ["Heading 02", "40 / 500"], ["Subtitle", "24 / 500"], ["Body text", "16 / 400"]].map(([label, value]) => ({ id: uid("i_"), label, value }));
   if (layout === "chapter") base.items = [0, 1, 2].map((i) => ({ id: uid("i_"), value: `1.${i + 1}`, label: "" }));
   if (layout === "questions") {
     base.items = [0, 1, 2, 3].map(() => ({ id: uid("i_"), label: "", text: "" }));

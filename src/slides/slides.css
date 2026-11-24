@@ -33,17 +33,17 @@
   --mute: color-mix(in oklab, var(--ink) 58%, var(--paper));
 }
 /* Slide tone (editorial template): dark = inverted, accent = attention colour. */
-.xs[data-tone="dark"]:not(.tpl-pitch) {
+.xs[data-tone="dark"]:not(.tpl-pitch):not(.tpl-brand) {
   --paper: var(--foreground);
   --ink: var(--background);
   --mute: color-mix(in oklab, var(--ink) 58%, var(--paper));
 }
-.xs[data-tone="light"]:not(.tpl-pitch) {
+.xs[data-tone="light"]:not(.tpl-pitch):not(.tpl-brand) {
   --paper: #f1f0ec;
   --ink: #161615;
   --mute: #6f6e69;
 }
-.xs[data-tone="accent"]:not(.tpl-pitch) {
+.xs[data-tone="accent"]:not(.tpl-pitch):not(.tpl-brand) {
   --paper: var(--accent);
   --ink: var(--on-accent);
   --mute: color-mix(in oklab, var(--on-accent) 70%, var(--accent));

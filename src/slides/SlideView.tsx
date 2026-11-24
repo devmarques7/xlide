@@ -5,6 +5,7 @@ import { ICONS } from "@/lib/icons";
 import { tx, type Locale, type LText, type Slide } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { onAccent, useLook } from "./look";
+import { BrandAbout, BrandCover, BrandFeature, BrandGlyphs, BrandHierarchy, BrandIcons, BrandIndex, BrandMission, BrandMockup, BrandNumbers, BrandPalette, BrandSection, BrandText, BrandTones, BrandTypeface, BrandUsage, BrandWelcome } from "./brand";
 import { PitchCover, PitchFeature, PitchNumbers, PitchSplit, PitchStatement, PitchTeam, PitchToc } from "./pitch";
 import { FillImage, FillText } from "./fill";
 import { Lyrics } from "./lyrics";
@@ -32,10 +33,11 @@ export function SlideView({ slide, lang, fallback, live, scale = 1, animate, cla
   const T = (v: LText | undefined) => tx(v, lang, fallback);
   const Layout = LAYOUT_COMPONENTS[slide.layout] ?? Statement;
   const pitch = slide.layout.startsWith("pitch-");
-  const tone = slide.tone ?? (slide.layout === "pitch-cover" ? "dark" : undefined);
+  const brand = slide.layout.startsWith("brand-");
+  const tone = slide.tone ?? (slide.layout === "pitch-cover" ? "dark" : BRAND_DEFAULT_TONE[slide.layout]);
   return (
     <div
-      className={cn("xs", slide.inverse && "inverse", pitch && "tpl-pitch", className)}
+      className={cn("xs", slide.inverse && "inverse", pitch && "tpl-pitch", brand && "tpl-brand", className)}
       data-layout={slide.layout}
       data-tone={tone}
       data-live={live ? "" : undefined}
@@ -490,6 +492,31 @@ const LAYOUT_COMPONENTS: Record<Slide["layout"], (p: LayoutProps) => React.React
   "pitch-toc": PitchToc,
   "pitch-split": PitchSplit,
   "pitch-team": PitchTeam,
+  "brand-cover": BrandCover,
+  "brand-welcome": BrandWelcome,
+  "brand-index": BrandIndex,
+  "brand-section": BrandSection,
+  "brand-numbers": BrandNumbers,
+  "brand-about": BrandAbout,
+  "brand-mission": BrandMission,
+  "brand-feature": BrandFeature,
+  "brand-palette": BrandPalette,
+  "brand-usage": BrandUsage,
+  "brand-tones": BrandTones,
+  "brand-typeface": BrandTypeface,
+  "brand-glyphs": BrandGlyphs,
+  "brand-hierarchy": BrandHierarchy,
+  "brand-text": BrandText,
+  "brand-icons": BrandIcons,
+  "brand-mockup": BrandMockup,
+};
+
+/** Brand template: slides that are dark or in the accent colour unless the user picks a tone. */
+const BRAND_DEFAULT_TONE: Partial<Record<Slide["layout"], Slide["tone"]>> = {
+  "brand-cover": "dark",
+  "brand-section": "accent",
+  "brand-mission": "dark",
+  "brand-icons": "dark",
 };
 
 /** Fixed-ratio frame for previews and thumbnails. */

@@ -1,4 +1,5 @@
-import { exportPresentation } from "./importer";
+import brandGuidelines from "../../decks/brand-guidelines.json";
+import { exportPresentation, parseImport, presentationFromImport } from "./importer";
 import { samplePresentations } from "./samples";
 import { SHIPPED_AT, type Presentation, type Template } from "./types";
 import { uid } from "./utils";
@@ -173,6 +174,12 @@ export function pitchDeck(): Presentation {
   };
 }
 
+/** "Brand Guidelines" template: white label structure with labelled image slots. */
+export function brandDeck(): Presentation {
+  const p = presentationFromImport(parseImport(JSON.stringify(brandGuidelines)), "pt");
+  return { ...p, id: "p_brand", createdAt: SHIPPED_AT, updatedAt: SHIPPED_AT };
+}
+
 export interface TemplateInfo {
   id: Template;
   sample: () => Presentation;
@@ -180,6 +187,7 @@ export interface TemplateInfo {
 
 export const TEMPLATE_LIST: TemplateInfo[] = [
   { id: "pitch", sample: pitchDeck },
+  { id: "brand", sample: brandDeck },
   { id: "editorial", sample: () => samplePresentations()[0] },
 ];
 
@@ -215,6 +223,23 @@ export function templateJson(id: Template) {
         "pitch-toc": "title, items[{ label }] (numbered automatically)",
         "pitch-split": "title, subtitle, image, items[{ value, text }], cta; variant: left | right",
         "pitch-team": "title, subtitle, items[{ label: name, text: role, image }], cta",
+        "brand-cover": "title, eyebrow (brand), subtitle (meta, bottom), cta (date); tone dark | light",
+        "brand-welcome": "title, body, image (portrait), eyebrow (header label)",
+        "brand-index": "title, items[{ label, text, value? }] (numbered automatically)",
+        "brand-section": "eyebrow (number, e.g. 01), title, image; variant: arc | orb | image; tone accent | dark | light",
+        "brand-numbers": "title, body, image, items[{ value, label }] (first is the big accent tile)",
+        "brand-about": "title, body, image, images[1], items[{ value, label }] x2",
+        "brand-mission": "items[{ label, text }] x2, image (symbol in the middle)",
+        "brand-feature": "title, body, image, cta (tag); variant: left | right",
+        "brand-palette": "title, items[{ label: name, value: hex, text: role }] up to 8",
+        "brand-usage": "title, body, items[{ value: hex, label: '28%' }] up to 9",
+        "brand-tones": "title, items[{ label, value: hex }] (tints 100 → 10%)",
+        "brand-typeface": "font (Google Fonts family), title, subtitle, body (alphabet), items[{ label: weight name, value: 300..800 }]",
+        "brand-glyphs": "font, title, subtitle, body (character set), cta (big glyphs)",
+        "brand-hierarchy": "title, image, items[{ label: sample text, value: size / weight }]",
+        "brand-text": "title (lead), body (two columns), subtitle (side text), cta (tag)",
+        "brand-icons": "title, items[{ icon, label }] (empty = 24 placeholder cells)",
+        "brand-mockup": "title, body, image, images[]; variant: card | letterhead | envelope | devices | social",
       },
     },
     ...deck,

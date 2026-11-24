@@ -11,7 +11,7 @@ import { LOCALE_SHORT, type TKey } from "@/lib/i18n";
 import { exportPresentation, presentationFromImport } from "@/lib/importer";
 import { usePrefs } from "@/lib/prefs";
 import { savePresentation } from "@/lib/store";
-import { ACCENT_PRESETS, DEFAULT_ACCENT, EDITORIAL_LAYOUTS, LAYOUTS, LOCALES, PITCH_LAYOUTS, TEMPLATES, TONES, tx, VARIANTS, type Locale, type Presentation, type Slide, type Template } from "@/lib/types";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, LAYOUTS, layoutGroups, LOCALES, TEMPLATES, TONES, tx, VARIANTS, type Locale, type Presentation, type Slide, type Template } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { SlideFrame } from "@/slides/SlideView";
 import { LTextField } from "./fields";
@@ -20,7 +20,7 @@ import { LTextField } from "./fields";
 
 export function DesignPanel({ slide, lang, fallback, template, onChange }: { slide: Slide; lang: Locale; fallback: Locale; template: Template; onChange: (p: Partial<Slide>) => void }) {
   const { t } = usePrefs();
-  const groups = template === "pitch" ? [PITCH_LAYOUTS, EDITORIAL_LAYOUTS] : [EDITORIAL_LAYOUTS, PITCH_LAYOUTS];
+  const groups = layoutGroups(template);
   const variants = VARIANTS[slide.layout];
   return (
     <div className="flex flex-col gap-5">
@@ -43,10 +43,10 @@ export function DesignPanel({ slide, lang, fallback, template, onChange }: { sli
         </div>
       )}
       <Separator />
-      {groups.map((group) => (
+      {groups.map(([tpl, group]) => (
         <div key={group[0]} className="flex flex-col gap-2">
           <Label>
-            {t("editor.layout")} · {t(group === PITCH_LAYOUTS ? "template.pitch" : "template.editorial")}
+            {t("editor.layout")} · {t(`template.${tpl}`)}
           </Label>
           <div className="grid grid-cols-2 gap-3">
             {group.map((l) => (
@@ -69,7 +69,7 @@ export function DesignPanel({ slide, lang, fallback, template, onChange }: { sli
           </div>
         </div>
       ))}
-      {!slide.layout.startsWith("pitch-") && (
+      {!slide.layout.startsWith("pitch-") && !slide.layout.startsWith("brand-") && (
         <>
           <Separator />
           <label className="flex items-center justify-between gap-4">

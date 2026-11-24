@@ -16,7 +16,7 @@ import { LOCALE_SHORT } from "@/lib/i18n";
 import { blankSlide } from "@/lib/importer";
 import { usePrefs } from "@/lib/prefs";
 import { isBuiltin, restoreBuiltin, updatePresentation, usePresentation } from "@/lib/store";
-import { EDITORIAL_LAYOUTS, PITCH_LAYOUTS, tx, type Locale, type Presentation, type Slide } from "@/lib/types";
+import { layoutGroups, tx, type Locale, type Presentation, type Slide } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
 import { DeckLook } from "@/slides/look";
 import { SlideFrame } from "@/slides/SlideView";
@@ -222,9 +222,9 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {(deck.template === "pitch" ? [PITCH_LAYOUTS, EDITORIAL_LAYOUTS] : [EDITORIAL_LAYOUTS, PITCH_LAYOUTS]).map((group, gi) => (
+                {layoutGroups(deck.template).map(([tpl, group], gi) => (
                   <div key={gi}>
-                    <DropdownMenuLabel>{t(group === PITCH_LAYOUTS ? "template.pitch" : "template.editorial")}</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t(`template.${tpl}`)}</DropdownMenuLabel>
                     {group.map((l) => (
                       <DropdownMenuItem key={l} onSelect={() => insertAfter(blankSlide(l))}>
                         {t(`layout.${l}`)}

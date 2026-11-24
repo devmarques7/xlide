@@ -1,0 +1,412 @@
+{
+ "title": "Brand Guidelines",
+ "description": "Template white label de Brand Guidelines: capa, índice, divisores, paleta, tipografia, ícones, papelaria e mockups.",
+ "author": "Marca",
+ "tags": [
+  "template",
+  "brand"
+ ],
+ "languages": [
+  "pt"
+ ],
+ "defaultLanguage": "pt",
+ "template": "brand",
+ "accent": "#EEF23D",
+ "slides": [
+  {
+   "layout": "brand-cover",
+   "tone": "dark",
+   "eyebrow": "Marca",
+   "title": "Brand\nGuidelines",
+   "subtitle": "Versão 1.0\nNome do estúdio",
+   "cta": "Data\nMês 2026",
+   "notes": "Capa escura. Troque marca, versão e data."
+  },
+  {
+   "layout": "brand-cover",
+   "tone": "light",
+   "eyebrow": "Marca",
+   "title": "Brand\nGuidelines",
+   "subtitle": "Versão 1.0",
+   "cta": "Mês 2026",
+   "notes": "Capa clara (alternativa)."
+  },
+  {
+   "layout": "brand-welcome",
+   "eyebrow": "Boas-vindas",
+   "title": "Bem-vindo ao nosso\nBrand Guidelines",
+   "body": "Texto de abertura: por que este guia existe, para quem é e como usar. Duas ou três frases.",
+   "notes": "Retrato de quem assina o guia."
+  },
+  {
+   "layout": "brand-index",
+   "eyebrow": "Índice",
+   "title": "Índice",
+   "items": [
+    {
+     "label": "Introdução",
+     "text": "Propósito, números e voz"
+    },
+    {
+     "label": "Logo",
+     "text": "Símbolo, assinatura e usos"
+    },
+    {
+     "label": "Paleta de cores",
+     "text": "Cores, proporção e tons"
+    },
+    {
+     "label": "Tipografia",
+     "text": "Famílias e hierarquia"
+    },
+    {
+     "label": "Elementos",
+     "text": "Ícones e grafismos"
+    },
+    {
+     "label": "Aplicações",
+     "text": "Papelaria e mockups"
+    }
+   ]
+  },
+  {
+   "layout": "brand-section",
+   "tone": "accent",
+   "variant": "arc",
+   "eyebrow": "01",
+   "title": "Introdução"
+  },
+  {
+   "layout": "brand-numbers",
+   "eyebrow": "Introdução",
+   "title": "Uma frase forte sobre\nquem é a marca.",
+   "body": "Parágrafo curto de apoio. Contexto, propósito e o que torna a marca única.",
+   "items": [
+    {
+     "value": "000+",
+     "label": "Indicador principal"
+    },
+    {
+     "value": "00M",
+     "label": "Indicador 2"
+    },
+    {
+     "value": "00K",
+     "label": "Indicador 3"
+    }
+   ]
+  },
+  {
+   "layout": "brand-about",
+   "eyebrow": "Introdução",
+   "title": "Título curto sobre a história\nou o propósito da marca.",
+   "body": "Texto de apoio com duas ou três frases.",
+   "items": [
+    {
+     "value": "00K",
+     "label": "Indicador"
+    },
+    {
+     "value": "00M",
+     "label": "Indicador"
+    }
+   ]
+  },
+  {
+   "layout": "brand-mission",
+   "tone": "dark",
+   "eyebrow": "Introdução",
+   "items": [
+    {
+     "label": "Missão",
+     "text": "Uma frase sobre o que a marca faz todos os dias e para quem."
+    },
+    {
+     "label": "Visão",
+     "text": "Uma frase sobre o futuro que a marca quer construir."
+    }
+   ]
+  },
+  {
+   "layout": "brand-feature",
+   "variant": "left",
+   "eyebrow": "Introdução",
+   "title": "Título sobre a\npersonalidade da marca.",
+   "body": "Como a marca fala e se comporta. Três adjetivos e o que eles significam na prática.",
+   "cta": "Voz e tom"
+  },
+  {
+   "layout": "brand-section",
+   "tone": "dark",
+   "variant": "arc",
+   "eyebrow": "02",
+   "title": "Logo"
+  },
+  {
+   "layout": "brand-mission",
+   "tone": "light",
+   "eyebrow": "Logo",
+   "items": [
+    {
+     "label": "Símbolo",
+     "text": "O que o símbolo representa e de onde vem a ideia."
+    },
+    {
+     "label": "Assinatura",
+     "text": "Como o símbolo e o nome se combinam."
+    }
+   ]
+  },
+  {
+   "layout": "brand-section",
+   "tone": "light",
+   "variant": "orb",
+   "eyebrow": "03",
+   "title": "Paleta de cores"
+  },
+  {
+   "layout": "brand-palette",
+   "eyebrow": "Paleta de cores",
+   "title": "Cores principais",
+   "items": [
+    {
+     "label": "Primária",
+     "value": "#EEF23D",
+     "text": "destaque"
+    },
+    {
+     "label": "Escura",
+     "value": "#2B2B27",
+     "text": "texto"
+    },
+    {
+     "label": "Clara",
+     "value": "#F3F3EF",
+     "text": "fundo"
+    },
+    {
+     "label": "Apoio 1",
+     "value": "#B9A6F2",
+     "text": "secundária"
+    },
+    {
+     "label": "Apoio 2",
+     "value": "#A9C8F5",
+     "text": "secundária"
+    },
+    {
+     "label": "Apoio 3",
+     "value": "#F2A9C8",
+     "text": "secundária"
+    },
+    {
+     "label": "Neutra",
+     "value": "#8C8B85",
+     "text": "legendas"
+    }
+   ]
+  },
+  {
+   "layout": "brand-usage",
+   "eyebrow": "Paleta de cores",
+   "title": "Uso das cores",
+   "body": "Proporção de cada cor nas peças. A primária é acento, nunca fundo de texto longo.",
+   "items": [
+    {
+     "value": "#F3F3EF",
+     "label": "28%"
+    },
+    {
+     "value": "#2B2B27",
+     "label": "65%"
+    },
+    {
+     "value": "#EEF23D",
+     "label": "12%"
+    },
+    {
+     "value": "#A9C8F5",
+     "label": "43%"
+    },
+    {
+     "value": "#8C8B85",
+     "label": "52%"
+    },
+    {
+     "value": "#B9A6F2",
+     "label": "30%"
+    }
+   ]
+  },
+  {
+   "layout": "brand-tones",
+   "eyebrow": "Paleta de cores",
+   "title": "Tons",
+   "items": [
+    {
+     "label": "Primária",
+     "value": "#EEF23D"
+    },
+    {
+     "label": "Escura",
+     "value": "#2B2B27"
+    },
+    {
+     "label": "Apoio 1",
+     "value": "#B9A6F2"
+    },
+    {
+     "label": "Apoio 2",
+     "value": "#A9C8F5"
+    },
+    {
+     "label": "Apoio 3",
+     "value": "#F2A9C8"
+    }
+   ]
+  },
+  {
+   "layout": "brand-section",
+   "tone": "dark",
+   "variant": "arc",
+   "eyebrow": "04",
+   "title": "Tipografia"
+  },
+  {
+   "layout": "brand-typeface",
+   "tone": "accent",
+   "eyebrow": "Tipografia",
+   "font": "Fustat",
+   "title": "Fustat",
+   "subtitle": "Fonte de títulos. Use em destaques, capas e números.",
+   "items": [
+    {
+     "label": "Light",
+     "value": "300"
+    },
+    {
+     "label": "Regular",
+     "value": "400"
+    },
+    {
+     "label": "Medium",
+     "value": "500"
+    },
+    {
+     "label": "SemiBold",
+     "value": "600"
+    },
+    {
+     "label": "Bold",
+     "value": "700"
+    }
+   ]
+  },
+  {
+   "layout": "brand-glyphs",
+   "eyebrow": "Tipografia",
+   "font": "DM Sans",
+   "title": "DM Sans",
+   "subtitle": "Fonte de texto. Interface, parágrafos e legendas.",
+   "cta": "%*"
+  },
+  {
+   "layout": "brand-hierarchy",
+   "eyebrow": "Tipografia",
+   "title": "Hierarquia",
+   "items": [
+    {
+     "label": "Heading 01",
+     "value": "64 / Medium"
+    },
+    {
+     "label": "Heading 02",
+     "value": "40 / Medium"
+    },
+    {
+     "label": "Subtítulo",
+     "value": "24 / Medium"
+    },
+    {
+     "label": "Texto corrido para leitura em tela e papel.",
+     "value": "16 / Regular"
+    },
+    {
+     "label": "LEGENDA",
+     "value": "12 / Mono"
+    }
+   ]
+  },
+  {
+   "layout": "brand-text",
+   "eyebrow": "Tipografia",
+   "title": "Frase de destaque em\nduas ou três linhas.",
+   "subtitle": "Citação ou texto de apoio ao lado.",
+   "body": "Exemplo de texto corrido em duas colunas. Mostra espaçamento, tamanho e cor do texto longo nas peças da marca. Substitua por um trecho real do manifesto ou de uma peça.\n\nSegundo parágrafo para mostrar a quebra entre colunas e o ritmo da leitura.",
+   "cta": "Destaque"
+  },
+  {
+   "layout": "brand-icons",
+   "tone": "dark",
+   "eyebrow": "Elementos",
+   "title": "Ícones"
+  },
+  {
+   "layout": "brand-section",
+   "tone": "light",
+   "variant": "orb",
+   "eyebrow": "05",
+   "title": "Papelaria"
+  },
+  {
+   "layout": "brand-mockup",
+   "variant": "card",
+   "eyebrow": "Papelaria",
+   "title": "Cartão de visita",
+   "body": "Frente e verso. 85 × 55 mm."
+  },
+  {
+   "layout": "brand-mockup",
+   "variant": "letterhead",
+   "eyebrow": "Papelaria",
+   "title": "Papel timbrado",
+   "body": "A4. Margens e posição do logo."
+  },
+  {
+   "layout": "brand-mockup",
+   "variant": "envelope",
+   "eyebrow": "Papelaria",
+   "title": "Envelope",
+   "body": "DL. Frente e verso."
+  },
+  {
+   "layout": "brand-section",
+   "tone": "accent",
+   "variant": "arc",
+   "eyebrow": "06",
+   "title": "Aplicações"
+  },
+  {
+   "layout": "brand-mockup",
+   "variant": "devices",
+   "eyebrow": "Aplicações",
+   "title": "Digital",
+   "body": "Site, app e tablet."
+  },
+  {
+   "layout": "brand-mockup",
+   "variant": "social",
+   "eyebrow": "Aplicações",
+   "title": "Redes sociais",
+   "body": "Posts 1:1."
+  },
+  {
+   "layout": "brand-cover",
+   "tone": "dark",
+   "eyebrow": "Marca",
+   "title": "Obrigado.",
+   "subtitle": "Contato\nnome@marca.com",
+   "cta": "Brand Guidelines\nv1.0"
+  }
+ ]
+}

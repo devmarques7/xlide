@@ -6,10 +6,21 @@ export type LText = string | Partial<Record<Locale, string>>;
 
 export const EDITORIAL_LAYOUTS = ["aura", "cover", "stats", "services", "gallery", "split", "statement", "contact", "image", "chapter", "questions", "reel", "moodboard", "lyrics"] as const;
 export const PITCH_LAYOUTS = ["pitch-cover", "pitch-statement", "pitch-numbers", "pitch-feature", "pitch-toc", "pitch-split", "pitch-team"] as const;
-export const LAYOUTS = [...EDITORIAL_LAYOUTS, ...PITCH_LAYOUTS] as const;
+export const BRAND_LAYOUTS = ["brand-cover", "brand-welcome", "brand-index", "brand-section", "brand-numbers", "brand-about", "brand-mission", "brand-feature", "brand-palette", "brand-usage", "brand-tones", "brand-typeface", "brand-glyphs", "brand-hierarchy", "brand-text", "brand-icons", "brand-mockup"] as const;
+export const LAYOUTS = [...EDITORIAL_LAYOUTS, ...PITCH_LAYOUTS, ...BRAND_LAYOUTS] as const;
 
-export const TEMPLATES = ["editorial", "pitch"] as const;
+export const TEMPLATES = ["editorial", "pitch", "brand"] as const;
 export type Template = (typeof TEMPLATES)[number];
+
+/** Layout groups for pickers, the deck's own template first. */
+export function layoutGroups(template?: Template): [Template, readonly Layout[]][] {
+  const all: [Template, readonly Layout[]][] = [
+    ["editorial", EDITORIAL_LAYOUTS],
+    ["pitch", PITCH_LAYOUTS],
+    ["brand", BRAND_LAYOUTS],
+  ];
+  return [...all.filter(([t]) => t === template), ...all.filter(([t]) => t !== template)];
+}
 
 /** Slide background: paper, ink, or the deck's attention colour. */
 export const TONES = ["light", "dark", "accent"] as const;
@@ -20,6 +31,9 @@ export const VARIANTS: Partial<Record<string, readonly string[]>> = {
   cover: ["band", "full", "dim", "color"],
   "pitch-feature": ["side", "collage", "row"],
   "pitch-split": ["left", "right"],
+  "brand-section": ["arc", "orb", "image"],
+  "brand-feature": ["left", "right"],
+  "brand-mockup": ["card", "letterhead", "envelope", "devices", "social"],
 };
 
 export const ACCENT_PRESETS = [

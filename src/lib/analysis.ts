@@ -23,6 +23,23 @@ const CAPACITY: Record<Layout, number> = {
   "pitch-toc": 60,
   "pitch-split": 45,
   "pitch-team": 40,
+  "brand-cover": 25,
+  "brand-welcome": 70,
+  "brand-index": 70,
+  "brand-section": 12,
+  "brand-numbers": 70,
+  "brand-about": 70,
+  "brand-mission": 90,
+  "brand-feature": 80,
+  "brand-palette": 60,
+  "brand-usage": 50,
+  "brand-tones": 30,
+  "brand-typeface": 60,
+  "brand-glyphs": 60,
+  "brand-hierarchy": 40,
+  "brand-text": 180,
+  "brand-icons": 50,
+  "brand-mockup": 50,
 };
 
 const WPM = 130;
