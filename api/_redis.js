@@ -58,8 +58,9 @@ export function noStore(res) {
   res.setHeader("Cache-Control", "no-store");
 }
 
-export function needRedis(res) {
+export function needRedis(res, { supabaseOk = false } = {}) {
   if (hasRedis) return false;
+  if (supabaseOk && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) return false;
   res.status(503).json({ error: "storage_not_configured", hint: "Connect a Redis database to the Vercel project (Storage tab) and redeploy." });
   return true;
 }

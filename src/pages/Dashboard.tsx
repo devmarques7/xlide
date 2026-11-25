@@ -18,6 +18,7 @@ import { LOCALE_SHORT } from "@/lib/i18n";
 import { presentationFromImport } from "@/lib/importer";
 import { usePrefs } from "@/lib/prefs";
 import { searchPresentations, type SearchHit } from "@/lib/search";
+import { trackSearch } from "@/lib/track";
 import { deletePresentation, duplicatePresentation, savePresentation, usePresentations } from "@/lib/store";
 import { tx, type Presentation } from "@/lib/types";
 import { uid } from "@/lib/utils";
@@ -32,6 +33,8 @@ export default function Dashboard() {
   const [importOpen, setImportOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const hits = useMemo(() => searchPresentations(list, q, locale), [list, q, locale]);
+  // termo que ficou sem resultado = "o que não encontram" no relatório (espera parar de digitar)
+  useEffect(() => { const id = setTimeout(() => trackSearch(q, hits.length), 1200); return () => clearTimeout(id); }, [q, hits.length]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

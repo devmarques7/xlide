@@ -4,6 +4,7 @@ import { handleMcpBody, mcpAuthorized } from "../shared/board.js";
 import { boardStore, MCP_KEY, originOf } from "./_boards.js";
 import { needRedis, noStore } from "./_redis.js";
 import { renderPreview } from "./_preview.js";
+import { callLiveTool, LIVE_INSTRUCTIONS, LIVE_TOOLS } from "./_live.js";
 
 export default async function handler(req, res) {
   noStore(res);
@@ -13,8 +14,8 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).setHeader("Allow", "POST").end();
   if (!mcpAuthorized(req.headers, req.query, MCP_KEY)) return res.status(401).json({ error: "unauthorized" });
-  if (needRedis(res)) return;
-  const { status, body } = await handleMcpBody(req.body, boardStore, originOf(req), { renderPreview });
+  if (needRedis(res, { supabaseOk: true })) return;
+  const { status, body } = await handleMcpBody(req.body, boardStore, originOf(req), { renderPreview, extraTools: LIVE_TOOLS, extraCall: callLiveTool, extraInstructions: LIVE_INSTRUCTIONS });
   if (!body) return res.status(status).end();
   res.status(status).json(body);
 }

@@ -5,3 +5,8 @@ dist-static
 .vercel
 server/images
 server/boards.json
+
+# segredos locais
+.env
+.env.local
+.env.*.local

@@ -987,16 +987,19 @@ export async function handleMcpMessage(msg, store, origin, ctx = {}) {
         protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "xlide-boards", title: "XLIDE Boards", version: "2.0.0" },
-        instructions: MCP_INSTRUCTIONS_FULL + MCP_INSTRUCTIONS,
+        instructions: MCP_INSTRUCTIONS_FULL + MCP_INSTRUCTIONS + (ctx.extraInstructions || ""),
       });
     }
     case "ping":
       return reply({});
     case "tools/list":
-      return reply({ tools: TOOLS });
+      return reply({ tools: [...TOOLS, ...(ctx.extraTools || [])] });
     case "tools/call": {
       try {
-        const out = await callTool(msg.params?.name, msg.params?.arguments ?? {}, store, origin, ctx);
+        const tool = msg.params?.name;
+        const out = ctx.extraCall && (ctx.extraTools || []).some((t) => t.name === tool)
+          ? await ctx.extraCall(tool, msg.params?.arguments ?? {})
+          : await callTool(tool, msg.params?.arguments ?? {}, store, origin, ctx);
         if (out?.__content) {
           const { __content, ...rest } = out;
           return reply({ content: __content, structuredContent: rest, isError: false });

@@ -4,7 +4,7 @@ import { needRedis, noStore } from "../_redis.js";
 
 export default async function handler(req, res) {
   noStore(res);
-  if (needRedis(res)) return;
+  if (needRedis(res, { supabaseOk: true })) return;
   const { id } = req.query;
   if (req.method === "GET" && req.query.preview) {
     // PNG of the map, moodboard or kanban (for AI tools and quick looks).

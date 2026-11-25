@@ -6,6 +6,8 @@ import { PrefsProvider } from "@/lib/prefs";
 import { syncBoards } from "@/lib/boards";
 import { syncFromServer } from "@/lib/store";
 import { startUpdateCheck } from "@/lib/update-check";
+import { startTracking, trackPage } from "@/lib/track";
+import Audit from "@/pages/Audit";
 import { LOCALES, type Locale } from "@/lib/types";
 import BoardPage, { BoardViewPage } from "@/pages/Board";
 import Boards from "@/pages/Boards";
@@ -23,6 +25,13 @@ import Viewer from "@/pages/Viewer";
 /** Static hosts without SPA rewrites (e.g. a preview) use #/ routes. */
 const Router = import.meta.env.VITE_HASH_ROUTER ? HashRouter : BrowserRouter;
 
+/** Registra a troca de página para o relatório de uso. */
+function PageTracker() {
+  const loc = useLocation();
+  useEffect(() => trackPage(loc.pathname), [loc.pathname]);
+  return null;
+}
+
 function RequireCode({ children }: { children: ReactNode }) {
   const loc = useLocation();
   if (!isUnlocked()) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
@@ -31,6 +40,7 @@ function RequireCode({ children }: { children: ReactNode }) {
 
 export default function App() {
   useEffect(() => {
+    startTracking();
     syncFromServer();
     syncBoards();
     startUpdateCheck(() => {
@@ -41,6 +51,7 @@ export default function App() {
   return (
     <PrefsProvider>
       <Router>
+        <PageTracker />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RequireCode><Dashboard /></RequireCode>} />
@@ -49,6 +60,7 @@ export default function App() {
           <Route path="/identity" element={<RequireCode><Identity /></RequireCode>} />
           <Route path="/p/:id" element={<RequireCode><Editor /></RequireCode>} />
           <Route path="/present/:id" element={<RequireCode><Present /></RequireCode>} />
+          <Route path="/audit" element={<RequireCode><Audit /></RequireCode>} />
           <Route path="/music" element={<RequireCode><Music /></RequireCode>} />
           <Route path="/play/:id" element={<RequireCode><Play /></RequireCode>} />
           <Route path="/print/:id" element={<RequireCode><Print /></RequireCode>} />

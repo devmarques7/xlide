@@ -1,9 +1,11 @@
 // Board storage on Redis, shared by api/boards and the MCP endpoint.
 import { redis } from "./_redis.js";
+import { boardStoreSb, hasSupabase } from "./_supabase.js";
 
 const key = (id) => `xlide:b:${id}`;
 
-export const boardStore = {
+// Boards: no Supabase quando configurado, senão no Redis.
+const redisBoards = {
   async list() {
     const [ids] = await redis(["SMEMBERS", "xlide:bids"]);
     if (!ids?.length) return [];
@@ -21,6 +23,7 @@ export const boardStore = {
     await redis(["DEL", key(id)], ["SREM", "xlide:bids", id]);
   },
 };
+export const boardStore = hasSupabase ? boardStoreSb : redisBoards;
 
 /** Key for the MCP endpoint: XLIDE_MCP_KEY, or the app passcode when unset. */
 export const MCP_KEY = process.env.XLIDE_MCP_KEY || "1423";
