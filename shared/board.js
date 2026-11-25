@@ -998,7 +998,7 @@ export async function handleMcpMessage(msg, store, origin, ctx = {}) {
       try {
         const tool = msg.params?.name;
         const out = ctx.extraCall && (ctx.extraTools || []).some((t) => t.name === tool)
-          ? await ctx.extraCall(tool, msg.params?.arguments ?? {})
+          ? await ctx.extraCall(tool, msg.params?.arguments ?? {}, origin)
           : await callTool(tool, msg.params?.arguments ?? {}, store, origin, ctx);
         if (out?.__content) {
           const { __content, ...rest } = out;

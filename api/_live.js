@@ -2,10 +2,15 @@
 // Tudo no Supabase (xlide_decks, xlide_programs), com a chave de serviço; cada mudança entra em xlide_audit com via = 'mcp'.
 // Somado às ferramentas de boards em shared/board.js (ctx.extraTools / ctx.extraCall).
 import { auditReport, hasSupabase, rest } from "./_supabase.js";
+import { getLyrics, translateLines } from "./_music.js";
 
 const LANGS = ["pt", "en", "nl"];
 const TEXT_FIELDS = ["eyebrow", "title", "subtitle", "body", "cta"];
 const LAYOUTS = ["aura", "cover", "stats", "services", "gallery", "split", "statement", "contact", "image", "chapter", "questions", "reel", "moodboard", "lyrics"];
+const STYLE_FIELDS = ["bg", "font", "tone", "section", "repeat", "at", "notes"];
+const FOLDERS = ["avisos", "pregacao", "inicio", "oracao", "versiculo"];
+const FILE_STATUS = ["ativo", "padrao", "arquivado", "lixeira"];
+const TRANSITIONS = ["fade", "corte", "slide", "sobrepor"];
 const ITEM_TYPES = ["wait", "prayer", "song", "notice", "video", "sermon", "pause", "media"];
 const PROG_STATUS = ["rascunho", "salvo", "feito", "arquivado", "lixeira"];
 const rid = (p) => p + Math.random().toString(36).slice(2, 10);
@@ -31,7 +36,8 @@ function findSlide(d, ref) {
 function cleanSlide(raw, lang) {
   const s = { id: raw.id || rid("s_"), layout: LAYOUTS.includes(raw.layout) ? raw.layout : "statement" };
   for (const f of TEXT_FIELDS) if (raw[f] != null) s[f] = toLText(raw[f], lang);
-  for (const k of ["image", "tone", "variant", "inverse", "items", "images"]) if (raw[k] != null) s[k] = raw[k];
+  for (const k of ["image", "tone", "variant", "inverse", "items", "images", "bg", "font", "section", "repeat", "at"]) if (raw[k] != null) s[k] = raw[k];
+  if (raw.notes != null) s.notes = toLText(raw.notes, lang);
   return s;
 }
 const deckSummary = (d) => ({ id: d.id, title: txt(d.title, d.defaultLanguage), languages: d.languages, slides: d.slides.length, updatedAt: d.updatedAt });
@@ -41,7 +47,8 @@ const slideOutline = (d, l) => d.slides.map((s, i) => ({ n: i + 1, id: s.id, lay
 function cleanItem(raw) {
   const type = ITEM_TYPES.includes(raw.type) ? raw.type : "notice";
   const it = { id: raw.id || rid("i_"), type, title: String(raw.title || type), planned: Math.max(10, Math.round((Number(raw.minutes) || Number(raw.planned) / 60 || 3) * 60)), advance: raw.advance || (["wait", "notice", "video", "media"].includes(type) ? "auto" : "manual"), public: raw.public !== false };
-  for (const k of ["text", "owner", "area", "deck", "song", "media", "eyebrow", "bg", "font"]) if (raw[k] != null) it[k] = raw[k];
+  for (const k of ["text", "owner", "area", "deck", "song", "media", "eyebrow", "bg", "font", "hidden"]) if (raw[k] != null) it[k] = raw[k];
+  if (raw.track != null) it.bgm = trackOf(raw.track, raw.track_volume);
   if (raw.deck_id) it.deck = raw.deck_id;
   if (raw.song_id) it.song = raw.song_id;
   return it;
@@ -52,14 +59,22 @@ function findItem(p, ref) {
   if (i < 0 || i >= items.length) throw new Error(`Item não encontrado: ${ref}`);
   return i;
 }
+/* Trilha de fundo de uma tela: "off", "mix1"/"mix2" (mix inteira), id ou link do YouTube (uma faixa). */
+function trackOf(t, vol) {
+  const v = String(t || "off").trim();
+  if (v === "off" || v === "mix1" || v === "mix2") return { mode: v, vol: vol ?? 20 };
+  const id = (v.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{6,})/) || [])[1] || (/^[\w-]{11}$/.test(v) ? v : null);
+  if (!id) throw new Error(`Trilha inválida: ${t}. Use off, mix1, mix2, ou um link/id do YouTube.`);
+  return { mode: "track:" + id, vol: vol ?? 20 };
+}
 const progSummary = (p) => ({ id: p.id, title: p.title, date: p.service_date, starts: p.starts_at, status: p.status, live: p.is_live, items: (p.doc.items || []).length, minutes: Math.round((p.doc.items || []).reduce((a, b) => a + (b.planned || 0), 0) / 60) });
 
 const S = (props, required = []) => ({ type: "object", properties: props, required });
-const slideProps = { layout: { type: "string", enum: LAYOUTS }, eyebrow: { type: "string" }, title: { type: "string" }, subtitle: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, image: { type: "string", description: "URL https real de imagem" } };
-const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media" }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" } };
+const slideProps = { bg: { type: "string", description: "Fundo: wash:<ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold>, loop:<id YouTube>, plain:<papel|tinta|grade|coluna|sabado|brasa>, ou URL de imagem/vídeo" }, font: { type: "string", enum: ["grotesk", "serif", "condensed", "mono"] }, tone: { type: "string", enum: ["dark", "light"] }, section: { type: "string", enum: ["intro", "verse", "prechorus", "chorus", "bridge", "tag", "instrumental", "outro"] }, repeat: { type: "number" }, at: { type: "number", description: "Segundo da música em que o slide entra" }, notes: { type: "string", description: "Notas do apresentador" }, layout: { type: "string", enum: LAYOUTS }, eyebrow: { type: "string" }, title: { type: "string" }, subtitle: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, image: { type: "string", description: "URL https real de imagem" } };
+const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media" }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela: off, mix1, mix2, ou link/id do YouTube" }, track_volume: { type: "number" } };
 
 export const LIVE_TOOLS = [
-  { name: "list_decks", description: "Lista os decks e músicas do XLIDE (id, título, línguas, nº de slides). Filtro opcional por texto no título.", inputSchema: S({ query: { type: "string" } }) },
+  { name: "list_decks", description: "Lista os decks e músicas do XLIDE (id, título, línguas, nº de slides). Filtros: texto no título e tipo (deck ou song).", inputSchema: S({ query: { type: "string" }, kind: { type: "string", enum: ["deck", "song"] } }) },
   { name: "get_deck", description: "Lê um deck: cada slide com posição, id, layout e textos na língua pedida.", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS } }, ["deck_id"]) },
   { name: "create_deck", description: "Cria um deck inteiro em uma chamada (título, línguas e todos os slides). Textos na língua `lang`; depois use add_translations para as outras.", inputSchema: S({ title: { type: "string" }, lang: { type: "string", enum: LANGS }, languages: { type: "array", items: { type: "string", enum: LANGS } }, slides: { type: "array", items: S(slideProps) } }, ["title", "slides"]) },
   { name: "add_slides", description: "Acrescenta slides a um deck (no fim ou depois da posição `after`).", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS }, after: { type: "number" }, slides: { type: "array", items: S(slideProps) } }, ["deck_id", "slides"]) },
@@ -68,6 +83,12 @@ export const LIVE_TOOLS = [
   { name: "remove_slides", description: "Remove slides (ids ou posições).", inputSchema: S({ deck_id: { type: "string" }, slides: { type: "array", items: { type: ["string", "number"] } } }, ["deck_id", "slides"]) },
   { name: "missing_translations", description: "Lista os textos de um deck que ainda não têm a língua `lang`, com o texto de origem para traduzir.", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS }, from: { type: "string", enum: LANGS } }, ["deck_id", "lang"]) },
   { name: "add_translations", description: "Grava traduções de uma vez (slide + campo + texto) e acrescenta a língua ao deck. Use depois de missing_translations.", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS }, title: { type: "string", description: "Título do deck nessa língua" }, items: { type: "array", items: S({ slide: { type: ["string", "number"] }, field: { type: "string", enum: TEXT_FIELDS }, text: { type: "string" } }, ["slide", "field", "text"]) } }, ["deck_id", "lang", "items"]) },
+  { name: "create_song", description: "Cria uma música (deck de letra) como no editor de música: do link do YouTube (letra e tempos das legendas) e/ou da letra colada ([Verso], [Refrão] marcam seções; linha em branco separa slides). Pode traduzir para outra língua.", inputSchema: S({ title: { type: "string" }, artist: { type: "string" }, youtube_url: { type: "string" }, lyrics: { type: "string" }, lang: { type: "string", enum: LANGS }, translate_to: { type: "string", enum: LANGS }, lines_per_slide: { type: "number" }, bg: { type: "string" }, font: { type: "string", enum: ["grotesk", "serif", "condensed", "mono"] } }) },
+  { name: "deck_links", description: "Links de um deck: editar, apresentar, tocar (música), controle remoto e a página do público.", inputSchema: S({ deck_id: { type: "string" } }, ["deck_id"]) },
+  { name: "list_files", description: "Meus arquivos: lista por pasta (avisos, pregacao, inicio, oracao, versiculo) e estado (ativo, padrao, arquivado, lixeira).", inputSchema: S({ folder: { type: "string", enum: FOLDERS }, status: { type: "string", enum: FILE_STATUS } }) },
+  { name: "save_file", description: "Cria ou atualiza um arquivo em Meus arquivos (ligado a um deck).", inputSchema: S({ id: { type: "string" }, name: { type: "string" }, folder: { type: "string", enum: FOLDERS }, deck_id: { type: "string" }, starred: { type: "boolean" } }, ["name"]) },
+  { name: "set_file_status", description: "Arquiva, torna padrão, manda para a lixeira ou restaura um arquivo.", inputSchema: S({ id: { type: "string" }, status: { type: "string", enum: FILE_STATUS } }, ["id", "status"]) },
+  { name: "set_program_settings", description: "Ajustes do programa para o ao vivo: transição entre telas (fade padrão, corte, slide, sobrepor) e piloto automático.", inputSchema: S({ program_id: { type: "string" }, transition: { type: "string", enum: TRANSITIONS }, autopilot: { type: "boolean" } }, ["program_id"]) },
   { name: "list_programs", description: "Lista os programas do culto (Programa Estúdio) com estado: rascunho, salvo, feito, arquivado, lixeira.", inputSchema: S({ status: { type: "string", enum: PROG_STATUS } }) },
   { name: "get_program", description: "Lê um programa com todos os itens na ordem (horário de cada um calculado).", inputSchema: S({ program_id: { type: "string" } }, ["program_id"]) },
   { name: "create_program", description: "Cria um programa inteiro (rascunho) com todos os itens em ordem. Itens podem apontar para decks (deck_id), músicas (song_id) ou links de vídeo/áudio (media).", inputSchema: S({ title: { type: "string" }, date: { type: "string", description: "AAAA-MM-DD" }, starts: { type: "string", description: "HH:MM" }, target_min: { type: "number" }, items: { type: "array", items: S(itemProps, ["type", "title"]) } }, ["title", "items"]) },
@@ -82,12 +103,12 @@ export const LIVE_TOOLS = [
 const NAMES = new Set(LIVE_TOOLS.map((t) => t.name));
 export const isLiveTool = (n) => NAMES.has(n);
 
-export async function callLiveTool(name, a = {}) {
+export async function callLiveTool(name, a = {}, origin = "") {
   if (!hasSupabase) throw new Error("Supabase não configurado (SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY). As ferramentas de decks, programas e auditoria precisam dele.");
   const lang = LANGS.includes(a.lang) ? a.lang : "pt";
   switch (name) {
     case "list_decks": {
-      const rows = await rest(`xlide_decks?select=doc&order=updated_at.desc&limit=200${a.query ? `&title=ilike.*${enc(a.query)}*` : ""}`);
+      const rows = await rest(`xlide_decks?select=doc&order=updated_at.desc&limit=200${a.query ? `&title=ilike.*${enc(a.query)}*` : ""}${a.kind ? `&kind=eq.${a.kind}` : ""}`);
       return { decks: rows.map((r) => deckSummary(r.doc)) };
     }
     case "get_deck": { const d = await loadDeck(a.deck_id); return { ...deckSummary(d), slides: slideOutline(d, lang) }; }
@@ -107,6 +128,7 @@ export async function callLiveTool(name, a = {}) {
       if (a.layout && LAYOUTS.includes(a.layout)) s.layout = a.layout;
       if (a.image != null) a.image ? (s.image = a.image) : delete s.image;
       for (const f of TEXT_FIELDS) if (a[f] != null) s[f] = setText(s[f], lang, a[f]);
+      for (const f of STYLE_FIELDS) if (a[f] != null) s[f] = f === "notes" ? setText(s[f], lang, a[f]) : a[f] === "" ? undefined : a[f];
       if (!d.languages.includes(lang)) d.languages.push(lang);
       await saveDeck(d); return { n: i + 1, ...slideOutline(d, lang)[i] };
     }
@@ -154,6 +176,8 @@ export async function callLiveTool(name, a = {}) {
       Object.assign(it, Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)));
       if (minutes != null) it.planned = Math.round(minutes * 60);
       if (deck_id != null) it.deck = deck_id; if (song_id != null) it.song = song_id;
+      if (a.track != null) { it.bgm = trackOf(a.track, a.track_volume); delete it.track; delete it.track_volume; }
+      else if (a.track_volume != null && it.bgm) { it.bgm.vol = a.track_volume; delete it.track_volume; }
       await saveProg(p); return { n: i + 1, ...it };
     }
     case "move_program_item": {
@@ -178,6 +202,62 @@ export async function callLiveTool(name, a = {}) {
       const o = await loadProg(a.program_id);
       const p = { id: rid("pg_"), title: a.title || `${o.title} (cópia)`, service_date: a.date || null, starts_at: o.starts_at, target_min: o.target_min, status: "rascunho", is_live: false, doc: { ...o.doc, items: (o.doc.items || []).map((it) => ({ ...it, id: rid("i_") })), archived: [], trash: [] } };
       await saveProg(p); return progSummary(p);
+    }
+    case "create_song": {
+      let lines = [], times = null, title = a.title, artist = a.artist, video = null;
+      if (a.youtube_url) {
+        const r = await getLyrics(a.youtube_url, lang);
+        video = r.id || null; title ||= r.title; artist ||= r.author;
+        if (!a.lyrics && r.lines?.length) { lines = r.lines; times = r.times || null; }
+        if (!a.lyrics && !lines.length) throw new Error(`Não achei a letra desse vídeo (${r.error || "sem legenda"}). Cole a letra em lyrics.`);
+      }
+      if (a.lyrics) lines = String(a.lyrics).split("\n");
+      if (!lines.length) throw new Error("Mande youtube_url ou lyrics.");
+      // agrupa: seção [Nome] + linha em branco separam; senão N linhas por slide
+      const per = Math.max(1, Math.min(6, Number(a.lines_per_slide) || 2)), SEC = { verso: "verse", verse: "verse", refrao: "chorus", "refrão": "chorus", chorus: "chorus", ponte: "bridge", bridge: "bridge", intro: "intro", final: "outro", outro: "outro", "pré-refrão": "prechorus", "pre-refrao": "prechorus", prechorus: "prechorus", tag: "tag" };
+      const groups = []; let cur = [], sec, idx0 = 0;
+      const push = () => { if (cur.length) { groups.push({ rows: cur, section: sec, i0: idx0 }); cur = []; } };
+      lines.forEach((raw, i) => {
+        const l = String(raw).trim(), m = l.match(/^\[(.+)\]$/);
+        if (m) { push(); sec = SEC[m[1].toLowerCase().replace(/\s*\d+$/, "")] || undefined; return; }
+        if (!l) return push();
+        if (!cur.length) idx0 = i;
+        cur.push(l); if (cur.length >= per) push();
+      });
+      push();
+      let trans = null;
+      if (a.translate_to && a.translate_to !== lang) {
+        // traduz linha a linha e reagrupa (o tradutor separa por quebra de linha)
+        const flat = groups.flatMap((g) => g.rows), out = await translateLines(flat, a.translate_to, lang).catch(() => null);
+        if (out && out.length === flat.length) { let k = 0; trans = groups.map((g) => g.rows.map(() => out[k++]).join("\n")); }
+      }
+      const bg = a.bg || "wash:ember", font = a.font || "grotesk", now = Date.now();
+      const langs = [lang, ...(trans ? [a.translate_to] : [])];
+      const slides = [{ id: rid("s_"), layout: "lyrics", tone: "dark", title: { [lang]: title || "—" }, eyebrow: artist ? { [lang]: artist } : undefined, bg, font, at: 0 },
+        ...groups.map((g, k) => ({ id: rid("s_"), layout: "lyrics", tone: "dark", title: { [lang]: g.rows.join("\n"), ...(trans?.[k] ? { [a.translate_to]: trans[k] } : {}) }, bg, font, section: g.section, at: times ? times[g.i0] : undefined })),
+        { id: rid("s_"), layout: "lyrics", tone: "dark", title: "", bg, font }];
+      const d = { id: rid("p_"), title: { [lang]: title || "Música" }, languages: langs, defaultLanguage: lang, template: "editorial", slides, music: video ? { video, sections: true } : undefined, createdAt: now, updatedAt: now };
+      await saveDeck(d);
+      return { ...deckSummary(d), video, timed: !!times, translated: !!trans, slides: slideOutline(d, lang) };
+    }
+    case "deck_links": {
+      const d = await loadDeck(a.deck_id), o = origin || "";
+      return { edit: `${o}/p/${d.id}`, present: `${o}/present/${d.id}`, ...(d.music ? { play: `${o}/play/${d.id}` } : {}), remote: `${o}/remote/${d.id}`, audience: `${o}/view/${d.id}` };
+    }
+    case "list_files": { const q = [a.folder && `folder=eq.${a.folder}`, a.status && `status=eq.${a.status}`].filter(Boolean).join("&"); return { files: await rest(`xlide_files?select=id,name,folder,status,starred,deck_id,updated_at&order=updated_at.desc${q ? "&" + q : ""}`) }; }
+    case "save_file": {
+      const row = { id: a.id || rid("f_"), name: a.name, ...(a.folder ? { folder: a.folder } : {}), ...(a.deck_id ? { deck_id: a.deck_id } : {}), ...(a.starred != null ? { starred: a.starred } : {}) };
+      await upsert("xlide_files", row); return row;
+    }
+    case "set_file_status": {
+      await rest(`xlide_files?id=eq.${enc(a.id)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: a.status, deleted_at: a.status === "lixeira" ? new Date().toISOString() : null }) });
+      return { id: a.id, status: a.status };
+    }
+    case "set_program_settings": {
+      const p = await loadProg(a.program_id);
+      if (a.transition) p.doc.transition = a.transition;
+      if (a.autopilot != null) p.doc.autopilot = !!a.autopilot;
+      await saveProg(p); return { ...progSummary(p), transition: p.doc.transition || "fade", autopilot: !!p.doc.autopilot };
     }
     case "get_audit_report": return auditReport(Math.min(365, Math.max(1, Number(a.days) || 30)));
   }
