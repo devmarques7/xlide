@@ -5,6 +5,18 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/info",
+      "destination": "/api/x/info"
+    },
+    {
+      "source": "/api/events",
+      "destination": "/api/x/events"
+    },
+    {
+      "source": "/api/audit",
+      "destination": "/api/x/audit"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

@@ -14,9 +14,9 @@ import { handleMcpBody, mcpAuthorized } from "../shared/board.js";
 import { igGraphConfigured, instagramAuthor, instagramProfile } from "../api/_instagram.js";
 import { renderPreview } from "../api/_preview.js";
 import { boardStoreSb, deckStore, hasSupabase } from "../api/_supabase.js";
-import eventsHandler from "../api/events.js";
+import eventsHandler from "../api/_events.js";
 import { callLiveTool, LIVE_INSTRUCTIONS, LIVE_TOOLS } from "../api/_live.js";
-import auditHandler from "../api/audit.js";
+import auditHandler from "../api/_audit.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.env.NODE_ENV === "production";
