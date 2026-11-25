@@ -43,7 +43,7 @@
   <div class="section-h"><h2>Telas</h2><span class="lbl">Teste: abra Console, Tela e Ao vivo em 3 abas</span></div>
   <div class="scr" id="scr"></div>
 
-  <div class="section-h"><h2>Ferramentas para integrar</h2><a class="lbl" href="../../docs/live-church/integracao.md">plano completo →</a></div>
+  <div class="section-h"><h2>Ferramentas para integrar</h2><a class="lbl" href="integracao.md">plano completo →</a></div>
   <div class="wrap-t"><table>
     <tr><th>Ferramenta</th><th>Substitui / faz</th><th>Fase</th></tr>
     <tr><td>Supabase Auth</td><td>PIN 1423 → login Google / link mágico, o mesmo da Classe</td><td>MVP</td></tr>
@@ -65,13 +65,20 @@ const groups = [
     ["componentes.html", "Componentes", "Todos os blocos das telas, num lugar", "src/components/ui"],
   ]],
   ["Planejar", [
-    ["inicio.html", "Início", "Próximo culto, minhas pendências, minha área", "Dashboard.tsx"],
-    ["programa.html", "Programa", "Linha do tempo, arrastar, folha de edição", "dnd-kit do editor"],
+    ["inicio.html", "Início", "Hoje, criar, próximos cultos, pendências, recentes", "Dashboard.tsx + Boards.tsx"],
+    ["boards.html", "Boards", "Lista de moodboards e mapas mentais", "Boards.tsx"],
+    ["board.html", "Board", "Mapa mental, moodboard, quadro e tudo junto", "Board.tsx + board/*"],
+    ["programa.html", "Programa", "Blocos por hora, arrastar e ajustar horários, gaveta com template", "dnd-kit do editor"],
     ["biblioteca.html", "Biblioteca", "Músicas e decks buscáveis, uso por semana", "Dashboard + Music"],
     ["musica.html", "Música", "Letra → slides por estrofe, idiomas", "Music.tsx + lyrics.tsx"],
+    ["agenda.html", "Agenda", "Mês com marcadores, escala e tarefas; dias com número gigante, linha do agora, eventos por tipo; painel do culto com slide, arquivos e equipe", "events + services"],
+    ["arquivos.html", "Meus arquivos", "Quem sou eu + pastas (Avisos, Pregação, Início, Oração, Versículos), Padrão, Arquivados, Lixeira; prévia e ações", "xlide_decks + folders"],
+    ["deck.html?f=f1", "Editor de deck", "Como no Canva: slides embaixo com +, fundo (cores, vídeos em loop ou uma vez, avisos, imagem importada), layout, texto, imagem, trilha, apresentar, atalhos de teclado", "Editor.tsx"],
+    ["kit.html", "Estúdio", "Todos os fundos (cores, loops, avisos) e fontes com exemplos; testar música, deck ou aviso", "song-style.ts + SlideView"],
+    ["estudio.html", "Editor de música", "Canvas do slide, fundos, fontes, trilha da música, ordem", "Editor.tsx + music-panels"],
   ]],
   ["Executar", [
-    ["console.html", "Console", "Play, pausa, +1/+2/+5, pular, voltar, slides", "Remote.tsx"],
+    ["console.html", "Console", "Multiview: tela agora + as duas próximas (clique avança/volta), pad de controle; celular deitado vira controle", "Remote.tsx"],
     ["tela.html", "Tela de projeção", "Tela cheia, contagem, tela neutra", "Present.tsx"],
     ["ao-vivo.html", "Ao vivo (público)", "Programa, item atual, término, letra", "Viewer.tsx"],
   ]],

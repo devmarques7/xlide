@@ -4,157 +4,861 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIDE v2 · Console</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
-<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/render.js"></script>
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/render.js"></script><script src="assets/trilha.js"></script><script src="assets/media.js"></script>
 <style>
-  body { padding-bottom: 0; }
-  .app { padding-bottom: calc(var(--tabbar-h) + 196px); }
-  .now-card { padding: var(--s4); }
-  .now-card .clock { font-size: clamp(56px, 18vw, 96px); margin: var(--s3) 0 var(--s2); }
-  .slide-nav { display: grid; grid-template-columns: var(--touch-big) 1fr var(--touch-big); gap: var(--s2); align-items: center; }
-  .slide-nav .btn { min-height: 56px; }
-  .ext { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
-  .dock { position: fixed; left: 0; right: 0; bottom: var(--tabbar-h); z-index: 30; background: var(--bg); border-top: 1px solid var(--line); padding: var(--s3) var(--gutter); display: grid; gap: var(--s2); }
-  .dock .main { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: var(--s2); }
-  .dock .btn.big { min-height: 84px; }
-  .dock .btn.big svg { width: 26px; height: 26px; }
+  /* Console multiview: a tela agora (grande) + as duas próximas; controles embaixo.
+     Celular em pé: telas em cima, pad de controle logo abaixo. Celular deitado: telas à esquerda, pad à direita. */
+  .cx-top { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s2) 0 var(--s3); }
+  .cx-top .ttl { display: grid; gap: 4px; }
+  .cx-top .ttl b { font-size: var(--t-lg); font-weight: 600; letter-spacing: -0.01em; }
+  .cx-top .chips { display: flex; gap: 6px; }
+  kbd { font: 400 10px var(--mono); border: 1px solid var(--line); padding: 1px 5px; }
+
+  /* multiview */
+  .mv { display: grid; gap: var(--s2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v { position: relative; display: block; width: 100%; padding: 0; text-align: left; background: #000; color: #f1f0ec; }
+  .v .slide { width: 100%; display: block; }
+  .v-now { grid-column: 1 / -1; outline: 2px solid var(--live); outline-offset: 2px; }
+  .v-now .tx-host { width: 100%; aspect-ratio: 16 / 9; }
+  /* transição: a mesma célula do pad, numa linha acima; a escolhida fica branca */
+  .p-song[hidden], .tr-wait[hidden] { display: none; }
+  /* piloto automático: botão grande, largura do controle */
+  .ap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px var(--s3); width: 100%; margin-bottom: var(--s2); padding: var(--s3) var(--s4); text-align: left; background: var(--surface); border: 1px solid var(--line); color: var(--fg); }
+  .ap:not(.on) { background: var(--late); border-color: var(--late); color: #fff; }
+  .ap:not(.on) .ap-l { color: rgb(255 255 255 / .85); }
+  .ap:hover { filter: brightness(1.08); }
+  .ap .ap-t { display: flex; align-items: center; gap: 10px; font: 600 clamp(20px, 2.2vw, 28px)/1.1 var(--font); letter-spacing: -0.02em; }
+  .ap .ap-t svg { width: 26px; height: 26px; flex: none; }
+  .ap .ap-l { grid-column: 1; font-size: var(--t-xs); color: var(--fg-2); }
+  .ap .ap-sw { grid-row: 1 / span 2; grid-column: 2; display: flex; align-items: center; gap: 8px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .ap .ap-sw i { position: relative; width: 52px; height: 28px; border: 2px solid currentColor; }
+  .ap .ap-sw i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: currentColor; transition: transform .15s; }
+  .ap.on { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .ap.on .ap-l { color: rgb(255 255 255 / .85); }
+  .ap.on .ap-sw i::after { transform: translateX(24px); }
+  .ap .ap-bar { grid-column: 1 / -1; height: 4px; background: rgb(255 255 255 / .25); display: none; }
+  .ap.on .ap-bar { display: block; } .ap .ap-bar b { display: block; height: 100%; background: #fff; }
+  @media (prefers-reduced-motion: reduce) { .ap .ap-sw i::after { transition: none; } }
+  .pad.txp { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(72px, auto); margin-bottom: var(--s2); }
+  .pad.txp .c { gap: 6px; font-size: 0; }
+  .pad.txp .txn { font: 600 var(--t-sm) var(--font); letter-spacing: 0; }
+  .pad.txp .demo { position: relative; width: 44px; height: 24px; overflow: hidden; background: #000; }
+  .pad.txp .c.on { background: #f7f6f3; color: #161615; }
+  .pad.txp .c.on > span:first-child { color: #6f6e69; }
+  .pad.txp .c.on:hover { background: #fff; }
+  .pad .tx-cell-unused { grid-column: 1 / -1; display: grid; gap: 6px; padding: 26px 8px 8px; place-items: stretch; font-size: inherit; }
+  .hud { position: absolute; display: flex; align-items: center; gap: 6px; font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; pointer-events: none; z-index: 2; }
+  .hud-tl { top: 8px; left: 8px; }
+  .hud-tr { top: 8px; right: 8px; }
+  .hud-bl { bottom: 12px; left: 8px; right: 90px; }
+  .hud .tag { padding: 4px 7px; background: rgb(0 0 0 / .62); color: #f1f0ec; backdrop-filter: blur(6px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud .tag.live { background: var(--live); color: #fff; }
+  .hud .tag.warn { background: var(--warn); color: #161615; }
+  .hud .tm { padding: 4px 8px; background: rgb(0 0 0 / .62); color: #fff; font: 400 18px/1 var(--mono); letter-spacing: -0.02em; backdrop-filter: blur(6px); }
+  .hud .tm.over { background: var(--late); }
+  .v-now .pbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(255 255 255 / .16); z-index: 2; }
+  .v-now .pbar i { position: absolute; inset: 0 auto 0 0; background: #fff; }
+  .v-now .pbar.over i { background: var(--late); }
+  .zone { position: absolute; top: 0; bottom: 4px; width: 22%; z-index: 1; display: grid; align-items: center; color: #fff; opacity: 0; transition: opacity .15s; }
+  .zone svg { width: 34px; height: 34px; padding: 6px; background: rgb(0 0 0 / .55); }
+  .zone.l { left: 0; justify-items: start; padding-left: 10px; background: linear-gradient(90deg, rgb(0 0 0 / .35), transparent); }
+  .zone.r { right: 0; justify-items: end; padding-right: 10px; background: linear-gradient(270deg, rgb(0 0 0 / .35), transparent); }
+  .zone:hover, .zone:focus-visible { opacity: 1; }
+  .v-next { cursor: pointer; }
+  .v-next:hover { outline: 1px solid var(--fg); outline-offset: 2px; }
+  .v-slot.focus .v-next { outline: 3px solid var(--warn); outline-offset: 2px; }
+  #tl .ti.focus { outline: 2px solid var(--warn); outline-offset: -2px; background: color-mix(in srgb, var(--warn) 14%, transparent); }
+  #tl .ti .fhint { display: block; margin-top: 4px; font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; color: var(--warn); }
+  #op-slides [data-at] { cursor: pointer; }
+  #op-slides [data-at].focus .slide { outline: 3px solid var(--warn); outline-offset: 2px; }
+  .v-slot.focus .v-next .go { opacity: 1; background: var(--warn); color: #161615; }
+  .v-slot.focus .v-next::after { content: "Em foco"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; padding: 6px 12px; background: var(--warn); color: #161615; font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .pad .play.end { background: var(--late); color: #fff; }
+  .pad .play.end > span { color: rgb(255 255 255 / .8); }
+  .pad .play.end small { font-size: 12px; font-weight: 600; }
+  .pad .play.end:hover { background: color-mix(in srgb, var(--late) 85%, #000) !important; }
+  .btn.danger-fill { background: var(--late); border-color: var(--late); color: #fff; }
+  .end-ask h2 { font-size: var(--t-xl); }
+  .pad .play.swap { background: var(--warn); color: #161615; animation: swap-pulse 1.2s ease-in-out infinite alternate; }
+  .pad .play.swap > span { color: rgb(22 22 21 / .75); }
+  .pad .play.swap small { text-align: center; max-width: 95%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pad .play.swap .ftr { opacity: .8; }
+  .pad .play.swap:hover { background: color-mix(in srgb, var(--warn) 85%, #000) !important; }
+  @keyframes swap-pulse { to { box-shadow: inset 0 0 0 4px rgb(22 22 21 / .25); } }
+  @media (prefers-reduced-motion: reduce) { .pad .play.swap { animation: none; } }
+  .v-next .go { position: absolute; right: 8px; bottom: 8px; z-index: 2; padding: 4px 7px; background: #f1f0ec; color: #161615; font: 400 10px var(--mono); text-transform: uppercase; opacity: 0; transition: opacity .15s; }
+  .v-next:hover .go, .v-next:focus-visible .go { opacity: 1; }
+  .v-end { display: grid; place-items: center; aspect-ratio: 16 / 9; font: 400 var(--t-xs) var(--mono); text-transform: uppercase; color: #777; }
+
+  /* pad: células como no controle do celular (rótulo em cima, valor grande) */
+  .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(64px, auto); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .pad .c { position: relative; display: grid; place-items: center; align-content: center; gap: 4px; padding: 18px 8px 10px; background: var(--surface); color: var(--fg); font: 400 clamp(20px, 2.4vw, 30px)/1 var(--mono); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .pad .c > span { position: absolute; top: 7px; left: 8px; font: 400 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--fg-2); }
+  .pad .c svg { width: 26px; height: 26px; }
+  .pad button.c:hover { background: var(--sunken); }
+  .pad button.c:active { transform: none; background: var(--invert-bg); color: var(--invert-fg); }
+  .pad button.c[disabled] { color: var(--line); pointer-events: none; }
+  .pad .play { grid-column: 2; grid-row: 2 / span 2; background: var(--live); color: #fff; }
+  .pad .play > span { color: rgb(255 255 255 / .75); }
+  .pad .play svg { width: 44px; height: 44px; }
+  .pad .play:hover { background: color-mix(in srgb, var(--live) 85%, #000) !important; }
+  .pad .play.paused { background: var(--warn); color: #161615; }
+  .pad .play small { font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .pad .c.sm { font-size: clamp(16px, 1.8vw, 22px); }
+  .keys { margin-top: var(--s2); font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; color: var(--fg-2); line-height: 2; }
+
+  .v-slot { display: grid; gap: 4px; align-content: start; min-width: 0; }
+  .cx-main, .mv, .mv > * { min-width: 0; }
+  .cx-grid { overflow-x: clip; }
+  .v-slot.drop .v-next { outline: 2px dashed var(--live); outline-offset: 3px; }
+  .v-tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; padding: 3px 4px 3px 8px; background: var(--surface); border: 1px solid var(--line); font-size: var(--t-xs); min-width: 0; }
+  .v-tr .t { flex: 1 1 140px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .v-tr .t b { font-weight: 600; }
+  .v-tr .t.on { color: var(--live); }
+  .v-tr button { flex: none; height: 26px; padding: 0 8px; border: 1px solid var(--line); font: 400 10px var(--mono); text-transform: uppercase; }
+  .v-tr button:hover { border-color: var(--fg); }
+  .v-tr .add { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .v-slot.drop .v-tr { border-color: var(--live); color: var(--live); }
+  .tr-imp { display: grid; gap: 6px; padding-top: var(--s3); border-top: 1px solid var(--line); }
+  .tr-imp .row { gap: var(--s2); } .tr-imp .input { min-height: 40px; flex: 1; } .tr-imp .btn { min-height: 40px; }
+  .tr-q:empty { display: none; }
+  .tr-q { display: grid; gap: 4px; padding: var(--s2); border: 1px dashed var(--line); }
+  .tr-q .lbl { margin-bottom: 2px; }
+  .tr-lib { display: grid; gap: var(--s2); padding-top: var(--s3); border-top: 1px solid var(--line); }
+  .tr-lib-h { display: flex; align-items: baseline; gap: var(--s2); }
+  .tr-lib-h b { font-weight: 600; font-size: var(--t-sm); }
+  .tr-lib .input { min-height: 36px; }
+  .tr-hint { font-size: var(--t-xs); color: var(--fg-2); }
+  .tr-list { display: grid; gap: 2px; max-height: 300px; overflow-y: auto; scrollbar-width: thin; }
+  .p-tr.big .tr-list { max-height: 70vh; }
+  .p-tr.big { position: relative; z-index: 6; }
+  @media (min-width: 900px) { .deck:has(.p-tr.big) { grid-template-columns: minmax(0, 1fr); } .deck:has(.p-tr.big) .d-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; } }
+  .trk { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: var(--s2); align-items: center; padding: 4px; background: var(--bg); border: 1px solid transparent; cursor: grab; }
+  .trk:hover { border-color: var(--line); }
+  .trk.now { border-color: var(--live); }
+  .trk.bad { opacity: .45; }
+  .trk img { width: 64px; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #000; }
+  .trk .tt { min-width: 0; display: grid; gap: 1px; }
+  .trk .tt b { font-size: var(--t-xs); font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .trk .tt small { font: 400 10px var(--mono); color: var(--fg-2); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .trk .tt small.st { color: var(--live); }
+  .trk .ac { display: flex; gap: 2px; }
+  .trk .ac button { height: 28px; padding: 0 7px; border: 1px solid var(--line); font: 400 10px var(--mono); text-transform: uppercase; white-space: nowrap; }
+  .trk .ac button:hover { border-color: var(--fg); background: var(--surface); }
+  .trk .ac .go { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .trk.mini { grid-template-columns: 40px minmax(0, 1fr) auto; cursor: default; }
+  .trk.mini img { width: 40px; }
+  /* música em reprodução (tela de música) e trilha bloqueada */
+  .sg-emb { position: relative; aspect-ratio: 16 / 9; } .sg-emb .emb-audio { inset: 0; width: 100%; height: 100%; }
+  .p-song { display: grid; gap: var(--s3); border-color: var(--live); }
+  .sg-top { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--s3); align-items: center; }
+  .sg-top .slide { width: 96px; display: block; }
+  .sg-top b { display: block; font-size: var(--t-md); font-weight: 600; }
+  .sg-top small { font-size: var(--t-xs); color: var(--fg-2); }
+  .sg-tl { position: relative; height: 40px; display: flex; gap: 2px; cursor: pointer; touch-action: none; user-select: none; }
+  .sg-tl .sg { position: relative; height: 100%; background: var(--sunken); overflow: hidden; display: flex; align-items: flex-end; padding: 0 4px 4px; font: 400 9px var(--mono); text-transform: uppercase; color: var(--fg-2); white-space: nowrap; }
+  .sg-tl .sg.on { background: color-mix(in srgb, var(--live) 30%, var(--sunken)); color: var(--fg); }
+  .sg-tl .sg.done { background: color-mix(in srgb, var(--live) 14%, var(--sunken)); }
+  .sg-tl .ph { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg); pointer-events: none; }
+  .sg-tl .ph::before { content: ""; position: absolute; top: -4px; left: -4px; width: 10px; height: 10px; background: var(--fg); }
+  .sg-time { display: flex; justify-content: space-between; font: 400 var(--t-xs) var(--mono); color: var(--fg-2); }
+  .sg-time b { color: var(--fg); font-weight: 400; }
+  .sg-ctl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .sg-ctl button { display: grid; place-items: center; gap: 2px; height: 52px; background: var(--surface); font: 400 9px var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .sg-ctl button svg { width: 18px; height: 18px; color: var(--fg); }
+  .sg-ctl button:hover { background: var(--sunken); }
+  .sg-ctl .pp { background: var(--live); color: #fff; } .sg-ctl .pp svg { color: #fff; } .sg-ctl .pp:hover { background: color-mix(in srgb, var(--live) 85%, #000); }
+  .sg-fl { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); font-size: var(--t-xs); }
+  .p-tr { position: relative; }
+  /* trilha bloqueada numa tela de música: o painel encolhe e mostra só o aviso */
+  .p-tr.locked > :not(.tr-lock):not(.pnl-h):not(.tr-prev) { display: none; }
+  .p-tr.locked .tr-prev { opacity: .35; filter: grayscale(1); pointer-events: none; }
+  .tr-lock { display: grid; gap: 6px; padding: var(--s3); border: 1px dashed var(--line); }
+  .tr-lock[hidden] { display: none; }
+  .tr-lock b { font-size: var(--t-sm); }
+  .tr-lock span { font-size: var(--t-xs); color: var(--fg-2); }
+  .pad .c.locked { opacity: .3; pointer-events: none; }
+  .d-col { display: grid; gap: var(--s2); align-content: start; min-width: 0; }
+  .p-tr { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
+  .p-tr > * { min-width: 0; }
+  .tr-ctl { display: flex; gap: var(--s2); }
+  .tr-ctl .btn.xf { background: var(--warn); border-color: var(--warn); color: #161615; }
+  .tr-wait { display: grid; grid-template-columns: 64px minmax(0, 1fr) 28px; gap: var(--s2); align-items: center; padding: 6px; border: 1px dashed var(--warn); }
+  .tr-wait img { width: 64px; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+  .tr-wait small { display: block; font: 400 10px var(--mono); text-transform: uppercase; color: var(--warn); }
+  .tr-wait b { display: block; font-size: var(--t-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tr-wait button { width: 28px; height: 28px; border: 1px solid var(--line); }
+  .tr-ctl .btn { flex: 1; }
+  .pad .c.tr { font-size: clamp(16px, 1.6vw, 22px); }
+  .pad .c.tr.on { color: var(--live); }
+  .hud .tag.tr-on { color: #9fb4ff; }
+  /* painéis */
+  .deck { display: grid; gap: var(--s2); margin-top: var(--s2); }
+  .pnl { padding: var(--s3); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .pnl-h { display: flex; justify-content: space-between; gap: var(--s2); align-items: baseline; margin-bottom: var(--s2); }
+  .p-item h2 { font-size: var(--t-lg); margin-top: 4px; }
+  .p-item .clock { font-size: clamp(48px, 5.4vw, 76px); margin: var(--s3) 0 var(--s2); }
+  .p-item .row3 { display: flex; justify-content: space-between; margin-top: 6px; }
+  .after { margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--line); font-size: var(--t-sm); color: var(--fg-2); }
+  .after b { color: var(--fg); font-weight: 600; }
+
+  .ops { margin-top: var(--s4); }
   .ti { cursor: pointer; }
   .ti.next-row { box-shadow: inset 3px 0 0 var(--live); padding-left: var(--s3); }
-  .dots { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
-  .dots i { width: 18px; height: 4px; background: color-mix(in srgb, var(--invert-fg) 25%, transparent); }
-  .dots i.on { background: var(--invert-fg); }
-  @media (min-width: 900px) {
-    .app { padding-bottom: var(--s7); }
-    .dock { position: static; border: 0; padding: 0; background: none; margin-top: var(--s4); }
+  #op-post .stat b { font-size: var(--t-lg); white-space: nowrap; }
+  .op-pane { display: none; padding-top: var(--s3); } .op-pane.on { display: block; }
+  .op-sl { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s2); }
+  .op-sl figure { margin: 0; } .op-sl figcaption { margin-top: 4px; }
+  .op-sl .now .slide { outline: 2px solid var(--live); outline-offset: 2px; }
+  .chk { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: var(--s3); align-items: start; padding: var(--s3) 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .chk i { width: 20px; height: 20px; border: 1px solid var(--fg); display: grid; place-items: center; }
+  .chk.ok i { background: var(--fg); color: var(--bg); } .chk.ok b { text-decoration: line-through; color: var(--fg-2); }
+  .chk b { display: block; font-weight: 600; } .chk small { font-size: var(--t-sm); color: var(--fg-2); }
+
+  /* celular em pé: o pad vem logo depois das telas */
+  .cx-main { display: grid; gap: var(--s2); }
+  .p-pad { order: -1; }
+  @media (max-width: 899px) {
+    .cx-stats { display: none; }
+    .cx-top .ttl { flex: 1; }
+    .cx-top .chips { order: 5; width: 100%; }
+    .v-next .hud { font-size: 9px; } .v-next .hud-bl { right: 6px !important; }
   }
-  kbd { font: 400 10px var(--mono); border: 1px solid var(--line); padding: 1px 5px; }
+
+  /* desktop: grande | duas próximas; embaixo item · slides · pad */
+  @media (min-width: 900px) {
+    .mv { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-rows: auto auto; }
+    .v-now { grid-column: 1; grid-row: 1 / span 2; align-self: stretch; display: grid; align-content: center; }
+    .v-next { align-self: start; }
+    .hud { font-size: 11px; }
+    .hud-tl, .hud-tr { top: 12px; } .hud-tl { left: 12px; } .hud-tr { right: 12px; }
+    .hud .tm { font-size: 28px; padding: 6px 10px; }
+    .deck { grid-template-columns: minmax(0, 1fr) minmax(0, 2.1fr); align-items: stretch; }
+    .p-pad .pad { grid-auto-rows: minmax(96px, auto); }
+    .pad .c { font-size: clamp(28px, 2.6vw, 40px); }
+    .pad .c.sm { font-size: clamp(22px, 2vw, 30px); }
+    .pad .c svg { width: 34px; height: 34px; }
+    .pad .play svg { width: 64px; height: 64px; }
+    .pad .c > span { font-size: 11px; top: 10px; left: 12px; }
+    .p-pad { order: 0; }
+    .cx-stats { display: flex; margin-left: auto; border: 1px solid var(--line); }
+    .cx-stats > div { padding: 6px 14px; display: grid; gap: 2px; }
+    .cx-stats > div + div { border-left: 1px solid var(--line); }
+    .cx-stats b { font: 400 var(--t-lg)/1 var(--mono); font-variant-numeric: tabular-nums; }
+  }
+  @media (min-width: 1500px) {
+    .cx-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--s4); align-items: start; }
+    .ops { margin-top: 0; position: sticky; top: calc(var(--mk-h, 0px) + var(--s3)); max-height: calc(100vh - var(--mk-h, 0px) - var(--s5)); overflow-y: auto; }
+  }
+
+  /* celular deitado: telas à esquerda, pad à direita (sem barra de navegação) */
+  @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+    .cx .tabbar, .cx .mk { display: none; }
+    .cx .app { padding: 8px 8px 8px; max-width: none; }
+    .cx-top, .ops, .p-item, .keys { display: none; }
+    .d-col { position: absolute; width: 1px; height: 1px; overflow: hidden; } /* o player continua tocando */
+    .cx-main { grid-template-columns: minmax(0, 1fr) minmax(280px, 44vw); align-items: stretch; height: calc(100vh - 16px); }
+    .deck { display: contents; }
+    .p-pad { order: 0; grid-column: 2; grid-row: 1; display: grid; }
+    .p-pad .pad { height: 100%; grid-auto-rows: 1fr; }
+    .mv { grid-column: 1; grid-row: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
+    .v-now { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .zone, .go { transition: none; } }
 </style>
 </head>
-<body data-tab="console">
+<body data-tab="console" class="cx">
 <main class="app">
-  <header class="top">
-    <span class="grow"><span class="lbl">Console · Culto principal · 29/11</span><div class="row" style="gap:6px;margin-top:4px" id="chips"></div></span>
-    <button class="icon-btn" id="net" title="Simular queda de internet"></button>
-    <a class="icon-btn" href="tela.html" target="xlide-tela" title="Abrir tela" id="scr"></a>
+  <header class="cx-top">
+    <div class="ttl"><span class="lbl">Console · 29/11</span><b>Culto principal</b></div>
+    <div class="chips" id="chips"></div>
+    <div class="cx-stats" id="stats"></div>
+    <button class="icon-btn" id="net" title="Simular queda de internet" aria-label="Simular queda de internet"></button>
+    <a class="icon-btn" href="tela.html" target="xlide-tela" title="Abrir a tela do projetor" aria-label="Abrir a tela do projetor" id="scr"></a>
   </header>
   <div id="offline"></div>
 
-  <div class="split">
-    <div class="stack">
-      <section class="card invert now-card" id="now">
-        <div class="row between"><span class="lbl" id="pos"></span><span class="lbl" id="adv"></span></div>
-        <h1 id="ttl" style="margin-top:var(--s2)"></h1>
-        <p class="muted" id="who"></p>
-        <div class="clock" id="clk"></div>
-        <div class="bar" id="bar"><i></i></div>
-        <div class="row between" style="margin-top:var(--s2)"><span class="lbl" id="el"></span><span class="lbl" id="bud"></span></div>
-        <div id="slnav" style="margin-top:var(--s4)"></div>
+  <div class="cx-grid">
+    <div class="cx-main">
+      <!-- multiview: agora (grande) + a seguir + depois -->
+      <section class="mv" aria-label="Telas">
+        <div class="v v-now">
+          <div class="tx-host" id="pv" data-media-on="muted"></div>
+          <div class="hud hud-tl"><span class="tag" id="h-state"></span><span class="tag">Na tela</span><span class="tag" id="h-tr"></span><span class="tag" id="h-tx"></span></div>
+          <div class="hud hud-tr"><span class="tm" id="h-tm"></span></div>
+          <div class="hud hud-bl"><span class="tag" id="h-what"></span></div>
+          <div class="pbar" id="h-bar"><i></i></div>
+          <button class="zone l" id="z-prev" aria-label="Slide anterior"></button>
+          <button class="zone r" id="z-next" aria-label="Próximo slide"></button>
+        </div>
+        <div class="v-slot" data-slot="0"><button class="v v-next" id="v1" aria-label="A seguir: pôr em foco; depois Trocar"><div class="slide" id="pv1" data-video></div><div class="hud hud-tl"><span class="tag live" id="t1">1 · A seguir</span><span class="tag" id="t1-tr"></span></div><div class="hud hud-bl" style="right:80px"><span class="tag" id="w1"></span></div><span class="go">Pôr em foco</span></button><div class="v-tr" id="vt0"></div></div>
+        <div class="v-slot" data-slot="1"><button class="v v-next" id="v2" aria-label="Depois: pôr em foco; depois Trocar"><div class="slide" id="pv2" data-video></div><div class="hud hud-tl"><span class="tag" id="t2">2 · Depois</span><span class="tag" id="t2-tr"></span></div><div class="hud hud-bl" style="right:80px"><span class="tag" id="w2"></span></div><span class="go">Pôr em foco</span></button><div class="v-tr" id="vt1"></div></div>
       </section>
 
-      <div class="ext" id="ext"><button class="btn" data-e="60">+1 min</button><button class="btn" data-e="120">+2 min</button><button class="btn" data-e="300">+5 min</button></div>
-
-      <div class="stats">
-        <div class="stat"><span class="lbl">Agora</span><b id="wall"></b></div>
-        <div class="stat"><span class="lbl">Término previsto</span><b id="end"></b></div>
-        <div class="stat"><span class="lbl">Atraso</span><b id="delay"></b></div>
-      </div>
-
-      <div class="dock">
-        <div class="main">
-          <button class="btn big" id="prev"></button>
-          <button class="btn big live" id="play"></button>
-          <button class="btn big primary" id="next"></button>
+      <!-- controles -->
+      <section class="deck" aria-label="Controles">
+        <div class="d-col">
+        <div class="pnl p-item">
+          <div class="pnl-h"><span class="lbl" id="pos"></span><span class="lbl" id="adv"></span></div>
+          <h2 id="ttl"></h2>
+          <p class="muted" id="who" style="font-size:var(--t-sm)"></p>
+          <div class="clock" id="clk"></div>
+          <div class="bar" id="bar"><i></i></div>
+          <div class="row3"><span class="lbl" id="el"></span><span class="lbl" id="bud"></span></div>
+          <p class="after" id="after"></p>
         </div>
-      </div>
-      <p class="lbl hide-sm">Teclado: <kbd>espaço</kbd> play/pausa · <kbd>←</kbd><kbd>→</kbd> slides · <kbd>N</kbd> próximo item · <kbd>B</kbd> voltar · <kbd>1</kbd><kbd>2</kbd><kbd>5</kbd> estender</p>
+        <div class="pnl p-song" id="psong" hidden aria-label="Música em reprodução"></div>
+        <div class="pnl p-tr" aria-label="Trilha de fundo">
+          <div class="tr-lock" id="tr-lock" hidden><b>♪ Trilha de fundo bloqueada</b><span>Esta tela é uma música: ela tem a própria faixa, então a trilha não toca por cima. Volta a funcionar na próxima tela.</span></div>
+          <div class="pnl-h"><span class="lbl">Trilha de fundo</span><span class="lbl" id="tr-state"></span></div>
+          <div class="tr-prev"><div class="tr-yt" id="tr-yt"></div><div class="tr-yt" id="tr-yt2" hidden></div><span class="grow" style="min-width:0"><b id="tr-title">Pronta para tocar</b><span class="lbl" id="tr-src"></span></span></div>
+          <div class="tr-wait" id="tr-wait" hidden></div>
+          <div class="tr-ctl"><button class="btn primary" id="tr-play"></button><button class="icon-btn" id="tr-next" aria-label="Próxima faixa" title="Próxima faixa"></button><button class="icon-btn" id="tr-mute" aria-label="Mudo" title="Mudo"></button></div>
+          <label class="tr-vol"><span>Volume</span><input type="range" min="0" max="100" step="5" id="tr-vol"><output id="tr-vol-o"></output></label>
+          <div class="row between" style="font-size:var(--t-sm)"><span>Segue as telas<small class="muted" style="display:block;font-size:var(--t-xs)">Liga, desliga e ajusta o volume a cada tela</small></span><button class="toggle on" id="tr-follow" role="switch" aria-checked="true" aria-label="Trilha segue as telas"></button></div>
+          <p class="after" id="tr-here"></p>
+          <div class="tr-q" id="tr-q"></div>
+          <div class="tr-imp"><span class="lbl">Importar do YouTube</span><div class="row"><input class="input" id="tr-imp" placeholder="Cole o link de um vídeo (ou playlist)" aria-label="Link do YouTube"><button type="button" class="btn" id="tr-imp-ok">Importar</button></div><span class="tr-hint" id="tr-imp-l">A faixa fica em espera no controle; toca quando você apertar Tocar.</span></div>
+          <div class="tr-lib">
+            <div class="tr-lib-h"><b>Todas as faixas</b><span class="lbl" id="tr-n"></span><span class="grow"></span><button class="cv-b" id="tr-exp" aria-expanded="false">Expandir</button></div>
+            <div class="seg" id="tr-tabs"></div>
+            <input class="input" id="tr-q-in" placeholder="Buscar faixa" aria-label="Buscar faixa">
+            <p class="tr-hint">Selecionar põe a faixa no controle; ela toca quando você apertar Tocar trilha. Arraste uma faixa até a tela 1 ou 2 para ela tocar quando aquela tela entrar.</p>
+            <div class="tr-list" id="tr-list"></div>
+          </div>
+        </div>
+        </div>
+        <div class="p-pad">
+          <button type="button" class="ap" id="ap" role="switch" aria-checked="false"></button>
+          <div class="pad txp" id="txp" role="group" aria-label="Transição entre telas"></div>
+          <div class="pad" id="pad">
+            <div class="c sm"><span>Agora</span><b id="wall" style="font-weight:400"></b></div>
+            <div class="c sm"><span>Término</span><b id="end" style="font-weight:400"></b></div>
+            <div class="c sm"><span>Atraso</span><b id="delay" style="font-weight:400"></b></div>
+            <button class="c" id="sprev"><span>Slide</span></button>
+            <button class="c play" id="play"><span id="play-l"></span></button>
+            <button class="c" id="snext"><span>Slide</span></button>
+            <button class="c" id="prev"><span>Item</span></button>
+            <button class="c" id="next"><span>Item</span></button>
+            <button class="c ext" data-e="60"><span>Estender</span>+1</button>
+            <button class="c ext" data-e="120"><span>min</span>+2</button>
+            <button class="c ext" data-e="300"><span>min</span>+5</button>
+            <button class="c tr" id="p-tr"><span>Trilha</span></button>
+            <button class="c sm" id="p-vd"><span>Volume</span>−</button>
+            <button class="c sm" id="p-vu"><span>Volume</span>+</button>
+          </div>
+          <p class="keys hide-sm">Trocar de tela: clique na tela 1 ou 2 (fica em foco) e depois em <kbd>Trocar</kbd> ou <kbd>Enter</kbd>; <kbd>Esc</kbd> solta. Teclado: <kbd>espaço</kbd> play · <kbd>←</kbd><kbd>→</kbd> slide · <kbd>N</kbd><kbd>B</kbd> item · <kbd>1</kbd><kbd>2</kbd><kbd>5</kbd> estender. Clique na tela grande: lado esquerdo volta, direito avança.</p>
+        </div>
+      </section>
     </div>
 
-    <aside class="side stack">
-      <div class="hide-lg"><div class="section-h" style="margin-top:0"><h2>Na tela agora</h2><span class="chip" id="sync"></span></div></div>
-      <div class="hide-sm row between"><h2>Na tela agora</h2><span class="chip" id="sync2"></span></div>
-      <div class="slide" id="pv"></div>
-      <div class="section-h"><h2>Programa</h2><button class="lbl" id="finish">encerrar culto</button></div>
-      <div class="timeline" id="tl"></div>
+    <aside class="ops" aria-label="Painel do operador">
+      <nav class="tabs-x" id="op-tabs"><button class="on" data-p="prog">Programa</button><button data-p="slides">Slides</button><button data-p="todo">Pendências<span class="pill-n">3</span></button><button data-p="post">Pós-culto</button></nav>
+      <div class="op-pane on" data-p="prog"><div class="section-h" style="margin-top:var(--s2)"><span class="lbl">Ordem do culto</span><button class="lbl" id="finish">encerrar culto</button></div><div class="timeline" id="tl"></div></div>
+      <div class="op-pane" data-p="slides" id="op-slides"></div>
+      <div class="op-pane" data-p="todo" id="op-todo"></div>
+      <div class="op-pane" data-p="post" id="op-post"></div>
     </aside>
   </div>
 </main>
 <script>
 const items = XL.program.items;
 const { I } = UI;
-UI.qs("#scr").innerHTML = I.screen;
-UI.qs("#net").innerHTML = I.wifi;
-UI.qs("#prev").innerHTML = I.prev + "<small>Voltar</small>";
-UI.qs("#next").innerHTML = I.next + "<small>Próximo</small>";
+const C = LIVE.cmd;
+const ICON = { prev: I.prev, next: I.next, back: I.back, chev: I.chev };
+UI.qs("#z-prev").innerHTML = I.back; UI.qs("#z-next").innerHTML = I.chev;
+UI.qs("#scr").innerHTML = I.screen; UI.qs("#net").innerHTML = I.wifi;
+UI.qs("#sprev").insertAdjacentHTML("beforeend", I.back);
+UI.qs("#snext").insertAdjacentHTML("beforeend", I.chev);
+UI.qs("#prev").insertAdjacentHTML("beforeend", I.prev);
+UI.qs("#next").insertAdjacentHTML("beforeend", I.next);
 LIVE.drive(); // este aparelho dispara o avanço automático
 
-const C = LIVE.cmd;
-UI.qs("#play").onclick = () => C.toggle();
+/* Posições (item, slide) que vêm depois. */
+const nOf = (i) => LIVE.slidesOf(items[i]).length;
+const after = (p) => (!p ? null : p[1] + 1 < nOf(p[0]) ? [p[0], p[1] + 1] : p[0] + 1 < items.length ? [p[0] + 1, 0] : null);
+function upcoming(s) {
+  if (s.status === "done") return [null, null];
+  if (s.status === "idle") { const a = [0, 0]; return [a, after(a)]; }
+  const a = after([s.index, s.slide]); return [a, after(a)];
+}
+const posLabel = (p) => { const it = items[p[0]], n = nOf(p[0]); return `${it.title}${n > 1 ? ` · ${p[1] + 1}/${n}` : ""}`; };
+function paintAt(el, p) {
+  if (!p) { if (el._k !== "end") { el._k = "end"; el.className = "slide blank"; el.innerHTML = `<div class="s-eyebrow">Fim do programa</div>`; } return; }
+  const it = items[p[0]];
+  paintSlide(el, it, p[1], { remaining: it.planned }, "pt", "live");
+}
+const go = (p) => p && C.at(p[0], p[1]);
+
+/* Trocar com duas etapas, para não trocar sem querer:
+   1) clicar numa tela da direita põe ela em foco; 2) o botão do meio vira "Trocar";
+   3) clicar em Trocar (ou na mesma tela de novo, ou Enter) troca; o botão volta a ser Pausar. Esc solta o foco. */
+let focusP = null;
+const sameP = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
+function focusOn(p) { if (!p) return; if (sameP(focusP, p)) return swap(); focusP = p; paintFocus(); }
+function swap() { if (!focusP) return; const p = focusP; focusP = null; go(p); paintFocus(); toastTr(`Trocou para ${items[p[0]].title}${LIVE.slidesOf(items[p[0]]).length > 1 ? ` · ${p[1] + 1}` : ""}.`); }
+function clearFocus() { if (!focusP) return; focusP = null; paintFocus(); }
+/* Último slide do último item: o botão do meio vira "Encerrar culto" (vermelho) e pede confirmação. */
+const atEnd = (s = LIVE.state) => (s.status === "live" || s.status === "paused") && s.index === items.length - 1 && s.slide >= nOf(s.index) - 1;
+let projWin = null;
+function askEnd() {
+  const sh = UI.sheet(`<div class="stack end-ask" role="alertdialog" aria-labelledby="end-t"><h2 id="end-t">Você tem certeza que quer encerrar o culto?</h2>
+    <p class="muted">As telas do projetor fecham, a trilha para e os tempos reais vão para o relatório. Não dá para continuar o culto depois.</p>
+    <div class="grid grid-2"><button class="btn danger-fill block" id="end-ok">Sim, encerrar o culto</button><button class="btn ghost block" id="end-no">Cancelar</button></div></div>`);
+  sh.querySelector("#end-no").onclick = UI.closeSheet;
+  sh.querySelector("#end-ok").onclick = () => { UI.closeSheet(); endService(); };
+  sh.querySelector("#end-no").focus();
+}
+function endService() {
+  C.finish();
+  try { localStorage.setItem("xlide.v2.close-screens", String(Date.now())); } catch {} // a tela do projetor escuta e fecha
+  try { projWin && !projWin.closed && projWin.close(); } catch {}
+  if (tr.st.playing) tr.fadeTo(0, () => tr.pause());
+  sg.playing = false;
+  UI.qs('#op-tabs [data-p="post"]')?.click();
+  toastTr("Culto encerrado. Telas fechadas; o relatório está pronto no Pós-culto.");
+}
+UI.qs("#play").onclick = () => (focusP ? swap() : atEnd() ? askEnd() : C.toggle());
+// abrir a tela do projetor por script, para poder fechá-la no fim
+UI.qs("#scr").onclick = (e) => { e.preventDefault(); projWin = window.open("tela.html", "xlide-tela"); };
 UI.qs("#next").onclick = () => C.next();
 UI.qs("#prev").onclick = () => C.prev();
-UI.qs("#finish").onclick = () => C.finish();
+UI.qs("#snext").onclick = UI.qs("#z-next").onclick = () => (LIVE.state.status === "idle" ? C.play() : C.slide(1));
+UI.qs("#sprev").onclick = UI.qs("#z-prev").onclick = () => C.slide(-1);
+UI.qs("#v1").onclick = () => focusOn(upcoming(LIVE.state)[0]);
+UI.qs("#v2").onclick = () => focusOn(upcoming(LIVE.state)[1]);
+UI.qs("#finish").onclick = askEnd;
 UI.qs("#net").onclick = () => C.offline(!LIVE.state.offline);
-UI.qsa("#ext button").forEach((b) => (b.onclick = () => C.extend(+b.dataset.e)));
+UI.qsa("[data-e]").forEach((b) => (b.onclick = () => C.extend(+b.dataset.e)));
 addEventListener("keydown", (e) => {
   if (e.target.matches("input,textarea")) return;
   const k = e.key;
+  if (focusP && k === "Enter") { e.preventDefault(); return swap(); }
+  if (focusP && k === "Escape") return clearFocus();
   if (k === " ") { e.preventDefault(); C.toggle(); }
-  else if (k === "ArrowRight") C.slide(1);
+  else if (k === "ArrowRight") UI.qs("#snext").click();
   else if (k === "ArrowLeft") C.slide(-1);
   else if (k === "n" || k === "PageDown") C.next();
   else if (k === "b" || k === "PageUp") C.prev();
   else if (k === "1") C.extend(60); else if (k === "2") C.extend(120); else if (k === "5") C.extend(300);
 });
 
-let lastList = "";
+/* ── trilha de fundo: toca neste computador (vai para a mesa de som) ── */
+let trArmed = false, trFollow = true, trKey = "", trPicked = null;
+/* Dois players: o que toca (tr) e um de reserva. A faixa selecionada enquanto outra toca fica em espera
+   na reserva; ao tocar, as duas se cruzam (a atual desce, a nova sobe) e trocam de papel. */
+let tr = TRILHA.player(UI.qs("#tr-yt"), { onChange: () => paintTr() });
+let trB = TRILHA.player(UI.qs("#tr-yt2"), { onChange: () => paintTr() });
+let trHostA = UI.qs("#tr-yt"), trHostB = UI.qs("#tr-yt2");
+function crossfade(id, vol) {
+  const go = () => {
+    trB.setVol(0); trB.playTrack(id);
+    const old = tr; old.fadeTo(0, () => old.pause());
+    trB.fadeTo(vol);
+    [tr, trB] = [trB, tr]; [trHostA, trHostB] = [trHostB, trHostA];
+    trHostA.hidden = false; trHostB.hidden = true;
+    paintTr();
+  };
+  trB.st.ready ? go() : (function w() { trB.st.ready ? go() : setTimeout(w, 200); })();
+}
+const trOf = (i) => TRILHA.resolve(items[i]);
+const trTag = (r) => (r && r.on ? `♪ ${r.vol}%` : "♪ off");
+let lastVid = "", lastQ = "";
+function paintTr() {
+  if (tr.st.videoId + tr.st.playing !== lastVid || tr.st.queue.join() !== lastQ) { lastVid = tr.st.videoId + tr.st.playing; lastQ = tr.st.queue.join(); typeof libSoon === "function" && libSoon(); }
+  const st = tr.st, s = LIVE.state, r = trOf(s.status === "done" ? items.length - 1 : s.index);
+  const waiting = trPicked && st.playing && trPicked !== st.videoId;
+  UI.qs("#tr-play").innerHTML = waiting ? `${I.play}Trocar com fade` : st.playing ? `${I.pause}Pausar trilha` : `${I.play}${trArmed ? "Tocar trilha" : "Iniciar trilha"}`;
+  UI.qs("#tr-play").classList.toggle("xf", !!waiting);
+  UI.qs("#tr-wait").hidden = !waiting;
+  if (waiting) UI.qs("#tr-wait").innerHTML = `<img src="${TRILHA.thumb(trPicked)}" alt=""><span style="min-width:0"><small>Em espera · entra com fade</small><b>${TRILHA.esc(TRILHA.title(trPicked))}</b></span><button type="button" id="tr-wait-x" aria-label="Tirar da espera">✕</button>`;
+  waiting && (UI.qs("#tr-wait-x").onclick = () => { trPicked = null; paintTr(); });
+  UI.qs("#tr-state").textContent = !st.ready ? "carregando…" : st.playing ? `tocando · ${Math.round(st.vol)}%` : "parada";
+  UI.qs("#tr-title").textContent = st.title || (st.ready ? "Pronta para tocar" : "Carregando o player…");
+  UI.qs("#tr-src").textContent = ((TRILHA.conf.lists.imp || []).includes(st.videoId) ? "Importada" : TRILHA.src(st.src || TRILHA.conf.service.src).name) + " · YouTube";
+  if (document.activeElement !== UI.qs("#tr-vol")) UI.qs("#tr-vol").value = Math.round(st.target);
+  UI.qs("#tr-vol-o").textContent = Math.round(st.target) + "%";
+  UI.qs("#tr-mute").textContent = st.muted ? "Som" : "Mudo";
+  UI.qs("#tr-mute").classList.toggle("on", st.muted);
+  const nx = items[s.index + 1];
+  UI.qs("#tr-here").innerHTML = `Esta tela: <b>${r.on ? `${r.why}, ${r.vol}%` : "sem trilha (off)"}</b>${nx ? ` · Próxima: ${TRILHA.resolve(nx).on ? "♪ " + TRILHA.resolve(nx).vol + "%" : "off"}` : ""}${trArmed ? "" : "<br>A trilha começa quando você tocar em Iniciar trilha."}`;
+  UI.qs("#p-tr").innerHTML = `<span>Trilha</span>${st.playing ? I.pause : I.play}<small style="font:400 10px var(--mono);text-transform:uppercase">${st.playing ? Math.round(st.vol) + "%" : "parada"}</small>`;
+  UI.qs("#p-tr").classList.toggle("on", st.playing);
+}
+UI.qs("#tr-next").innerHTML = I.next;
+UI.qs("#tr-play").onclick = UI.qs("#p-tr").onclick = () => {
+  if (tr.st.playing && trPicked && trPicked !== tr.st.videoId) { const id = trPicked; trPicked = null; const r0 = trOf(LIVE.state.index); crossfade(id, Math.round(tr.st.target) || (r0.on && r0.vol) || TRILHA.conf.service.vol); toastTr(`Trocando com fade para ${TRILHA.short(TRILHA.title(id))}.`); return; }
+  if (tr.st.playing) return tr.fadeTo(0, () => tr.pause());
+  trArmed = true;
+  const r = trOf(LIVE.state.index);
+  if (trPicked) { const v = (r.on && r.vol) || TRILHA.conf.service.vol; tr.setVol(0); tr.play(); tr.fadeTo(v); }
+  else if (r.on) tr.apply(r); else { tr.setVol(0); tr.play(); tr.fadeTo(TRILHA.conf.service.vol); } // tocar por cima de uma tela sem trilha: o operador manda
+};
+UI.qs("#tr-next").onclick = () => tr.next();
+UI.qs("#tr-mute").onclick = () => tr.mute();
+UI.qs("#tr-vol").oninput = (e) => tr.setVol(+e.target.value);
+UI.qs("#p-vd").onclick = () => tr.fadeTo(Math.max(0, tr.st.target - 5));
+UI.qs("#p-vu").onclick = () => tr.fadeTo(Math.min(100, tr.st.target + 5));
+UI.qs("#tr-follow").onclick = (e) => { trFollow = !trFollow; e.currentTarget.classList.toggle("on", trFollow); e.currentTarget.setAttribute("aria-checked", trFollow); };
+TRILHA.on(() => { trKey = ""; libSoon(); slotsKey = ""; });
+
+/* ── biblioteca de faixas: ver, expandir, buscar, tocar agora, em seguida, arrastar para uma tela ── */
+let libSrc = TRILHA.conf.service.src, libQ = "", libT = null, slotsKey = "";
+const libSoon = () => { clearTimeout(libT); libT = setTimeout(lib, 120); };
+function trRow(id, mode) {
+  const st = tr.st, q = st.queue.indexOf(id), bad = TRILHA.conf.titles[id]?.bad, here = items.findIndex((x) => TRILHA.modeOf(x) === "track:" + id);
+  const status = trPicked === id && st.playing && st.videoId !== id ? "em espera · entra com fade" : st.videoId === id ? (st.playing ? "tocando agora" : "selecionada · aperte Tocar trilha") : q >= 0 ? `na fila · ${q + 1}º` : here >= 0 ? `na tela ${here + 1} · ${items[here].title}` : TRILHA.author(id);
+  const acts = mode === "pick" ? `<button class="go" data-pick="${id}">Usar nesta tela</button>`
+    : mode === "queue" ? `<button data-now="${id}">Selecionar</button><button data-unq="${id}" aria-label="Tirar da fila">✕</button>`
+    : `<button class="go" data-now="${id}" title="Selecionar: vai para o controle; toca quando você apertar Tocar trilha">${trPicked === id && st.videoId !== id && st.playing ? "Em espera" : st.videoId === id ? (st.playing ? "Tocando" : "Selecionada") : "Selecionar"}</button><button data-q="${id}" title="Tocar em seguida">${q >= 0 ? "Na fila" : "Em seguida"}</button>`;
+  return `<div class="trk${mode === "queue" ? " mini" : ""}${st.videoId === id ? " now" : ""}${bad ? " bad" : ""}" draggable="true" data-trk="${id}"><img src="${TRILHA.thumb(id)}" alt="" loading="lazy" draggable="false"><span class="tt"><b>${TRILHA.esc(TRILHA.title(id))}</b><small class="${st.videoId === id || q >= 0 ? "st" : ""}">${TRILHA.esc(status)}</small></span><span class="ac">${acts}</span></div>`;
+}
+function lib() {
+  UI.qs("#tr-tabs").innerHTML = TRILHA.sources().map((x) => `<button data-src="${x.id}" class="${x.id === libSrc ? "on" : ""}">${x.name}</button>`).join("");
+  const ids = TRILHA.conf.lists[libSrc];
+  if (!ids) { UI.qs("#tr-list").innerHTML = `<p class="tr-hint">Lendo as faixas da ${TRILHA.src(libSrc).name}…</p>`; TRILHA.list(libSrc).then(libSoon); return; }
+  const L = ids.filter((id) => !libQ || (TRILHA.title(id) + " " + TRILHA.author(id)).toLowerCase().includes(libQ));
+  UI.qs("#tr-n").textContent = `${ids.length} na ${TRILHA.src(libSrc).name}`;
+  UI.qs("#tr-list").innerHTML = L.map((id) => trRow(id)).join("") || `<p class="tr-hint">Nenhuma faixa com “${TRILHA.esc(libQ)}”.</p>`;
+  UI.qs("#tr-q").innerHTML = tr.st.queue.length ? `<span class="lbl">Fila · toca em seguida</span>` + tr.st.queue.map((id) => trRow(id, "queue")).join("") : "";
+}
+/* Importar: a faixa entra em "Importadas" e fica selecionada/em espera, como Selecionar. */
+function importNow() {
+  const inp = UI.qs("#tr-imp"), r = TRILHA.importTrack(inp.value);
+  if (!r) { UI.qs("#tr-imp-l").textContent = "Não é um link do YouTube. Cole o link de um vídeo ou de uma playlist."; UI.qs("#tr-imp-l").style.color = "var(--late)"; return; }
+  inp.value = ""; UI.qs("#tr-imp-l").style.color = "";
+  if (r.source) { libSrc = r.source.id; lib(); UI.qs("#tr-imp-l").textContent = `${r.source.name}: playlist importada como fonte, na aba ao lado.`; return; }
+  libSrc = "imp"; lib();
+  trPicked = r.id;
+  if (!tr.st.playing) tr.cueTrack(r.id);
+  paintTr();
+  const say = () => { const t = TRILHA.short(TRILHA.title(r.id)); UI.qs("#tr-imp-l").textContent = tr.st.playing ? `Em espera: ${t}. Aperte Trocar com fade.` : `Pronta no controle: ${t}. Aperte Tocar trilha.`; };
+  say(); setTimeout(say, 1200);
+}
+UI.qs("#tr-imp-ok").onclick = importNow;
+UI.qs("#tr-imp").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); importNow(); } };
+UI.qs("#tr-tabs").onclick = (e) => { const b = e.target.closest("[data-src]"); if (b) { libSrc = b.dataset.src; lib(); } };
+UI.qs("#tr-q-in").oninput = (e) => { libQ = e.target.value.toLowerCase(); lib(); };
+UI.qs("#tr-exp").onclick = (e) => { const big = UI.qs(".p-tr").classList.toggle("big"); e.currentTarget.textContent = big ? "Recolher" : "Expandir"; e.currentTarget.setAttribute("aria-expanded", big); };
+UI.qs(".p-tr").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.now) {
+    // selecionar: a faixa vai para o controle de cima; toca só com Tocar trilha
+    trPicked = b.dataset.now;
+    if (tr.st.playing) {
+      // a atual continua; a nova fica em espera no controle
+      toastTr(`Em espera: ${TRILHA.short(TRILHA.title(trPicked))}. A atual continua; aperte Trocar com fade.`);
+    } else { tr.cueTrack(trPicked); toastTr(`Selecionada: ${TRILHA.short(TRILHA.title(trPicked))}. Aperte Tocar trilha para começar.`); }
+    paintTr();
+  }
+  else if (b.dataset.q) tr.st.queue.includes(b.dataset.q) ? tr.dequeue(b.dataset.q) : tr.enqueue(b.dataset.q);
+  else if (b.dataset.unq) tr.dequeue(b.dataset.unq);
+  else return;
+  libSoon();
+});
+
+/* ── a trilha de cada próxima tela: + Trilha, trocar, tirar; soltar uma faixa aqui ── */
+function slots(s) {
+  const up = upcoming(s);
+  const k = up.map((p) => (p ? p[0] : "x")).join("|") + "|" + JSON.stringify(TRILHA.conf.items) + Object.keys(TRILHA.conf.titles).length;
+  if (k === slotsKey) return; slotsKey = k;
+  up.forEach((p, n) => {
+    const el = UI.qs("#vt" + n);
+    if (!p) { el.innerHTML = `<span class="t">Fim do programa</span>`; return; }
+    const it = items[p[0]], r = TRILHA.resolve(it), sameAsNow = p[0] === s.index && s.status !== "idle";
+    if (it.type === "song") { el.innerHTML = `<span class="t">♪ Música com faixa própria · trilha de fundo bloqueada</span>`; return; }
+    el.innerHTML = `<span class="t ${r.on ? "on" : ""}">${r.on ? `♪ <b>${TRILHA.esc(r.mode === "track" ? TRILHA.title(r.track) : r.why)}</b> · ${r.vol}%` : "♪ Sem trilha"}${sameAsNow ? " · mesma tela de agora" : ""}</span>
+      ${r.on ? `<button data-off="${p[0]}">Off</button>` : ""}<button class="add" data-add="${p[0]}">+ Trilha</button>`;
+  });
+}
+document.querySelector(".mv").addEventListener("click", (e) => {
+  const b = e.target.closest(".v-tr button"); if (!b) return;
+  e.stopPropagation();
+  const i = +(b.dataset.add ?? b.dataset.off ?? b.dataset.clr), it = items[i];
+  if (b.dataset.off != null) { TRILHA.setItem(it, { mode: "off" }); return; }
+  if (b.dataset.clr != null) { TRILHA.setItem(it, { mode: "inherit" }); return; }
+  pick(it);
+});
+/* Escolher a faixa de uma tela: a mesma lista, com "Usar nesta tela". */
+function pick(it) {
+  let src = libSrc, q = "";
+  const sh = UI.sheet(`<div class="stack"><div class="row between"><span><span class="lbl">Trilha da tela</span><h2>${TRILHA.esc(it.title)}</h2></span><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${I.x}</button></div>
+    <div class="grid grid-2"><button class="btn" data-mode="inherit">Trilha do culto</button><button class="btn" data-mode="off">Sem trilha</button></div>
+    <div class="seg" id="pk-tabs"></div><input class="input" id="pk-q" placeholder="Buscar faixa"><div class="tr-list" id="pk-list" style="max-height:52vh"></div></div>`);
+  const paint = () => {
+    sh.querySelector("#pk-tabs").innerHTML = TRILHA.sources().map((x) => `<button data-src="${x.id}" class="${x.id === src ? "on" : ""}">${x.name}</button>`).join("");
+    const ids = TRILHA.conf.lists[src];
+    if (!ids) { sh.querySelector("#pk-list").innerHTML = `<p class="tr-hint">Lendo as faixas…</p>`; TRILHA.list(src).then(paint); return; }
+    sh.querySelector("#pk-list").innerHTML = ids.filter((id) => !q || TRILHA.title(id).toLowerCase().includes(q)).map((id) => trRow(id, "pick")).join("");
+  };
+  sh.onclick = (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.src) { src = b.dataset.src; return paint(); }
+    if (b.dataset.mode) { TRILHA.setItem(it, { mode: b.dataset.mode }); UI.closeSheet(); return; }
+    if (b.dataset.pick) { TRILHA.setItem(it, { mode: "track:" + b.dataset.pick }); UI.closeSheet(); toastTr(`“${TRILHA.short(TRILHA.title(b.dataset.pick))}” vai tocar em ${it.title}`); }
+  };
+  sh.querySelector("#pk-q").oninput = (e) => { q = e.target.value.toLowerCase(); paint(); };
+  paint();
+}
+/* Arrastar uma faixa da lista até a tela 1, 2 ou a grande. */
+document.addEventListener("dragstart", (e) => { const t = e.target.closest?.("[data-trk]"); if (t) { e.dataTransfer.setData("text/x-trk", t.dataset.trk); e.dataTransfer.setData("text/plain", t.dataset.trk); e.dataTransfer.effectAllowed = "copy"; } });
+UI.qsa(".v-slot, .v-now").forEach((z) => {
+  z.addEventListener("dragover", (e) => { if ([...e.dataTransfer.types].includes("text/x-trk")) { e.preventDefault(); z.classList.add("drop"); } });
+  z.addEventListener("dragleave", () => z.classList.remove("drop"));
+  z.addEventListener("drop", (e) => {
+    const id = e.dataTransfer.getData("text/x-trk"); z.classList.remove("drop"); if (!id) return; e.preventDefault();
+    const s = LIVE.state, up = upcoming(s);
+    const i = z.classList.contains("v-now") ? s.index : up[+z.dataset.slot]?.[0];
+    if (i == null) return;
+    TRILHA.setItem(items[i], { mode: "track:" + id });
+    toastTr(z.classList.contains("v-now") ? `Tocando agora nesta tela: ${TRILHA.short(TRILHA.title(id))}` : `“${TRILHA.short(TRILHA.title(id))}” entra com ${items[i].title}`);
+  });
+});
+let ttr; function toastTr(m) { let t = UI.qs("#tr-toast"); if (!t) { t = document.createElement("div"); t.id = "tr-toast"; t.className = "toast"; t.setAttribute("role", "status"); t.style.cssText = "position:fixed;left:50%;bottom:24px;z-index:90;padding:12px 16px;background:var(--invert-bg);color:var(--invert-fg);font-size:var(--t-sm);transform:translateX(-50%);transition:opacity .2s"; document.body.append(t); } t.textContent = m; t.style.opacity = 1; clearTimeout(ttr); ttr = setTimeout(() => (t.style.opacity = 0), 2600); }
+lib();
+
+const SWAP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>`;
+const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function paintFocus() {
+  const up = upcoming(LIVE.state);
+  UI.qsa(".v-slot").forEach((sl) => { const on = sameP(up[+sl.dataset.slot], focusP); sl.classList.toggle("focus", on); sl.querySelector(".go").textContent = on ? "Clique de novo para trocar" : "Pôr em foco"; });
+  UI.qsa("#tl [data-go]").forEach((r) => { const on = !!focusP && +r.dataset.go === focusP[0]; r.classList.toggle("focus", on); r.querySelector(".fhint")?.remove(); if (on) r.querySelector(".what").insertAdjacentHTML("beforeend", `<span class="fhint">Em foco · clique de novo ou em Trocar</span>`); });
+  UI.qsa("#op-slides [data-at]").forEach((f) => f.classList.toggle("focus", !!focusP && f.dataset.at === focusP.join(":")));
+  document.body.classList.toggle("has-focus", !!focusP);
+}
+document.addEventListener("pointerdown", (e) => { if (focusP && !e.target.closest(".v-slot, #play, .p-pad, #tl [data-go], #op-slides [data-at]")) clearFocus(); });
+// aba Slides: clicar numa miniatura também só põe em foco
+UI.qs("#op-slides").addEventListener("click", (e) => { const f = e.target.closest("[data-at]"); if (f) focusOn(f.dataset.at.split(":").map(Number)); });
+/* Seletor de transição: prévia animada de cada tipo; vale para o console e para a tela do projetor. */
+const TXO = ["fade", "corte", "slide", "sobrepor"].map((k) => TRANSITIONS.find((x) => x[0] === k));
+UI.qs("#txp").innerHTML = TXO.map(([k, n, d]) => `<button type="button" class="c" data-tx="${k}" title="${d}" aria-pressed="false"><span>${k === "fade" ? "Transição · padrão" : "Transição"}</span><div class="demo" aria-hidden="true"><i></i><i></i></div><b class="txn">${n}</b></button>`).join("");
+UI.qs("#txp").onclick = (e) => { const b = e.target.closest("[data-tx]"); if (!b) return; LIVE.cmd.transition(b.dataset.tx); toastTr(`Transição: ${TRANSITIONS.find((x) => x[0] === b.dataset.tx)[1]}. Vale para as próximas trocas.`); };
+/* ── música em reprodução: a faixa da música manda nos slides (tempos de cada estrofe do editor de música) ── */
+const AT = (() => { try { return JSON.parse(localStorage.getItem("xlide.v2.at")) || {}; } catch { return {}; } })();
+const atOf = (id) => AT[id] || XL.songs[id].at || LIVE.slidesOf({ type: "song", song: id }).map((_, k, a) => (XL.songs[id].dur / a.length) * k);
+const slideAt = (id, t) => { let k = 0; atOf(id).forEach((v, j) => { if (v <= t) k = j; }); return k; };
+const mmssS = (x) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, "0")}`;
+let sg = { idx: -1, t: 0, playing: false, follow: true };
+const SGI = { start: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 5v14M18 5 8 12l10 7z"/></svg>`, back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none">10</text></svg>`, fwd: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none">10</text></svg>` };
+function songSeek(t, fromSlide) {
+  const it = items[sg.idx]; if (!it) return;
+  sg.t = Math.max(0, Math.min(XL.songs[it.song].dur, t));
+  if (sg.follow && !fromSlide) { const k = slideAt(it.song, sg.t); if (k !== LIVE.state.slide) LIVE.cmd.at(sg.idx, k); }
+  paintSong();
+}
+function paintSong() {
+  const s = LIVE.state, it = items[s.index], el = UI.qs("#psong");
+  const on = it && it.type === "song" && (s.status === "live" || s.status === "paused");
+  el.hidden = !on;
+  if (!on) return;
+  const song = XL.songs[it.song], at = atOf(it.song), dur = song.dur, slides = LIVE.slidesOf(it), k = slideAt(it.song, sg.t);
+  if (el._id !== it.song + s.index) {
+    el._id = it.song + s.index;
+    el.innerHTML = `<div class="pnl-h"><span class="lbl">Música em reprodução</span><span class="lbl" style="color:var(--live)">♪ trilha de fundo bloqueada</span></div>
+      ${it.media ? `<div class="sg-emb" data-media-on="ctl">${MEDIA.html(it.media)}</div><p class="muted" style="font-size:var(--t-xs)">Faixa importada (${MEDIA.label(it.media)}): toca aqui, no computador do console, que vai para a mesa de som.</p>` : ""}
+      <div class="sg-top"><div class="slide song">${XLOOK.songSlide(it.song, 0, { section: false })}</div><span style="min-width:0"><b>${esc(song.title)}</b><small>${esc(song.author)} · Tom ${song.key} · ${song.bpm} bpm · ${esc(song.source || "faixa da música")}</small></span></div>
+      <div class="sg-tl" id="sgtl" role="slider" aria-label="Linha do tempo da música" aria-valuemin="0" aria-valuemax="${Math.round(dur)}" tabindex="0">${at.map((a, j) => `<span class="sg" data-k="${j}" style="flex:${(at[j + 1] ?? dur) - a}" title="${esc(slides[j]?.section || "")} ${mmssS(a)}">${esc(slides[j]?.section || j + 1)}</span>`).join("")}<i class="ph"></i></div>
+      <div class="sg-time"><span><b id="sg-t"></b> · <span id="sg-k"></span></span><span>${mmssS(dur)}</span></div>
+      <div class="sg-ctl"><button type="button" data-sg="start" title="Do início">${SGI.start}Início</button><button type="button" data-sg="back" title="Voltar 10 segundos">${SGI.back}Voltar</button><button type="button" class="pp" data-sg="pp"></button><button type="button" data-sg="fwd" title="Avançar 10 segundos">${SGI.fwd}Avançar</button></div>
+      <div class="sg-fl"><span>Slides seguem a música<small class="muted" style="display:block">A estrofe troca no tempo marcado no editor de música</small></span><button type="button" class="toggle${sg.follow ? " on" : ""}" data-sg="follow" role="switch" aria-checked="${sg.follow}" aria-label="Slides seguem a música"></button></div>`;
+    const tl = el.querySelector("#sgtl");
+    const seekAt = (e) => { const r = tl.getBoundingClientRect(); songSeek(((e.clientX - r.left) / r.width) * dur); };
+    tl.onpointerdown = (e) => { tl.setPointerCapture(e.pointerId); seekAt(e); tl.onpointermove = (ev) => seekAt(ev); };
+    tl.onpointerup = tl.onpointercancel = () => (tl.onpointermove = null);
+    tl.onkeydown = (e) => { if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); songSeek(sg.t + 5); } if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); songSeek(sg.t - 5); } };
+    el.onclick = (e) => {
+      const b = e.target.closest("[data-sg]"); if (!b) return;
+      const a = b.dataset.sg;
+      if (a === "start") songSeek(0);
+      else if (a === "back") songSeek(sg.t - 10);
+      else if (a === "fwd") songSeek(sg.t + 10);
+      else if (a === "pp") { sg.playing = !sg.playing; if (sg.playing && sg.t >= dur) songSeek(0); paintSong(); }
+      else if (a === "follow") { sg.follow = !sg.follow; b.classList.toggle("on", sg.follow); b.setAttribute("aria-checked", sg.follow); }
+    };
+  }
+  window.MEDIA && MEDIA.hydrate(el);
+  el.querySelectorAll(".sg").forEach((x) => { const j = +x.dataset.k; x.classList.toggle("on", j === k); x.classList.toggle("done", j < k); });
+  el.querySelector(".ph").style.left = `${(sg.t / dur) * 100}%`;
+  el.querySelector("#sgtl").setAttribute("aria-valuenow", Math.round(sg.t));
+  UI.set("#sg-t", mmssS(sg.t)); UI.set("#sg-k", `${slides[k]?.section || "estrofe"} · ${k + 1}/${slides.length}`);
+  UI.set(el.querySelector(".pp"), sg.playing ? `${I.pause}Pausar` : `${I.play}Tocar`);
+}
+// relógio da música (no ritmo da velocidade do mockup)
+let sgLast = Date.now();
+setInterval(() => {
+  const nowR = Date.now(), dt = ((nowR - sgLast) / 1000) * (LIVE.state.clock.speed || 1); sgLast = nowR;
+  const s = LIVE.state, it = items[s.index];
+  if (!it || it.type !== "song") return;
+  if (sg.playing && s.status === "live") { const dur = XL.songs[it.song].dur; if (sg.t + dt >= dur) { sg.t = dur; sg.playing = false; } songSeek(sg.t + dt); }
+}, 250);
+
+/* Piloto automático: liga e desliga; o estado fica no culto (vale para o console e sobrevive a recarregar). */
+const AP_I = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>`;
+UI.qs("#ap").onclick = () => { LIVE.cmd.autopilot(); toastTr(LIVE.state.autopilot ? "Piloto automático ligado: as telas passam sozinhas quando o tempo acaba." : "Piloto automático desligado: controle manual."); };
+function paintAp(s, T) {
+  const on = !!s.autopilot, b = UI.qs("#ap");
+  b.classList.toggle("on", on); b.setAttribute("aria-checked", on);
+  const nx = items[s.index + 1], run = s.status === "live";
+  const legend = on ? (run && T.it ? `Passa para ${nx ? `“${esc(nx.title)}”` : "o fim do culto"} em ${LIVE.mmss(Math.max(0, T.remaining))}. Toque para voltar ao manual.` : "Ligado. Começa a passar as telas quando você der play.") : "Desligado: você passa as telas. Itens marcados como “avança sozinho” continuam passando.";
+  const html = `<span class="ap-t">${AP_I}Piloto automático ${on ? "· ligado" : ""}</span><span class="ap-sw"><span>${on ? "On" : "Off"}</span><i></i></span><span class="ap-l">${legend}</span><span class="ap-bar"><b style="width:${on && run && T.it ? Math.min(100, T.progress * 100) : 0}%"></b></span>`;
+  if (b._h !== html) { b._h = html; b.innerHTML = html; }
+}
+let lastList = "", lastStrip = "";
 LIVE.loop((s, T) => {
-  const it = T.it, idle = s.status === "idle", done = s.status === "done";
+  const it = T.it, idle = s.status === "idle", done = s.status === "done", run = !idle && !done;
   const label = { idle: ["Pronto", ""], live: ["Ao vivo", "live"], paused: ["Pausado", "warn"], done: ["Encerrado", "solid"] }[s.status];
-  UI.set("#chips", `<span class="chip ${label[1]}">${s.status === "live" ? '<span class="dot pulse"></span>' : ""}${label[0]}</span>${s.clock.speed > 1 ? `<span class="chip">×${s.clock.speed}</span>` : ""}`);
+  UI.set("#chips", `<span class="chip ${label[1]}">${s.status === "live" ? '<span class="dot pulse"></span>' : ""}${label[0]}</span><span class="chip">${s.offline ? "local" : "sincronizado"}</span>${s.clock.speed > 1 ? `<span class="chip">×${s.clock.speed}</span>` : ""}`);
   UI.set("#offline", s.offline ? `<div class="banner off" style="margin-bottom:var(--s3)">${I.wifi.replace("<svg", '<svg width="14" height="14"')} Sem internet · rodando local · 3 comandos na fila</div>` : "");
   UI.qs("#net").style.color = s.offline ? "var(--warn)" : "";
+  const delay = idle ? "—" : Math.abs(T.delay) < 30 ? "0" : (T.delay > 0 ? "+" : "−") + Math.round(Math.abs(T.delay) / 60);
+  const dCol = T.delay > 120 ? "var(--late)" : T.delay < -120 ? "var(--ok)" : "";
+  UI.set("#stats", `<div><span class="lbl">Agora</span><b>${LIVE.wall(LIVE.now())}</b></div><div><span class="lbl">Término</span><b>${LIVE.wall(T.projectedEnd)}</b></div><div><span class="lbl">Atraso</span><b style="color:${dCol}">${delay}${idle ? "" : " min"}</b></div>`);
 
+  // 1 · tela grande
+  paintTransition(UI.qs("#pv"), it, s.slide, T, "pt", s.status, s.transition || "fade");
+  if (UI.qs("#txp")._t !== (s.transition || "fade")) { UI.qs("#txp")._t = s.transition || "fade"; UI.qsa("#txp button").forEach((b) => { b.classList.toggle("on", b.dataset.tx === UI.qs("#txp")._t); b.setAttribute("aria-pressed", b.dataset.tx === UI.qs("#txp")._t); }); UI.set("#h-tx", "↝ " + TRANSITIONS.find((x) => x[0] === UI.qs("#txp")._t)[1]); }
+  const n = LIVE.slidesOf(it).length;
+  UI.set("#h-state", run ? label[0] : idle ? "Antes do culto" : "Encerrado");
+  UI.qs("#h-state").className = "tag " + (s.status === "live" ? "live" : s.status === "paused" ? "warn" : "");
+  UI.set("#h-what", idle ? `Primeiro: ${it.title}` : done ? "Culto encerrado" : `${it.title}${n > 1 ? ` · ${it.type === "song" ? "estrofe" : "slide"} ${s.slide + 1}/${n}` : ""}`);
+  UI.set("#h-tm", run ? LIVE.mmss(T.remaining) : idle ? LIVE.mmss(T.total) : "—");
+  UI.qs("#h-tm").classList.toggle("over", run && T.over);
+  UI.qs("#h-bar").classList.toggle("over", T.over);
+  UI.qs("#h-bar i").style.width = (run ? T.progress * 100 : 0) + "%";
+
+  // 2 e 3 · próximas
+  const [a, b] = upcoming(s);
+  paintAt(UI.qs("#pv1"), a); paintAt(UI.qs("#pv2"), b);
+  UI.set("#w1", a ? posLabel(a) : "Nada depois");
+  UI.set("#w2", b ? posLabel(b) : "Nada depois");
+  UI.set("#t1", a && (a[0] !== s.index || idle) ? "1 · Próximo item" : "1 · A seguir");
+  UI.set("#t2", b && a && b[0] !== a[0] ? "2 · Próximo item" : "2 · Depois");
+  UI.qs("#v1").disabled = !a; UI.qs("#v2").disabled = !b;
+
+  // painel do item
   UI.qs("#pos").textContent = idle ? "Antes do culto" : `Item ${s.index + 1} de ${items.length} · ${XL.types[it.type].name}`;
-  UI.qs("#adv").textContent = it.advance === "auto" ? "avança sozinho" : "manual";
+  UI.qs("#adv").textContent = s.autopilot ? "piloto automático" : it.advance === "auto" ? "avança sozinho" : "manual";
   UI.qs("#ttl").textContent = idle ? "Dê play para começar" : done ? "Culto encerrado" : it.title;
   UI.qs("#who").textContent = idle ? `Primeiro: ${it.title}` : done ? "Tempos reais gravados · ver relatório" : XL.people[it.owner].name;
-  const showRem = !idle && !done;
-  UI.qs("#clk").textContent = showRem ? (T.over ? LIVE.mmss(T.remaining) : LIVE.mmss(T.remaining)) : idle ? LIVE.mmss(T.total) : "—";
-  UI.qs("#clk").classList.toggle("over", showRem && T.over);
+  UI.qs("#clk").textContent = run ? LIVE.mmss(T.remaining) : idle ? LIVE.mmss(T.total) : "—";
+  UI.qs("#clk").classList.toggle("over", run && T.over);
   UI.qs("#bar").classList.toggle("over", T.over);
-  UI.qs("#bar i").style.width = (showRem ? T.progress * 100 : 0) + "%";
-  UI.qs("#el").textContent = showRem ? `decorrido ${LIVE.mmss(T.elapsed)}` : idle ? "duração total" : "";
-  UI.qs("#bud").textContent = showRem ? `previsto ${LIVE.mmss(it.planned)}${s.ext ? ` + ${Math.round(s.ext / 60)} min` : ""}` : "";
+  UI.qs("#bar i").style.width = (run ? T.progress * 100 : 0) + "%";
+  UI.qs("#el").textContent = run ? `decorrido ${LIVE.mmss(T.elapsed)}` : idle ? "duração total" : "";
+  UI.qs("#bud").textContent = run ? `previsto ${LIVE.mmss(it.planned)}${s.ext ? ` + ${Math.round(s.ext / 60)} min` : ""}` : "";
 
-  // navegação de slides dentro do item
-  const n = LIVE.slidesOf(it).length;
-  const slKey = `${s.index}|${s.slide}|${n}|${s.status}`;
-  if (UI.qs("#slnav")._k !== slKey) {
-    UI.qs("#slnav")._k = slKey;
-    UI.qs("#slnav").innerHTML = showRem && n > 1 ? `<div class="slide-nav"><button class="btn" style="border-color:currentColor" onclick="LIVE.cmd.slide(-1)">${I.back}</button><div class="stack-sm center"><span class="lbl">${it.type === "song" ? "estrofe" : "slide"} ${s.slide + 1}/${n}</span><div class="dots">${Array.from({ length: n }, (_, i) => `<i class="${i === s.slide ? "on" : ""}"></i>`).join("")}</div></div><button class="btn" style="background:var(--invert-fg);color:var(--invert-bg);border-color:var(--invert-fg)" onclick="LIVE.cmd.slide(1)">${I.chev}</button></div>` : "";
+  // o que vem depois deste item
+  const sk = `${s.index}|${s.status}`;
+  if (sk !== lastStrip) {
+    lastStrip = sk;
+    const idx = done ? items.length - 1 : s.index, nx = items[idx + 1];
+    UI.qs("#after").innerHTML = done ? "" : nx ? `Depois deste item: <b>${nx.title}</b> às ${LIVE.wall(T.starts[idx + 1])}, ${UI.min(nx.planned)}` : "Último item do culto.";
   }
 
-  UI.set("#play", (s.status === "live" ? I.pause + "<small>Pausar</small>" : I.play + `<small>${idle || done ? "Play" : "Retomar"}</small>`));
+  // trilha: ao mudar de tela, liga, troca ou desliga (com fade)
+  const tk = `${s.index}|${s.status}`;
+  const isSong = !done && !idle && it.type === "song";
+  if (tk !== trKey) {
+    trKey = tk;
+    // entrou numa música: a faixa começa do início e a trilha de fundo para
+    if (isSong && sg.idx !== s.index) { sg = { idx: s.index, t: atOf(it.song)[s.slide] || 0, playing: s.status === "live", follow: sg.follow }; UI.qs("#psong")._id = null; }
+    if (isSong) { trPicked = null; if (tr.st.playing) tr.fadeTo(0, () => tr.pause()); }
+    if (!isSong && trArmed && trFollow && !trPicked) tr.apply(done ? { on: false } : trOf(s.index));
+    if (trPicked && trArmed && trFollow && tr.st.playing === false) trPicked = null;
+    paintTr();
+  }
+  UI.qs(".p-tr").classList.toggle("locked", isSong); UI.qs("#tr-lock").hidden = !isSong;
+  ["#p-tr", "#p-vd", "#p-vu"].forEach((q) => UI.qs(q).classList.toggle("locked", isSong));
+  // trocar de estrofe na mão leva a música junto
+  if (isSong && sg.idx === s.index && sg.follow && slideAt(it.song, sg.t) !== s.slide) { sg.t = atOf(it.song)[s.slide] || 0; }
+  if (isSong) { if (s.status === "paused" && sg.playing) sg.playing = false; }
+  paintSong();
+  UI.set("#h-tr", isSong ? "♪ música" : trTag(done ? null : trOf(s.index))); UI.qs("#h-tr").classList.toggle("tr-on", !done && trOf(s.index).on);
+  UI.set("#t1-tr", a ? trTag(trOf(a[0])) : ""); UI.set("#t2-tr", b ? trTag(trOf(b[0])) : "");
+  UI.qs("#t1-tr").hidden = !a; UI.qs("#t2-tr").hidden = !b;
+  slots(s);
+
+  paintAp(s, T);
+  // pad
+  // o foco some se a tela focada já passou (o culto avançou)
+  if (focusP && (s.status === "done" || (s.status !== "idle" && sameP(focusP, [s.index, s.slide])))) { focusP = null; paintFocus(); }
+  if (focusP) {
+    const fi = items[focusP[0]], fn = LIVE.slidesOf(fi).length, fr = TRILHA.resolve(fi);
+    UI.set("#play", `<span>Trocar</span>${SWAP}<small>${esc(fi.title)}${fn > 1 ? ` · ${focusP[1] + 1}/${fn}` : ""}</small><small class="ftr">${fr.on ? `♪ trilha entra · ${fr.vol}%` : "♪ off · sem trilha"}</small>`);
+  } else if (atEnd(s)) UI.set("#play", `<span>Último slide</span>${I.stop}<small>Encerrar culto</small>`);
+  else UI.set("#play", `<span>${s.status === "live" ? "Pausar" : idle ? "Começar" : done ? "De novo" : "Retomar"}</span>${s.status === "live" ? I.pause : I.play}<small>${label[0]}</small>`);
+  UI.qs("#play").classList.toggle("end", !focusP && atEnd(s));
+  UI.qs("#play").classList.toggle("paused", !focusP && !atEnd(s) && s.status === "paused");
+  UI.qs("#play").classList.toggle("swap", !!focusP);
   UI.qs("#prev").disabled = idle || s.index === 0;
-  UI.qs("#next").disabled = done;
-  UI.qsa("#ext button").forEach((b) => (b.disabled = idle || done));
+  UI.qs("#sprev").disabled = idle || done || s.slide === 0;
+  UI.qs("#next").disabled = UI.qs("#snext").disabled = done;
+  UI.qsa("[data-e]").forEach((b) => (b.disabled = idle || done));
   UI.qs("#wall").textContent = LIVE.wall(LIVE.now());
   UI.qs("#end").textContent = LIVE.wall(T.projectedEnd);
-  UI.qs("#delay").textContent = idle ? "—" : (Math.abs(T.delay) < 30 ? "0" : (T.delay > 0 ? "+" : "−") + Math.round(Math.abs(T.delay) / 60)) ;
-  UI.qs("#delay").style.color = T.delay > 120 ? "var(--late)" : T.delay < -120 ? "var(--ok)" : "";
-  const sync = s.offline ? "local" : "sincronizado";
-  UI.qs("#sync").textContent = sync; UI.qs("#sync2").textContent = sync;
+  UI.qs("#delay").textContent = delay;
+  UI.qs("#delay").style.color = dCol;
 
-  paintSlide(UI.qs("#pv"), it, s.slide, T, "pt", s.status);
-
-  // lista (re-render só quando muda)
+  // ordem do culto
   const key = `${s.index}|${s.status}|${Math.floor(LIVE.now() / 15000)}`;
   if (key !== lastList) {
     lastList = key;
     UI.qs("#tl").innerHTML = items.map((x, i) => {
-      const cls = !idle && i === s.index && !done ? "now" : !idle && (i < s.index || done) ? "done" : !idle && i === s.index + 1 ? "next-row" : "";
+      const cls = run && i === s.index ? "now" : !idle && (i < s.index || done) ? "done" : (!idle && i === s.index + 1) || (idle && i === 0) ? "next-row" : "";
       const real = s.log[i]?.end && s.log[i]?.start ? (s.log[i].end - s.log[i].start) / 1000 : null;
       return `<div class="ti ${cls}" data-go="${i}"><span class="t">${LIVE.wall(T.starts[i])}</span><span class="what"><h3>${x.title}</h3><span class="meta">${UI.ty(x.type)} · ${UI.person(x.owner).name.split(" ")[0]}${s.log[i]?.skipped ? " · pulado" : ""}</span></span><span class="dur">${real != null ? LIVE.mmss(real) : UI.min(x.planned)}</span></div>`;
     }).join("");
-    UI.qsa("#tl [data-go]").forEach((r) => (r.onclick = () => C.goto(+r.dataset.go)));
+    UI.qsa("#tl [data-go]").forEach((r) => (r.onclick = () => focusOn([+r.dataset.go, 0])));
+    paintFocus();
+  }
+});
+</script>
+
+<script>
+/* Painel do operador: programa, slides que vêm aí, pendências e pós-culto. */
+UI.qsa("#op-tabs button").forEach((b) => (b.onclick = () => { UI.qsa("#op-tabs button").forEach((x) => x.classList.toggle("on", x === b)); UI.qsa(".op-pane").forEach((p) => p.classList.toggle("on", p.dataset.p === b.dataset.p)); }));
+function opSlides() {
+  const s = LIVE.state, its = XL.program.items;
+  const upcoming = its.map((it, i) => ({ it, i })).filter(({ i }) => i >= s.index).slice(0, 4);
+  return `<p class="muted" style="font-size:var(--t-sm);margin-bottom:var(--s3)">O operador vê os slides para projetar. Quem edita é a música (letras) e o púlpito (sermão).</p>` +
+    upcoming.map(({ it, i }) => {
+      const slides = it.type === "song" ? XL.songSlides(it.song).map((_, k) => `<figure data-at="${i}:${k}" class="${i === s.index && k === s.slide ? "now" : ""}"><div class="slide song">${XLOOK.songSlide(it.song, k, { section: false })}</div><figcaption class="lbl">${k + 1}</figcaption></figure>`).join("")
+        : `<figure data-at="${i}:0" class="${i === s.index ? "now" : ""}"><div class="slide" id="op-pv-${i}"></div><figcaption class="lbl">1</figcaption></figure>`;
+      return `<div style="margin-bottom:var(--s4)"><div class="row between" style="margin-bottom:var(--s2)"><b>${it.title}</b><span class="lbl">${i === s.index ? "agora" : LIVE.wall(LIVE.timing().starts[i])}</span></div><div class="op-sl">${slides}</div></div>`;
+    }).join("");
+}
+const TODO = [
+  ["warn", "Vídeo: missão Rotterdam", "Sem arquivo de vídeo. Responsável: João (comunicação)."],
+  ["warn", "Caminho aberto", "Letra só em português. A tradução não vai aparecer."],
+  ["late", "Microfone 3", "Pilha fraca no último ensaio. Trocar antes do culto."],
+];
+const POST = [
+  ["Salvar o relatório do culto", "Tempos planejados e reais vão para o relatório."],
+  ["Anotar o que atrasou", "Uma linha por item, para ajustar o próximo modelo."],
+  ["Enviar a gravação", "Para a comunicação, até segunda."],
+  ["Desligar projetor e mesa", "E deixar o computador carregando."],
+  ["Avisar pendências para a próxima semana", "Vão para o Início de quem é responsável."],
+];
+let postDone = new Set();
+function opTodo() { return `<div class="todo">${TODO.map(([k, t, d]) => `<div class="chk"><i style="border-color:var(--${k});background:var(--${k})"></i><span><b>${t}</b><small>${d}</small></span></div>`).join("")}</div><button class="btn ghost block" style="margin-top:var(--s3)">Avisar responsáveis</button>`; }
+function opPost() {
+  const s = LIVE.state, T = LIVE.timing();
+  const sum = s.status === "done" ? `Culto encerrado. ${LIVE.dmin(T.delay)} em relação ao planejado.` : "Aparece completo depois de encerrar o culto.";
+  return `<div class="stats" style="margin-bottom:var(--s3)"><div class="stat"><span class="lbl">Planejado</span><b>${Math.round(T.total / 60)} min</b></div><div class="stat"><span class="lbl">Término</span><b>${LIVE.wall(T.projectedEnd)}</b></div><div class="stat"><span class="lbl">Diferença</span><b>${LIVE.dmin(T.delay)}</b></div></div><p class="muted" style="font-size:var(--t-sm)">${sum}</p>
+    ${POST.map(([t, d], k) => `<div class="chk ${postDone.has(k) ? "ok" : ""}" data-post="${k}"><i>${postDone.has(k) ? "✓" : ""}</i><span><b>${t}</b><small>${d}</small></span></div>`).join("")}
+    <label class="field" style="margin-top:var(--s3)"><span class="lbl">Notas do operador</span><textarea class="textarea" style="min-height:90px" placeholder="O que funcionou, o que travou"></textarea></label>
+    <a class="btn primary block" style="margin-top:var(--s3)" href="relatorio.html">Abrir relatório</a>`;
+}
+UI.qs("#op-post").addEventListener("click", (e) => { const c = e.target.closest("[data-post]"); if (c) { const k = +c.dataset.post; postDone.has(k) ? postDone.delete(k) : postDone.add(k); UI.qs("#op-post").innerHTML = opPost(); } });
+UI.qs("#op-todo").innerHTML = opTodo();
+let lastKey = "";
+LIVE.loop((s, T) => {
+  const key = s.index + ":" + s.slide + ":" + s.status;
+  if (key !== lastKey) {
+    lastKey = key;
+    UI.qs("#op-slides").innerHTML = opSlides();
+    XL.program.items.forEach((it, i) => { const el = UI.qs("#op-pv-" + i); if (el) paintSlide(el, it, 0, T, "pt", "live"); });
+    if (!UI.qs("#op-post textarea") || document.activeElement !== UI.qs("#op-post textarea")) UI.qs("#op-post").innerHTML = opPost();
   }
 });
 </script>

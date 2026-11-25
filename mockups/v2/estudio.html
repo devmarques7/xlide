@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Estúdio</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css"><link rel="stylesheet" href="assets/studio.css">
+<script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script>
+</head>
+<body class="studio is-edit">
+<header class="st-head">
+  <a class="icon-btn" href="programa.html" id="back" aria-label="Voltar ao programa"></a>
+  <div class="grow st-title"><h2 id="song-title"></h2><p id="song-meta"></p></div>
+  <span class="st-saved" id="saved" aria-live="polite">Tudo salvo</span>
+  <div class="seg st-mode" id="mode" role="group" aria-label="Modo"><button class="on" data-m="edit">Editar</button><button data-m="preview">Prévia</button></div>
+</header>
+
+<div class="st-grid">
+  <section class="st-center" aria-label="Slide e música">
+    <div class="st-col">
+      <div class="st-bar st-tools"><span class="lbl" id="where"></span><span class="grow"></span><button class="chip" data-act="add-text">+ Texto</button><button class="chip" data-act="add-img">+ Imagem</button></div>
+      <div class="st-stage" id="stage" tabindex="0" aria-label="Slide atual. Clique no texto para selecionar, clique de novo para digitar."></div>
+      <div class="st-next" id="next"></div>
+      <div class="st-trans">
+        <button class="icon-btn" id="prev" aria-label="Slide anterior"></button>
+        <button class="icon-btn play" id="play" aria-label="Tocar"></button>
+        <button class="icon-btn" id="nextb" aria-label="Próximo slide"></button>
+        <span class="st-time" id="time">00:00</span><span class="st-dur" id="dur"></span>
+        <label class="follow"><button class="toggle on" id="follow" role="switch" aria-checked="true" aria-label="Slides seguem a música"></button><span>Slides seguem a música</span></label>
+      </div>
+      <div class="st-tl" id="tl" aria-label="Trilha da música"></div>
+    </div>
+  </section>
+
+  <nav class="seg st-tabs" id="tabs"><button class="on" data-t="lib">Biblioteca</button><button data-t="style">Estilo</button><button data-t="text">Texto</button></nav>
+
+  <aside class="st-lib st-pane on" data-pane="lib" aria-label="Biblioteca">
+    <div class="seg" id="libtabs"><button data-l="songs">Músicas</button><button data-l="bgs">Fundos</button><button data-l="imgs">Imagens</button></div>
+    <div id="libbody"></div>
+    <div class="lib-h"><h3>Ordem no culto</h3><span class="num muted" id="set-total"></span></div>
+    <ol class="set" id="set"></ol>
+    <p class="hint">Culto principal, sábado 29/11. Arraste músicas da lista acima para cá e use a alça para mudar a ordem.</p>
+  </aside>
+
+  <aside class="st-insp" aria-label="Ajustes">
+    <div class="st-pane" data-pane="style" id="p-style"></div>
+    <div class="st-pane" data-pane="text" id="p-text"></div>
+  </aside>
+</div>
+<input type="file" id="file" accept="image/*" multiple hidden>
+<div class="toast" id="toast" role="status"></div>
+<script src="assets/studio.js"></script>
+</body>
+</html>

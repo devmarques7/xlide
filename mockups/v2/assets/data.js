@@ -28,6 +28,7 @@
     prayer: { name: "Oração / leitura", advance: "manual", note: "Aguarda o comando" },
     sermon: { name: "Sermão", advance: "manual", note: "Cronômetro corre, nunca avança sozinho" },
     video: { name: "Vídeo", advance: "auto", note: "Avança ao terminar" },
+    media: { name: "Vídeo / áudio", advance: "auto", note: "Link do YouTube, Vimeo, Spotify ou arquivo; entra sozinho e toca do jeito que é, sem fonte nem estilo" },
     pause: { name: "Pausa livre", advance: "manual", note: "Tela neutra até o comando" },
   };
 
@@ -113,5 +114,85 @@
     { id: "t3", name: "Culto infantil", items: 8, minutes: 50, uses: 6 },
   ];
 
-  window.XL = { people, roles, areas, types, songs, decks, program, history, lastRun, templates, songSlides, me: "bia" };
+
+  // Moodboards do XLIDE (boards: mapa + moodboard + kanban). No app real: xlide_boards.
+  const boards = {
+    b1: { title: "Nova Semente · identidade", items: 42, updated: "hoje", by: "ana", when: "25/11", loops: ["CQ0keZI1gds", "ciD38DyxEC4", "5djr6ofyLLY"], colors: ["#e9e4d8", "#1f4bd8", "#161615"] },
+    b2: { title: "Série Casa de muitos", items: 18, updated: "terça", by: "pr", when: "24/11", loops: ["oCZtyFfds-o", "DCBMIg4Yoq8", "1krnHdrN6q0"], colors: ["#f5c26b", "#3b2a12", "#f7f6f3"] },
+    b3: { title: "Natal 2026 · culto especial", items: 27, updated: "ontem", by: "joao", when: "24/11", loops: ["w4BuwIA-vg0", "jT9IykfTWy0", "ciD38DyxEC4"], colors: ["#8a2a22", "#f5c26b", "#121211"] },
+    b4: { title: "Batismo 13/12", items: 9, updated: "semana passada", by: "joao", when: "18/11", loops: ["CQ0keZI1gds", "1krnHdrN6q0", "w4BuwIA-vg0"], colors: ["#9fd8ff", "#0077b6", "#f7f6f3"] },
+  };
+
+  // ids dos itens (live_program_items.id) e tempo das músicas (Slide.at do XLIDE)
+  program.items.forEach((it, i) => (it.id = "i" + (i + 1)));
+  /* Programa Estúdio: todos os programas (rascunho, salvo, já feito, arquivado, lixeira).
+     O programa "no ao vivo" substitui XL.program em todas as páginas (console, tela, página pública).
+     No app real: live_programs (status) + live_program_items; duplicar copia os itens. */
+  const PKEY = "xlide.v2.programs";
+  const clone = (x) => JSON.parse(JSON.stringify(x));
+  const base = clone(program.items);
+  const pick = (titles) => base.filter((it) => titles.some((t) => it.title.startsWith(t)));
+  const seed = () => ({ live: "p_2911", list: [
+    { id: "p_2911", title: "Culto principal", date: "Sábado, 29 de novembro", short: "29/11", starts: "10:00", targetMin: 95, status: "rascunho", updated: "hoje", by: "ana", items: clone(base), archived: [], trash: [] },
+    { id: "p_0612", title: "Culto principal", date: "Sábado, 6 de dezembro", short: "06/12", starts: "10:00", targetMin: 95, status: "rascunho", updated: "ontem", by: "ana", items: clone(base).slice(0, 9), archived: [], trash: [] },
+    { id: "p_0612j", title: "Culto jovem", date: "Sábado, 6 de dezembro", short: "06/12", starts: "16:00", targetMin: 75, status: "rascunho", updated: "terça", by: "joao", items: pick(["Contagem", "Boas-vindas", "Luz", "Caminho", "Vídeo", "Momento", "Casa", "Bênção"]), archived: [], trash: [] },
+    { id: "p_1312", title: "Culto principal, batismo", date: "Sábado, 13 de dezembro", short: "13/12", starts: "10:00", targetMin: 120, status: "salvo", updated: "20/11", by: "pr", items: clone(base), archived: [], trash: [] },
+    { id: "p_2211", title: "Culto principal", date: "Sábado, 22 de novembro", short: "22/11", starts: "10:00", targetMin: 95, status: "feito", updated: "22/11", by: "ana", real: "+9 min", items: clone(base), archived: [], trash: [] },
+    { id: "p_1511", title: "Culto principal", date: "Sábado, 15 de novembro", short: "15/11", starts: "10:00", targetMin: 95, status: "feito", updated: "15/11", by: "ana", real: "+5 min", items: clone(base), archived: [], trash: [] },
+    { id: "p_0811", title: "Culto jovem", date: "Sábado, 8 de novembro", short: "08/11", starts: "16:00", targetMin: 75, status: "feito", updated: "08/11", by: "joao", real: "+4 min", items: pick(["Contagem", "Luz", "Mesa", "Casa", "Bênção"]), archived: [], trash: [] },
+    { id: "p_2510", title: "Retiro de outono · noite", date: "Sábado, 25 de outubro", short: "25/10", starts: "19:30", targetMin: 60, status: "arquivado", updated: "out", by: "ana", items: pick(["Contagem", "Momento", "Santo", "Bênção"]), archived: [], trash: [] },
+  ] });
+  let pstore = (() => { try { const x = JSON.parse(localStorage.getItem(PKEY)); return x && x.list ? x : seed(); } catch { return seed(); } })();
+  const PROGS = {
+    STATUS: [["rascunho", "Rascunhos", "Ainda mudando"], ["salvo", "Salvos", "Prontos para o sábado"], ["feito", "Já feitos", "Cultos que já aconteceram"], ["arquivado", "Arquivados", "Guardados, fora da lista"], ["lixeira", "Lixeira", "Excluídos; somem em 30 dias"]],
+    all: () => pstore.list,
+    get: (id) => pstore.list.find((x) => x.id === id),
+    get liveId() { return pstore.live; },
+    setLive(id) { pstore.live = id; this.save(); },
+    save() { try { localStorage.setItem(PKEY, JSON.stringify(pstore)); } catch {} },
+    put(p) { const i = pstore.list.findIndex((x) => x.id === p.id); if (i >= 0) pstore.list[i] = p; else pstore.list.unshift(p); this.save(); return p; },
+    duplicate(id, patch = {}) { const o = this.get(id); const n = { ...clone(o), id: "p_" + Date.now().toString(36), title: o.title + " (cópia)", status: "rascunho", updated: "agora", by: (typeof localStorage !== "undefined" && localStorage.getItem("xlide.v2.me")) || "ana", real: null, ...patch }; n.items.forEach((it, k) => (it.id = "d" + k + Date.now().toString(36))); return this.put(n); },
+    destroy(id) { pstore.list = pstore.list.filter((x) => x.id !== id); this.save(); },
+    reset() { pstore = seed(); this.save(); },
+    clone,
+  };
+
+  const durs = { s1: 262, s2: 214, s3: 198, s4: 236 };
+  Object.entries(songs).forEach(([k, s]) => {
+    s.dur = durs[k];
+    const n = lines(s.lyrics.pt).length;
+    const intro = 12, outro = 14;
+    s.at = Array.from({ length: n }, (_, i) => Math.round(intro + ((s.dur - intro - outro) / n) * i));
+  });
+
+
+  /* Meus arquivos: o que cada pessoa criou, por pasta. status: ativo | padrao | arquivado | lixeira.
+     No app real: xlide_decks com folder_id, status e shared_with (RLS por dono e compartilhados). */
+  const F = (id, name, folder, o) => ({ id, name, folder, kind: "deck", status: "ativo", star: false, shared: [], slides: 1, font: "grotesk", ...o });
+  const files = [
+    F("f1", "Avisos · semana 48", "avisos", { owner: "ana", shared: ["joao", "bia"], slides: 4, updated: "ontem", bg: "wash:amber", eyebrow: "Avisos", title: "Avisos da semana", text: "Batismo dia 13/12\nEnsaio do coral quinta 19h30", star: true, desc: "Vai no programa de sábado, item 5. João revisa as datas." }),
+    F("f2", "Batismo 13/12 · convite", "avisos", { owner: "joao", shared: ["ana"], slides: 1, updated: "hoje", bg: "plain:sabado", eyebrow: "Sábado 13/12 · 10:00", title: "Batismo", text: "Inscrições com o Pr. Carlos até 06/12", desc: "Convite para o telão e para o Instagram." }),
+    F("f3", "Retiro jovem 2027", "avisos", { owner: "ana", shared: [], slides: 2, updated: "22/11", bg: "plain:papel", eyebrow: "Inscrições abertas", title: "Retiro jovem 2027", text: "15 a 17 de janeiro · Ede", desc: "Rascunho. Falta o valor da inscrição." }),
+    F("f4", "Avisos · semana 47", "avisos", { owner: "ana", shared: ["joao"], slides: 3, updated: "15/11", bg: "wash:ember", eyebrow: "Avisos", title: "Avisos da semana 47", status: "arquivado" }),
+    F("f5", "Casa de muitos · parte 3", "pregacao", { owner: "pr", shared: ["ana", "bia"], slides: 11, updated: "terça", bg: "wash:gold", font: "serif", eyebrow: "Série · parte 3", title: "Casa de muitos", text: "Lucas 14:15–24", star: true, desc: "Sermão de sábado, 40 min. Slides de apoio a cada ponto." }),
+    F("f6", "Advento · a espera", "pregacao", { owner: "pr", shared: ["ana"], slides: 6, updated: "20/11", bg: "wash:midnight", font: "serif", eyebrow: "Série de dezembro", title: "A espera", text: "Isaías 40:31", desc: "Primeiro sermão de dezembro. Em construção." }),
+    F("f7", "Casa de muitos · parte 2", "pregacao", { owner: "pr", shared: ["ana"], slides: 9, updated: "15/11", bg: "wash:gold", font: "serif", eyebrow: "Série · parte 2", title: "Casa de muitos", text: "Lucas 15:1–7", status: "arquivado" }),
+    F("f8", "Boas-vindas convidados", "inicio", { owner: "ana", shared: ["bia"], slides: 2, updated: "out", bg: "loop:CQ0keZI1gds", eyebrow: "Bem-vindo", title: "Boas-vindas", text: "Que bom ter você aqui hoje", desc: "Abre o culto depois da contagem." }),
+    F("f9", "Contagem 5 min", "inicio", { owner: "bia", shared: ["ana"], slides: 1, updated: "08/11", bg: "loop:5djr6ofyLLY", eyebrow: "Começamos em instantes", title: "05:00", text: "" }),
+    F("f10", "Momento de oração", "oracao", { owner: "ana", shared: ["rute", "bia"], slides: 1, updated: "18/11", bg: "loop:DCBMIg4Yoq8", eyebrow: "Oração", title: "Vamos orar", text: "Pelos pedidos da semana", desc: "Fundo calmo, sem letra." }),
+    F("f11", "Pedidos da semana", "oracao", { owner: "rute", shared: ["ana"], slides: 2, updated: "hoje", bg: "plain:tinta", eyebrow: "Pedidos", title: "Oramos por", text: "Família Melo\nIrmã Lúcia, cirurgia\nNovos empregos" }),
+    F("f12", "Salmo 23", "versiculo", { owner: "pr", shared: ["ana", "bia"], slides: 3, updated: "12/11", bg: "wash:mist", font: "serif", eyebrow: "Salmo 23:1", title: "O Senhor é o meu pastor", text: "nada me faltará", star: true }),
+    F("f13", "Lucas 14:15–24", "versiculo", { owner: "pr", shared: ["ana"], slides: 2, updated: "terça", bg: "wash:dusk", font: "serif", eyebrow: "Leitura", title: "Lucas 14:23", text: "Vai pelos caminhos e convida" }),
+    F("f14", "João 3:16", "versiculo", { owner: "ana", shared: [], slides: 1, updated: "02/11", bg: "wash:crimson", font: "serif", eyebrow: "João 3:16", title: "Porque Deus amou o mundo", text: "", status: "lixeira", deleted: "há 3 dias" }),
+    F("f15", "Modelo · aviso", "avisos", { owner: "ana", shared: ["joao"], slides: 1, updated: "set", bg: "plain:papel", eyebrow: "Data · hora", title: "Título do aviso", text: "Uma linha com o detalhe", status: "padrao", desc: "Ponto de partida para todo aviso. Fundo claro, texto à esquerda." }),
+    F("f16", "Modelo · sermão", "pregacao", { owner: "ana", shared: ["pr"], slides: 4, updated: "set", bg: "wash:gold", font: "serif", eyebrow: "Série", title: "Título do sermão", text: "Texto base", status: "padrao" }),
+    F("f17", "Modelo · versículo", "versiculo", { owner: "ana", shared: ["pr"], slides: 1, updated: "set", bg: "wash:dusk", font: "serif", eyebrow: "Livro 0:0", title: "O versículo em uma linha", text: "", status: "padrao" }),
+    F("f18", "Ensaio coral · cartaz", "avisos", { owner: "joao", shared: [], slides: 1, updated: "10/11", bg: "plain:grade", eyebrow: "Quinta", title: "Ensaio do coral", text: "19h30", status: "lixeira", deleted: "há 6 dias" }),
+  ];
+
+  // o programa no ao vivo vira o XL.program de todas as páginas
+  const liveP = PROGS.get(pstore.live);
+  if (liveP) Object.assign(program, { id: liveP.id, title: liveP.title, date: liveP.date, starts: liveP.starts, targetMin: liveP.targetMin, items: clone(liveP.items) });
+  window.PROGS = PROGS;
+  window.XL = { files, boards, people, roles, areas, types, songs, decks, program, history, lastRun, templates, songSlides, me: "bia" };
 })();

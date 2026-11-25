@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Board</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/cards.js"></script>
+<style>
+  /* Board do XLIDE (src/pages/Board.tsx + board/cards.tsx + board/moodboard.tsx): mesma ideia em três vistas. */
+  .studio-like .mk { position: relative; }
+  .bd-head { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: var(--s3); min-height: 60px; padding: var(--s2) var(--gutter); background: var(--bg); border-bottom: 1px solid var(--line); }
+  .bd-x { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); flex: none; }
+  .bd-x svg { width: 16px; height: 16px; }
+  .bd-x:hover { border-color: var(--fg); }
+  .bd-title { min-width: 0; }
+  .bd-title h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: -0.01em; }
+  .bd-views { margin-left: auto; flex: none; width: min(520px, 60vw); }
+  @media (max-width: 720px) { .bd-head { flex-wrap: wrap; } .bd-views { width: 100%; order: 3; } }
+  .bd-body { position: relative; }
+  .view { display: none; } .view.on { display: block; }
+
+  /* canvas com grade de pontos, como o XLIDE */
+  .canvas { position: relative; overflow: auto; height: calc(100dvh - 60px - var(--mk-h, 28px)); min-height: 520px; background-color: var(--bg); background-image: radial-gradient(circle, var(--line) 1px, transparent 1.2px); background-size: 24px 24px; }
+  .plane { position: relative; width: 1500px; height: 980px; transform-origin: 0 0; }
+  .wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .wires path { fill: none; stroke: var(--fg-2); stroke-width: 1.4; stroke-dasharray: 4 5; }
+
+  /* cartões do mapa (tipos do XLIDE: idea, stage, note, media, list, metric, asset) */
+  .nd { position: absolute; width: 260px; background: var(--surface); border: 1px solid var(--line); cursor: grab; touch-action: none; user-select: none; }
+  .nd:hover { border-color: var(--fg); }
+  .nd.sel { outline: 2px solid var(--fg); outline-offset: 4px; }
+  .nd .k { display: flex; justify-content: space-between; font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--fg-2); }
+  .nd h4 { margin: 0; font-weight: 500; text-transform: uppercase; letter-spacing: -0.01em; line-height: 1.05; }
+  .nd p { margin: 6px 0 0; font-size: var(--t-sm); color: var(--fg-2); line-height: 1.4; }
+  .nd mark { background: color-mix(in srgb, var(--warn) 30%, transparent); color: inherit; padding: 0 2px; }
+  .nd-idea { width: 320px; padding: var(--s5); background: var(--invert-bg); color: var(--invert-fg); border-color: var(--invert-bg); }
+  .nd-idea .k { color: color-mix(in srgb, var(--invert-fg) 60%, transparent); }
+  .nd-idea h4 { margin-top: var(--s5); font-size: 34px; line-height: .95; }
+  .nd-idea p { color: color-mix(in srgb, var(--invert-fg) 70%, transparent); margin-top: var(--s3); }
+  .nd-stage { padding: var(--s4); }
+  .nd-stage .no { font: 400 36px/1 var(--mono); letter-spacing: -0.04em; }
+  .nd-stage h4 { margin-top: var(--s4); font-size: var(--t-lg); }
+  .nd-stage .bar { margin-top: var(--s3); }
+  .nd-note { padding: var(--s4); background: var(--sunken); }
+  .nd-note h4 { margin-top: var(--s2); font-size: var(--t-md); text-transform: none; font-weight: 600; }
+  .nd-media { padding: 0; }
+  .nd-media img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+  .nd-media .cap { padding: var(--s2) var(--s3); font-size: var(--t-sm); }
+  .nd-list { padding: var(--s4); }
+  .nd-list ul { list-style: none; margin: var(--s2) 0 0; padding: 0; font-size: var(--t-sm); }
+  .nd-list li { display: flex; gap: var(--s2); align-items: center; padding: 4px 0; }
+  .nd-list li i { width: 14px; height: 14px; border: 1px solid var(--fg); flex: none; }
+  .nd-list li.ok i { background: var(--fg); }
+  .nd-list li.ok span { text-decoration: line-through; color: var(--fg-2); }
+  .nd-metric { width: 200px; padding: var(--s4); }
+  .nd-metric .v { font: 400 44px/1 var(--font); letter-spacing: -0.05em; margin-top: var(--s2); }
+  .nd-asset { padding: var(--s4); }
+  .nd-asset .fl { display: flex; justify-content: space-between; align-items: center; margin-top: var(--s3); padding: 6px 6px 6px 10px; border: 1px solid var(--line); font-size: var(--t-xs); }
+  .nd-asset .fl b { width: 22px; height: 22px; display: grid; place-items: center; background: var(--fg); color: var(--bg); font-weight: 400; }
+
+  /* moodboard: tela livre, papel claro */
+  .mood { background-color: #f4f3ef; background-image: none; color: #161615; }
+  .mood .plane { width: 1500px; height: 960px; }
+  .mi { position: absolute; cursor: grab; touch-action: none; user-select: none; }
+  .mi.sel { outline: 2px solid #161615; outline-offset: 4px; }
+  .mi img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .mi .cap { position: absolute; left: 0; bottom: -20px; font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: #6f6e69; white-space: nowrap; }
+  .mi-note { padding: 16px; background: #fff7c7; box-shadow: 0 1px 0 rgb(0 0 0 / .08); font-size: 14px; line-height: 1.4; }
+  .mi-note b { display: block; margin-bottom: 6px; }
+  .mi-todo { padding: 14px; background: #fff; border: 1px solid #d6d5cf; font-size: 13px; }
+  .mi-todo b { display: block; margin-bottom: 8px; text-transform: uppercase; font-size: 12px; letter-spacing: .04em; }
+  .mi-todo div { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
+  .mi-todo i { width: 13px; height: 13px; border: 1px solid #161615; flex: none; } .mi-todo .ok i { background: #161615; } .mi-todo .ok span { text-decoration: line-through; color: #6f6e69; }
+  .mi-color { display: grid; grid-template-rows: 1fr auto; background: #fff; border: 1px solid #d6d5cf; }
+  .mi-color span { padding: 6px 8px; font: 400 10px var(--mono); text-transform: uppercase; }
+  .mi-label { font-weight: 700; text-transform: uppercase; letter-spacing: -0.04em; line-height: .9; }
+  .mi-link { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; background: #fff; border: 1px solid #d6d5cf; font-size: 13px; }
+  .mi-link b { width: 24px; height: 24px; display: grid; place-items: center; background: #161615; color: #fff; font-weight: 400; flex: none; }
+  .mi-shape { border: 2px solid #161615; }
+  .tools { position: absolute; left: 12px; top: 12px; z-index: 5; display: grid; background: var(--surface); border: 1px solid var(--line); color: var(--fg); }
+  .tools button { width: 44px; height: 44px; display: grid; place-items: center; font: 400 17px var(--font); }
+  .tools button + button { border-top: 1px solid var(--line); }
+  .tools button.on { background: var(--invert-bg); color: var(--invert-fg); }
+  .tools svg { width: 18px; height: 18px; }
+  .zoom { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; background: var(--surface); border: 1px solid var(--line); color: var(--fg); }
+  .zoom button, .zoom span { min-width: 40px; height: 36px; display: grid; place-items: center; font: 400 var(--t-xs) var(--mono); }
+  .zoom > * + * { border-left: 1px solid var(--line); }
+
+  /* quadro por etapa */
+  .kanban { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 0; overflow-x: auto; min-height: calc(100dvh - 60px - var(--mk-h, 28px)); border-top: 1px solid var(--line); }
+  .col { border-right: 1px solid var(--line); padding: var(--s3); display: grid; align-content: start; gap: var(--s2); background: var(--bg); }
+  .col > header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: var(--s3); border-bottom: 1px solid var(--fg); margin-bottom: var(--s2); }
+  .col > header b { font: 400 28px/1 var(--mono); letter-spacing: -0.04em; }
+  .col > header h3 { text-transform: uppercase; }
+  .col .nd { position: static; width: auto; cursor: pointer; }
+  .col.drop { background: var(--sunken); }
+
+  /* tudo junto: as três vistas lado a lado, em escala */
+  .all { display: grid; gap: var(--s3); padding: var(--s4) var(--gutter) var(--s6); }
+  @media (min-width: 1100px) { .all { grid-template-columns: 1.2fr 1fr; grid-template-rows: auto auto; } .all > :first-child { grid-row: span 2; } }
+  .all figure { margin: 0; border: 1px solid var(--line); background: var(--surface); }
+  .all figcaption { display: flex; justify-content: space-between; align-items: center; padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); }
+  .all figcaption b { text-transform: uppercase; font-weight: 600; }
+  .all .win { position: relative; overflow: hidden; height: 320px; }
+  .all > :first-child .win { height: 680px; }
+  .all .win > * { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+  .concept-x { display: grid; border: 1px solid var(--line); margin: 0 var(--gutter) var(--s6); }
+  .concept-x > div { padding: var(--s4); display: grid; gap: 6px; background: var(--surface); }
+  .concept-x > div + div { border-top: 1px solid var(--line); }
+  @media (min-width: 900px) { .concept-x { grid-template-columns: repeat(3, 1fr); } .concept-x > div + div { border-top: 0; border-left: 1px solid var(--line); } }
+  .concept-x p { font-size: var(--t-sm); color: var(--fg-2); }
+  .concept-x b { text-transform: uppercase; font-weight: 600; }
+</style>
+</head>
+<body class="studio-like">
+<header class="bd-head">
+  <a class="bd-x" href="boards.html" aria-label="Fechar o board e voltar aos boards" title="Fechar">✕</a>
+  <span class="xmark" id="bd-mark" style="width:24px;height:24px"></span>
+  <div class="grow bd-title"><h2 id="bd-title"></h2><span class="lbl" id="bd-meta"></span></div>
+  <div class="seg bd-views" id="views" role="tablist" aria-label="Vistas do board">
+    <button data-v="map" role="tab">Mapa mental</button><button data-v="mood" role="tab">Moodboard</button><button data-v="kanban" role="tab">Quadro</button><button data-v="all" role="tab">Tudo junto</button>
+  </div>
+</header>
+
+<div class="bd-body">
+  <section class="view" id="v-map"><div class="canvas" id="map-canvas"><div class="plane" id="map"></div>
+    <div class="zoom"><button data-z="-1" aria-label="Diminuir">−</button><span id="zl">100%</span><button data-z="1" aria-label="Aumentar">+</button><button data-z="0">Ajustar</button></div></div></section>
+  <section class="view" id="v-mood"><div class="canvas mood" id="mood-canvas">
+    <div class="tools" id="tools"></div>
+    <div class="plane" id="moodp"></div></div></section>
+  <section class="view" id="v-kanban"><div class="kanban" id="kanban"></div></section>
+  <section class="view" id="v-all">
+    <div class="all">
+      <figure><figcaption><b>Mapa mental</b><button class="link" data-go="map">Abrir</button></figcaption><div class="win" id="w-map"></div></figure>
+      <figure><figcaption><b>Moodboard</b><button class="link" data-go="mood">Abrir</button></figcaption><div class="win" id="w-mood" style="background:#f4f3ef"></div></figure>
+      <figure><figcaption><b>Quadro</b><button class="link" data-go="kanban">Abrir</button></figcaption><div class="win" id="w-kan"></div></figure>
+    </div>
+    <div class="concept-x">
+      <div><b>Como a vista funciona</b><p>Uma só ideia, três jeitos de olhar. Mover, editar ou concluir um cartão em uma vista muda nas outras. Quem abre o link compartilhado segue o dono ao vivo.</p></div>
+      <div><b>Conceito do moodboard</b><p>Uma tela livre para referências: imagens, vídeos, notas, tarefas, cores, links e textos grandes. Os cartões do mapa podem ser trazidos para cá.</p></div>
+      <div><b>O estilo</b><p>Grade de pontos, cartões quadrados com contorno de 1 px, ideia em preto, etapas com número grande em mono e conexões pontilhadas. Sem sombras e sem cantos arredondados.</p></div>
+    </div>
+  </section>
+</div>
+<script>
+const id = new URLSearchParams(location.search).get("id") || "b2";
+const B = XL.boards[id] || XL.boards.b2;
+const isNew = new URLSearchParams(location.search).get("novo");
+let view = new URLSearchParams(location.search).get("v") || "map";
+UI.qs("#bd-mark").innerHTML = UI.glyph();
+UI.qs("#bd-title").textContent = isNew ? (view === "map" ? "Novo mapa mental" : "Novo moodboard") : B.title;
+UI.qs("#bd-meta").textContent = isNew ? "rascunho, só você vê" : `${B.items} itens, editado ${B.updated}`;
+const yt = CARDS.yt;
+
+/* ── dados do board (exemplo: série de sermões) ── */
+const N = [
+  { id: "idea", kind: "idea", x: 590, y: 380, title: "Casa de muitos", text: "Série de 4 sábados sobre a igreja como casa para quem chega de longe." },
+  { id: "s1", kind: "stage", x: 140, y: 90, no: 1, title: "Convidar", text: "Quem ainda não veio", p: 80 },
+  { id: "s2", kind: "stage", x: 1080, y: 90, no: 2, title: "Acolher", text: "O primeiro sábado", p: 55 },
+  { id: "s3", kind: "stage", x: 140, y: 640, no: 3, title: "Pertencer", text: "Pequenos grupos", p: 20 },
+  { id: "s4", kind: "stage", x: 1080, y: 640, no: 4, title: "Enviar", text: "Servir na cidade", p: 0 },
+  { id: "n1", kind: "media", x: 450, y: 40, parent: "s1", title: "Arco de nuvens, abertura", img: "CQ0keZI1gds" },
+  { id: "n2", kind: "list", x: 760, y: 60, parent: "s2", title: "Primeiro sábado", items: [["Recepção na porta", 1], ["Mesa de boas-vindas", 1], ["Cartão com QR", 0], ["Almoço fraterno", 0]] },
+  { id: "n3", kind: "metric", x: 1240, y: 360, parent: "s2", title: "Convidados", v: "120" },
+  { id: "n4", kind: "note", x: 20, y: 370, parent: "s1", title: "Frase da série", text: "Muitos sotaques. ==Uma casa.==" },
+  { id: "n5", kind: "asset", x: 470, y: 760, parent: "s3", title: "Guia dos grupos", file: "PDF" },
+  { id: "n6", kind: "media", x: 760, y: 760, parent: "s4", title: "Retro Grid, encerramento", img: "oCZtyFfds-o" },
+];
+const LINKS = N.filter((n) => n.kind === "stage").map((n) => ["idea", n.id]).concat(N.filter((n) => n.parent).map((n) => [n.parent, n.id]));
+const rich = (s) => String(s || "").replace(/==(.+?)==/g, "<mark>$1</mark>");
+
+function nodeHTML(n, inCol) {
+  const pos = inCol ? "" : `style="left:${n.x}px;top:${n.y}px"`;
+  switch (n.kind) {
+    case "idea": return `<div class="nd nd-idea" data-n="${n.id}" ${pos}><div class="k"><span>Ideia</span><span>✳</span></div><h4>${n.title}</h4><p>${rich(n.text)}</p></div>`;
+    case "stage": return `<div class="nd nd-stage" data-n="${n.id}" ${pos}><div class="k"><span class="no" style="color:var(--fg)">${String(n.no).padStart(2, "0")}</span><span>${N.filter((x) => x.parent === n.id).length}</span></div><h4>${n.title}</h4><p>${n.text}</p><div class="row" style="gap:8px;margin-top:12px"><div class="bar grow"><i style="width:${n.p}%"></i></div><span class="lbl">${n.p}%</span></div></div>`;
+    case "note": return `<div class="nd nd-note" data-n="${n.id}" ${pos}><div class="k"><span>Nota</span></div><h4>${n.title}</h4><p>${rich(n.text)}</p></div>`;
+    case "media": return `<div class="nd nd-media" data-n="${n.id}" ${pos}><img src="${yt(n.img)}" alt="" draggable="false"><div class="cap">${n.title}</div></div>`;
+    case "list": return `<div class="nd nd-list" data-n="${n.id}" ${pos}><div class="k"><span>Tarefas</span><span>${n.items.filter((x) => x[1]).length}/${n.items.length}</span></div><h4 style="margin-top:8px;font-size:15px">${n.title}</h4><ul>${n.items.map(([t, ok]) => `<li class="${ok ? "ok" : ""}"><i></i><span>${t}</span></li>`).join("")}</ul></div>`;
+    case "metric": return `<div class="nd nd-metric" data-n="${n.id}" ${pos}><div class="k"><span>Métrica</span></div><div class="v">${n.v}</div><p>${n.title}</p></div>`;
+    case "asset": return `<div class="nd nd-asset" data-n="${n.id}" ${pos}><div class="k"><span>Entrega</span></div><h4 style="margin-top:8px;font-size:15px">${n.title}</h4><div class="fl"><span>guia-grupos.pdf</span><b>↓</b></div></div>`;
+  }
+}
+
+/* ── mapa mental ── */
+let Z = 1;
+function renderMap(el = UI.qs("#map")) {
+  el.innerHTML = `<svg class="wires" id="wires-${el.id}"></svg>` + N.map((n) => nodeHTML(n)).join("");
+  requestAnimationFrame(() => wires(el));
+}
+function wires(el) {
+  const svg = el.querySelector(".wires");
+  const box = (nid) => { const d = el.querySelector(`[data-n="${nid}"]`); return { x: d.offsetLeft, y: d.offsetTop, w: d.offsetWidth, h: d.offsetHeight }; };
+  svg.innerHTML = LINKS.map(([a, b]) => {
+    const A = box(a), Bx = box(b);
+    const ax = A.x + A.w / 2, ay = A.y + A.h / 2, bx = Bx.x + Bx.w / 2, by = Bx.y + Bx.h / 2;
+    const mx = (ax + bx) / 2;
+    return `<path d="M${ax},${ay} C${mx},${ay} ${mx},${by} ${bx},${by}"/>`;
+  }).join("");
+}
+function dragNodes(container, list, kindAttr, after, scale = () => 1) {
+  let d = null;
+  container.addEventListener("pointerdown", (e) => {
+    const el = e.target.closest(`[${kindAttr}]`);
+    if (!el || e.button > 0) return;
+    container.querySelectorAll(".sel").forEach((x) => x.classList.remove("sel"));
+    el.classList.add("sel");
+    const item = list.find((x) => x.id === el.getAttribute(kindAttr));
+    d = { el, item, sx: e.clientX, sy: e.clientY, ox: item.x, oy: item.y };
+    el.setPointerCapture(e.pointerId);
+  });
+  container.addEventListener("pointermove", (e) => { if (!d) return; d.item.x = Math.round(d.ox + (e.clientX - d.sx) / scale()); d.item.y = Math.round(d.oy + (e.clientY - d.sy) / scale()); d.el.style.left = d.item.x + "px"; d.el.style.top = d.item.y + "px"; after && after(); });
+  const end = () => (d = null);
+  container.addEventListener("pointerup", end); container.addEventListener("pointercancel", end);
+}
+dragNodes(UI.qs("#map"), N, "data-n", () => wires(UI.qs("#map")), () => Z);
+UI.qsa(".zoom button").forEach((b) => (b.onclick = () => { const z = +b.dataset.z; Z = z === 0 ? fit() : Math.min(1.6, Math.max(.4, +(Z + z * 0.1).toFixed(2))); UI.qs("#map").style.transform = `scale(${Z})`; UI.qs("#zl").textContent = Math.round(Z * 100) + "%"; }));
+const fit = () => Math.min(1, (UI.qs("#map-canvas").clientWidth - 24) / 1500);
+
+/* ── moodboard ── */
+const M = [
+  { id: "m1", t: "label", x: 60, y: 60, w: 1040, text: "Casa de muitos", fs: 96 },
+  { id: "m2", t: "image", x: 60, y: 200, w: 380, h: 480, src: "CQ0keZI1gds", cap: "Clouds in Arch" },
+  { id: "m3", t: "image", x: 460, y: 200, w: 300, h: 200, src: "ciD38DyxEC4", cap: "Flower Blur" },
+  { id: "m4", t: "image", x: 460, y: 420, w: 300, h: 260, src: "oCZtyFfds-o", cap: "Retro Grid" },
+  { id: "m5", t: "color", x: 790, y: 200, w: 110, h: 140, c: "#f5c26b" },
+  { id: "m6", t: "color", x: 910, y: 200, w: 110, h: 140, c: "#3b2a12" },
+  { id: "m7", t: "color", x: 1030, y: 200, w: 110, h: 140, c: "#f7f6f3" },
+  { id: "m8", t: "note", x: 790, y: 370, w: 250, title: "Tom", text: "Caloroso, simples, sem clichê de “família”. Fala com quem acabou de chegar." },
+  { id: "m9", t: "todo", x: 1070, y: 370, w: 230, title: "Para sábado", items: [["Fundo da série", 1], ["Abertura em vídeo", 0], ["Slides do sermão", 0]] },
+  { id: "m10", t: "link", x: 790, y: 560, w: 330, text: "Playlist Worship Backgrounds" },
+  { id: "m11", t: "shape", x: 1160, y: 40, w: 160, h: 120 },
+  { id: "m12", t: "image", x: 790, y: 640, w: 260, h: 160, src: "w4BuwIA-vg0", cap: "Glow" },
+];
+function moodHTML(m) {
+  const s = `left:${m.x}px;top:${m.y}px;width:${m.w}px;${m.h ? `height:${m.h}px;` : ""}`;
+  switch (m.t) {
+    case "label": return `<div class="mi mi-label" data-m="${m.id}" style="${s}font-size:${m.fs}px">${m.text}</div>`;
+    case "image": return `<div class="mi" data-m="${m.id}" style="${s}"><img src="${yt(m.src)}" alt="${m.cap}"><span class="cap">${m.cap}</span></div>`;
+    case "color": return `<div class="mi mi-color" data-m="${m.id}" style="${s}"><i style="background:${m.c}"></i><span>${m.c}</span></div>`;
+    case "note": return `<div class="mi mi-note" data-m="${m.id}" style="${s}"><b>${m.title}</b>${m.text}</div>`;
+    case "todo": return `<div class="mi mi-todo" data-m="${m.id}" style="${s}"><b>${m.title}</b>${m.items.map(([t, ok]) => `<div class="${ok ? "ok" : ""}"><i></i><span>${t}</span></div>`).join("")}</div>`;
+    case "link": return `<div class="mi mi-link" data-m="${m.id}" style="${s}"><span>${m.text}<br><span style="color:#6f6e69;font-size:11px">youtube.com/playlist</span></span><b>→</b></div>`;
+    case "shape": return `<div class="mi mi-shape" data-m="${m.id}" style="${s}"></div>`;
+  }
+}
+const renderMood = (el = UI.qs("#moodp")) => (el.innerHTML = M.map(moodHTML).join(""));
+dragNodes(UI.qs("#moodp"), M, "data-m");
+const TOOLS = [["sel", "↖", "Selecionar"], ["note", "N", "Nota"], ["img", "▣", "Imagem"], ["todo", "☐", "Tarefas"], ["color", "●", "Cor"], ["text", "T", "Texto grande"], ["draw", "✎", "Desenhar"]];
+let tool = "sel";
+function renderTools() {
+  UI.qs("#tools").innerHTML = TOOLS.map(([k, ic, n]) => `<button class="${k === tool ? "on" : ""}" data-tool="${k}" title="${n}" aria-label="${n}">${ic}</button>`).join("");
+  UI.qsa("#tools button").forEach((b) => (b.onclick = () => {
+    tool = b.dataset.tool; renderTools();
+    if (tool === "note") add({ t: "note", w: 220, title: "Nota", text: "Escreva aqui" });
+    if (tool === "todo") add({ t: "todo", w: 220, title: "Tarefas", items: [["Nova tarefa", 0]] });
+    if (tool === "color") add({ t: "color", w: 110, h: 140, c: "#1f4bd8" });
+    if (tool === "text") add({ t: "label", w: 420, text: "Texto grande", fs: 56 });
+    if (tool === "img") add({ t: "image", w: 260, h: 170, src: "1krnHdrN6q0", cap: "Gradient" });
+  }));
+}
+function add(m) {
+  const c = UI.qs("#mood-canvas");
+  M.push({ id: "m" + Date.now(), x: c.scrollLeft + 120, y: c.scrollTop + 120, ...m });
+  renderMood(); tool = "sel"; renderTools();
+}
+
+/* ── quadro ── */
+function renderKanban(el = UI.qs("#kanban")) {
+  const stages = N.filter((n) => n.kind === "stage");
+  el.innerHTML = stages.map((s) => `<div class="col" data-col="${s.id}"><header><span><b>${String(s.no).padStart(2, "0")}</b></span><h3>${s.title}</h3><span class="lbl">${N.filter((x) => x.parent === s.id).length}</span></header>${N.filter((x) => x.parent === s.id).map((n) => nodeHTML(n, true).replace('class="nd', 'draggable="true" class="nd')).join("") || '<p class="muted" style="font-size:var(--t-sm)">Arraste um cartão para cá.</p>'}</div>`).join("") +
+    `<div class="col"><header><span><b>—</b></span><h3>Sem etapa</h3><span class="lbl">0</span></header><p class="muted" style="font-size:var(--t-sm)">Cartões soltos do mapa aparecem aqui.</p></div>`;
+}
+const kb = UI.qs("#kanban");
+kb.addEventListener("dragstart", (e) => { const n = e.target.closest("[data-n]"); if (n) e.dataTransfer.setData("text/plain", n.dataset.n); });
+kb.addEventListener("dragover", (e) => { const c = e.target.closest("[data-col]"); if (c) { e.preventDefault(); UI.qsa(".col.drop").forEach((x) => x !== c && x.classList.remove("drop")); c.classList.add("drop"); } });
+kb.addEventListener("drop", (e) => { const c = e.target.closest("[data-col]"); const nid = e.dataTransfer.getData("text/plain"); const n = N.find((x) => x.id === nid); if (c && n) { e.preventDefault(); n.parent = c.dataset.col; LINKS.length = 0; N.filter((x) => x.kind === "stage").forEach((x) => LINKS.push(["idea", x.id])); N.filter((x) => x.parent).forEach((x) => LINKS.push([x.parent, x.id])); renderKanban(); renderMap(); } });
+
+/* ── tudo junto: as três vistas em escala ── */
+function renderAll() {
+  const put = (win, html, w, h, bg) => { const box = UI.qs(win); const k = box.clientWidth / w; box.innerHTML = `<div style="width:${w}px;height:${h}px;transform:scale(${k});${bg || ""}">${html}</div>`; return box.firstElementChild; };
+  const m = put("#w-map", `<div class="plane" id="map-mini" style="background-image:radial-gradient(circle,var(--line) 1px,transparent 1.2px);background-size:24px 24px"></div>`, 1500, 980);
+  renderMap(m.querySelector("#map-mini"));
+  put("#w-mood", `<div class="plane mood" style="color:#161615">${M.map(moodHTML).join("")}</div>`, 1500, 960);
+  put("#w-kan", `<div class="kanban" style="min-height:600px">${UI.qs("#kanban").innerHTML}</div>`, 1300, 700);
+}
+
+/* ── vistas ── */
+function setView(v) {
+  view = v;
+  UI.qsa("#views button").forEach((b) => { b.classList.toggle("on", b.dataset.v === v); b.setAttribute("aria-selected", b.dataset.v === v); });
+  UI.qsa(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + v));
+  history.replaceState(null, "", `?id=${id}&v=${v}${isNew ? "&novo=1" : ""}`);
+  if (v === "map" && Z === 1 && innerWidth < 1500) { Z = fit(); UI.qs("#map").style.transform = `scale(${Z})`; UI.qs("#zl").textContent = Math.round(Z * 100) + "%"; }
+  if (v === "all") requestAnimationFrame(renderAll);
+}
+UI.qsa("#views button").forEach((b) => (b.onclick = () => setView(b.dataset.v)));
+document.addEventListener("click", (e) => { const g = e.target.closest("[data-go]"); if (g) setView(g.dataset.go); });
+addEventListener("keydown", (e) => { if (e.key === "Escape") location.href = "boards.html"; });
+addEventListener("resize", () => view === "all" && renderAll());
+
+renderMap(); renderMood(); renderTools(); renderKanban();
+setView(view);
+</script>
+</body>
+</html>

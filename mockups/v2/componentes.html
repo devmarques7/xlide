@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIDE v2 · Componentes</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
-<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/render.js"></script>
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/render.js"></script><script src="assets/look.js"></script><script src="assets/cards.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script>
 <style>
   .spec { padding: var(--s5) 0; border-bottom: 1px solid var(--line); }
   .spec > .lbl { display: block; margin-bottom: var(--s3); }
@@ -14,12 +14,83 @@
   .sw span { display: block; padding: 6px 8px; font: 400 10px var(--mono); }
   .slides { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .slides figure { margin: 0; } .slides figcaption { margin-top: 4px; }
+  .frames { display: flex; gap: var(--s4); align-items: flex-start; overflow-x: auto; padding-bottom: var(--s2); }
+  .frames figure { margin: 0; flex: none; }
+  .frames iframe { display: block; border: 1px solid var(--line); background: var(--bg); }
+  .frames .desk { width: 1280px; height: 800px; transform: scale(.5); transform-origin: 0 0; }
+  .frames .desk-box { width: 640px; height: 400px; overflow: hidden; }
+  .concept { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .concept > div { background: var(--surface); padding: var(--s4); display: grid; gap: 6px; }
+  @media (min-width: 760px) { .concept { grid-template-columns: repeat(3, 1fr); } }
+  .concept p { font-size: var(--t-sm); color: var(--fg-2); }
   .phone { width: 390px; max-width: 100%; border: 1px solid var(--line); padding: var(--s4); }
 </style>
 </head>
 <body>
 <main class="app" style="padding-bottom:var(--s7)">
   <header class="stack-sm" style="padding:var(--s5) 0"><span class="lbl">XLIDE v2 · assets/ui.css · vira src/components/live/</span><h1>Componentes</h1><p class="muted">Tudo o que as telas usam. Sem raio, monocromático; o azul só significa "ao vivo", vermelho "atrasado", âmbar "pendente/offline".</p></header>
+
+
+  <section class="spec"><span class="lbl">Conceito v2.1 · de onde vem cada escolha</span>
+    <div class="concept">
+      <div><b>Tipografia faz o trabalho</b><p>Títulos grotescos grandes em caixa-alta, como o /identity do XLIDE. Números gigantes (dia do culto, relógio) vêm do calendário de referência.</p></div>
+      <div><b>Células com contorno</b><p>Linhas de 1 px e células quadradas montam a página, como na grade da Zeroline e nos controles da Fontshare. Sem sombra, sem raio.</p></div>
+      <div><b>Preto = o que importa agora</b><p>A linha preta marca o próximo culto, a aba ativa e o slide atual. O azul só aparece para “agora” e “ao vivo”.</p></div>
+      <div><b>A marca é o asterisco</b><p>O glifo de seis braços com corte em S (src/components/logo.tsx) aparece grande no Início e pequeno no trilho.</p></div>
+      <div><b>Uma navegação, duas formas</b><p>No celular, barra preta embaixo com o “+” no meio. No desktop, trilho de 84 px à esquerda com a marca no topo e o “+” no pé.</p></div>
+      <div><b>Quadradinhos de estado</b><p>Os pontos coloridos do calendário viram quadrados de 8 px: verde pronto, âmbar pendente, vermelho atrasado, cinza vazio.</p></div>
+    </div>
+  </section>
+
+  <section class="spec"><span class="lbl">Navegação · .sbar (desktop, por categoria) e .tabbar + Menu (celular) em shell.js · 390 px e 1280 px</span>
+    <div class="frames">
+      <figure><iframe src="inicio.html" width="390" height="760" title="Início no celular"></iframe><figcaption class="lbl" style="margin-top:6px">Celular · barra preta embaixo</figcaption></figure>
+      <figure><div class="desk-box"><iframe class="desk" src="inicio.html" title="Início no desktop"></iframe></div><figcaption class="lbl" style="margin-top:6px">Desktop · trilho lateral (escala 50%)</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="spec"><span class="lbl">Marca · UI.mark() e UI.glyph()</span>
+    <div class="row" style="gap:var(--s4);align-items:center" id="marks"></div>
+  </section>
+
+  <section class="spec"><span class="lbl">Título display · .disp e seção numerada · .sec-x</span>
+    <h1 class="disp">Boards</h1>
+    <header class="sec-x"><span class="n">01</span><h2>Criar</h2><span class="lbl">ação à direita</span></header>
+  </section>
+
+  <section class="spec"><span class="lbl">Faixa da semana · .now-strip e relógio · .big-clock</span>
+    <div style="max-width:520px"><div class="big-clock">12:31</div><div class="now-strip" id="strip-demo" style="margin-top:var(--s3)"></div></div>
+  </section>
+
+  <section class="spec"><span class="lbl">Células de criar · .make-grid / .make · ao passar, invertem</span><div class="make-grid" id="make-demo"></div></section>
+
+  <section class="spec"><span class="lbl">Linha de calendário · .cal-row · .on = próximo</span>
+    <div class="cal" style="max-width:640px">
+      <a class="cal-row on"><span class="cr-who"><span class="dots"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i></span><span><b>Culto principal</b><small>Sáb, 29 de novembro. Tudo pronto</small></span></span><span class="cr-n">29</span></a>
+      <a class="cal-row"><span class="cr-who"><span class="dots"><i class="ok"></i><i class="warn"></i><i class="late"></i><i></i></span><span><b>Culto jovem</b><small>Sáb, 6 de dezembro</small></span></span><span class="cr-n">06</span></a>
+    </div>
+  </section>
+
+  <section class="spec"><span class="lbl">Cartões · CARDS.card(tipo, id) · moodboard, deck, música · .rc-new</span><div class="rc-grid" id="cards-demo"></div></section>
+
+  <section class="spec"><span class="lbl">Template na gaveta · DRAWER.mini() e DRAWER.open()</span>
+    <div class="row" style="gap:var(--s3);flex-wrap:wrap;align-items:start"><div style="width:320px" id="tpl-demo"></div><button class="btn" id="dw-demo">Abrir a gaveta</button></div>
+  </section>
+
+  <section class="spec"><span class="lbl">Bloco por hora · .hour (Programa)</span>
+    <div class="timeline" style="max-width:640px"><section class="hour"><header><b>10h</b><span>3 itens<br>12 min</span></header><div class="rows">
+      <div class="ti"><span class="grip">⋮⋮</span><span class="t">10:00<span class="was">era 10:05</span></span><span class="what"><h3>Boas-vindas e oração</h3><span class="meta">movido</span></span><span class="dur">3 min</span></div>
+      <div class="ti before"><span class="grip">⋮⋮</span><span class="t">10:03</span><span class="what"><h3>Luz da manhã</h3><span class="meta">linha azul = onde vai cair</span></span><span class="dur">5 min</span></div>
+    </div></section></div>
+  </section>
+
+  <section class="spec"><span class="lbl">Permissões · .perm · Passos · .steps · Abas · .tabs-x</span>
+    <div class="grid grid-2" style="max-width:900px">
+      <table class="perm"><thead><tr><th></th><th>Admin</th><th>Púlpito</th><th>Operador</th></tr></thead><tbody><tr><td>Criar slides</td><td><span class="can edit">E</span></td><td><span class="can edit">E</span></td><td><span class="can no">—</span></td></tr><tr><td>Ver slides</td><td><span class="can edit">E</span></td><td><span class="can view">V</span></td><td><span class="can view">V</span></td></tr></tbody></table>
+      <div><nav class="tabs-x"><button class="on">Programa</button><button>Slides</button><button>Pendências<span class="pill-n">3</span></button><button>Pós-culto</button></nav>
+      <ol class="steps"><li class="done"><i>01</i><span><b>Colar o link</b></span><span class="st">feito</span></li><li class="run"><i>02</i><span><b>Ler o vídeo</b></span><span class="st">agora</span></li><li><i>03</i><span><b>Escolher a legenda</b></span><span class="st">a fazer</span></li></ol></div>
+    </div>
+  </section>
 
   <section class="spec"><span class="lbl">Cores semânticas</span><div class="sw" id="sw"></div></section>
 
@@ -73,6 +144,12 @@ const T = { remaining: 252, progress: .3 };
 const pick = ["wait", "song", "notice", "sermon", "prayer", "video", "pause"].map((k) => it.find((x) => x.type === k));
 UI.qs("#slides").innerHTML = pick.map((x, i) => `<figure><div class="slide" id="sl${i}"></div><figcaption class="lbl">${XL.types[x.type].name}</figcaption></figure>`).join("");
 pick.forEach((x, i) => paintSlide(UI.qs("#sl" + i), x, 0, T, "pt", "live"));
+UI.qs("#marks").innerHTML = `${UI.mark()}${UI.mark("inv")}<span class="xmark" style="width:56px;height:56px">${UI.glyph()}</span><span style="width:120px;color:var(--fg)">${UI.glyph()}</span><b style="letter-spacing:.18em">XLIDE</b>`;
+UI.qs("#strip-demo").innerHTML = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((w, k) => `<div class="d${k < 2 ? " past" : ""}${k === 6 ? " svc" : ""}"><span>${w}</span><span class="row between"><b style="font-weight:400">${23 + k}</b><span class="ev">${"<i></i>".repeat([0,0,0,1,2,0,3][k])}</span></span></div>`).join("") + '<span class="now" style="left:35%"><b>agora</b></span>';
+UI.qs("#tpl-demo").innerHTML = DRAWER.mini({ eyebrow: "Aviso", title: "Batismo 13/12", text: "Inscrições até domingo", bg: "wash:amber", seconds: 240 });
+UI.qs("#dw-demo").onclick = () => DRAWER.open({ kind: "Exemplo", eyebrow: "Aviso", title: "Batismo 13/12", text: "Inscrições até domingo", bg: "wash:amber", seconds: 240 });
+UI.qs("#make-demo").innerHTML = UI.CREATE.map(CARDS.makeCell).join("");
+UI.qs("#cards-demo").innerHTML = `<button class="rc-new">${UI.I.plus}<b>Novo moodboard</b></button>` + CARDS.card("board", "b1") + CARDS.card("song", "s1") + CARDS.card("deck", "d2");
 </script>
 </body>
 </html>

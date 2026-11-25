@@ -4,97 +4,260 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIDE v2 · Início</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
-<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script>
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/cards.js"></script><script src="assets/drawer.js"></script><script src="assets/files.js"></script>
+<style>
+  /* Visão geral: hora, saudação e estado à esquerda; blocos (widgets) à direita.
+     Celular primeiro: tudo numa coluna, na ordem do que importa antes do sábado. */
+  .ov { display: grid; gap: var(--s4); }
+  @media (min-width: 700px) { .ov-l { grid-template-columns: auto 1fr auto; align-items: end; gap: var(--s5); } .ov-l .as { min-width: 320px; } }
+  .ov-l { display: grid; gap: var(--s4); padding: var(--s3) 0; }
+  .clk { display: flex; align-items: flex-start; gap: var(--s2); }
+  .clk b { font: 400 clamp(56px, 14vw, 72px)/.9 var(--font); letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+  .clk .badge { min-width: 20px; height: 20px; display: grid; place-items: center; padding: 0 5px; background: var(--late); color: #fff; font: 600 11px var(--mono); margin-top: 4px; }
+  .hi { font-size: var(--t-lg); line-height: 1.25; color: var(--fg-2); }
+  .hi b { display: block; color: var(--fg); font-weight: 600; }
+  .ov-title { font-size: clamp(36px, 9vw, 52px); font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
+  .ov-st { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: var(--t-sm); color: var(--fg-2); }
+  .ov-st i { width: 8px; height: 8px; background: var(--ok); }
+  .ov-st.warn i { background: var(--warn); }
+  .as { display: grid; gap: 6px; }
+  .as .seg button { min-height: 32px; font-size: 10px; }
+
+  /* grade de blocos */
+  .bento { display: grid; gap: var(--s2); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 700px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } .w3, .w4, .w6 { grid-column: span 2; } }
+  @media (min-width: 1200px) { .bento { grid-template-columns: repeat(6, minmax(0, 1fr)); } .w2 { grid-column: span 2; } .w3 { grid-column: span 3; } .w4 { grid-column: span 4; } .w6 { grid-column: span 6; } }
+  .wg { position: relative; display: grid; grid-template-rows: auto 1fr; gap: var(--s3); padding: var(--s4); background: var(--surface); border: 1px solid var(--line); min-width: 0; scroll-margin-top: 60px; }
+  /* dois tons de bloco para separar: claro (papel) e cinza; as cores de dentro acompanham */
+  .wg.lt { --bg: #f1f0ec; --surface: #fbfaf7; --sunken: #e6e5e0; --line: #d6d5cf; --fg: #161615; --fg-2: #6f6e69; --invert-bg: #161615; --invert-fg: #f1f0ec; background: var(--surface); color: var(--fg); border-color: var(--line); }
+  .wg.dk { background: var(--sunken); }
+  .wg.dk .qk, .wg.dk .al a, .wg.dk .ce a { border-color: color-mix(in srgb, var(--fg) 14%, transparent); }
+  .wg-h { display: flex; align-items: center; gap: var(--s2); }
+  .wg-h h2 { font-size: var(--t-sm); font-weight: 600; letter-spacing: 0; flex: 1; display: flex; align-items: center; gap: 8px; }
+  .wg-h h2 em { font: normal 400 var(--t-xs) var(--mono); color: var(--fg-2); }
+  .wg-h .seg { min-width: 0; } .wg-h .seg button { min-height: 28px; padding: 0 10px; font-size: 10px; }
+  .pill { height: 28px; padding: 0 10px; border: 1px solid var(--line); font: 400 10px var(--mono); text-transform: uppercase; display: inline-flex; align-items: center; }
+  .pill:hover { border-color: var(--fg); }
+  .wg-x { position: absolute; right: 8px; bottom: 8px; width: 24px; height: 24px; display: grid; place-items: center; color: var(--fg-2); }
+  .wg-x:hover { color: var(--fg); background: var(--sunken); }
+  .wg-x svg { width: 14px; height: 14px; }
+  .big { font: 400 clamp(56px, 10vw, 84px)/.9 var(--font); letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+  .big small { font: 400 var(--t-sm) var(--mono); letter-spacing: 0; color: var(--fg-2); margin-left: 4px; }
+
+  /* próximo culto */
+  .nx { display: grid; gap: var(--s3); align-content: start; }
+  .nx-top { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--s3); flex-wrap: wrap; }
+  .nx-top p { font-size: var(--t-sm); color: var(--fg-2); }
+  .nx-top p b { color: var(--fg); display: block; font-size: var(--t-lg); font-weight: 600; }
+  .ready { display: grid; gap: 6px; }
+  .ready-r { display: grid; grid-template-columns: 96px minmax(0, 1fr) 40px; gap: var(--s2); align-items: center; font-size: var(--t-xs); }
+  .ready-r .bar { height: 6px; }
+  .ready-r .bar i { background: var(--ok); } .ready-r.w .bar i { background: var(--warn); }
+  .ready-r b { font: 400 var(--t-xs) var(--mono); text-align: right; }
+  .nx-next { display: flex; gap: var(--s2); flex-wrap: wrap; }
+  .nx-next a { flex: 1 1 120px; padding: var(--s2); border: 1px solid var(--line); font-size: var(--t-xs); color: var(--fg-2); }
+  .nx-next a b { display: block; color: var(--fg); font-size: var(--t-sm); }
+  .nx-next a:hover { border-color: var(--fg); }
+  .nx-acts { display: flex; gap: var(--s2); }
+  .nx-acts .btn { flex: 1; min-height: 40px; }
+
+  /* validação */
+  .al { display: grid; align-content: start; }
+  .al a { display: grid; grid-template-columns: 8px minmax(0, 1fr) 16px; gap: var(--s3); align-items: center; padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+  .al a:last-child { border-bottom: 0; }
+  .al a i { width: 8px; height: 8px; }
+  .al b { display: block; font-size: var(--t-sm); font-weight: 600; } .al small { font-size: var(--t-xs); color: var(--fg-2); }
+  .al svg { width: 14px; height: 14px; color: var(--fg-2); }
+  .al a:hover b { text-decoration: underline; }
+
+  /* moodboard e mind map */
+  .mb { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-rows: 1fr 1fr; gap: 3px; aspect-ratio: 16 / 10; }
+  .mb i { background-size: cover; background-position: center; }
+  .mb i:first-child { grid-row: span 2; }
+  .mb .sw { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .wg-f { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); padding-right: 28px; }
+  .wg-f b { font-size: var(--t-sm); font-weight: 600; display: block; } .wg-f small { font-size: var(--t-xs); color: var(--fg-2); }
+  .mm { width: 100%; aspect-ratio: 16 / 10; display: block; background-color: var(--sunken); background-image: radial-gradient(color-mix(in srgb, var(--fg) 22%, transparent) 1px, transparent 1.3px); background-size: 12px 12px; }
+  .mm text { font: 500 9px var(--font); fill: var(--fg); }
+  .mm .c text { fill: var(--bg); font-weight: 700; }
+  .mm rect { fill: var(--surface); stroke: var(--fg); stroke-width: 1; }
+  .mm .c rect { fill: var(--fg); }
+  .mm path { stroke: var(--fg-2); stroke-dasharray: 3 3; fill: none; }
+  .cont { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; background: var(--fg); color: var(--bg); font-size: var(--t-xs); font-weight: 600; white-space: nowrap; }
+  .cont svg { width: 14px; height: 14px; }
+
+  /* duração típica */
+  .du { display: grid; gap: var(--s3); align-content: start; }
+  .du-delta { display: inline-flex; height: 22px; align-items: center; padding: 0 6px; background: color-mix(in srgb, var(--late) 22%, transparent); color: var(--late); font: 400 11px var(--mono); }
+  .du-ch { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 10px; align-items: end; height: 120px; padding-top: var(--s4); border-bottom: 1px solid var(--line); }
+  .du-ch div { position: relative; display: grid; align-items: end; height: 100%; }
+  .du-ch .pl { position: absolute; left: -3px; right: -3px; border-top: 1px dashed var(--fg-2); z-index: 1; }
+  .du-ch .re { display: block; width: 46%; justify-self: center; background: color-mix(in srgb, var(--fg) 80%, transparent); }
+  .du-ch .re.over { background: linear-gradient(var(--late) var(--o), var(--fg) var(--o)); }
+  .du-ch span { position: absolute; left: 0; right: 0; text-align: center; font: 400 10px var(--mono); color: var(--fg-2); }
+  .du-x { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 10px; font: 400 10px var(--mono); color: var(--fg-2); text-align: center; }
+  .du-leg { display: flex; gap: var(--s3); flex-wrap: wrap; font-size: var(--t-xs); color: var(--fg-2); padding-right: 28px; }
+  .du-leg i { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 4px; background: var(--fg); }
+  .du-leg i.p { background: none; border-top: 1px dashed var(--fg-2); }
+
+  /* continuar editando */
+  .ce { display: grid; align-content: start; }
+  .ce a { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+  .ce a:last-child { border-bottom: 0; }
+  .ce .pv { width: 72px; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sunken); }
+  .ce .pv .slide { width: 100%; }
+  .ce b { display: block; font-size: var(--t-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ce small { font-size: var(--t-xs); color: var(--fg-2); }
+  .ce .bar { height: 3px; margin-top: 6px; } .ce .bar i { background: var(--live); }
+  .ce em { font: normal 400 10px var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .ce a:hover em { color: var(--fg); }
+
+  /* atalhos rápidos */
+  .qk { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); align-self: start; }
+  .qk a, .qk button { display: grid; gap: 6px; padding: var(--s3); background: var(--surface); text-align: left; font-size: var(--t-sm); font-weight: 600; }
+  .qk a:hover, .qk button:hover { background: var(--sunken); }
+  .qk svg { width: 20px; height: 20px; }
+  .qk small { display: block; font-weight: 400; font-size: var(--t-xs); color: var(--fg-2); }
+  .qk .hot { background: var(--live); color: #fff; } .qk .hot small { color: rgb(255 255 255 / .8); } .qk .hot:hover { background: color-mix(in srgb, var(--live) 85%, #000); }
+</style>
 </head>
 <body data-tab="inicio">
 <main class="app">
-  <header class="top">
-    <span class="brand"><span class="mark">X</span>XLIDE</span>
-    <span class="row" style="gap:8px"><span class="lbl hide-sm">Nova Semente Rotterdam</span><span class="avatar" id="me-av"></span></span>
-  </header>
-
-  <div class="stack">
-    <div><span class="lbl">Ver como</span><div class="seg" id="as" style="margin-top:6px"></div></div>
-    <h1 id="hello"></h1>
-
-    <a href="programa.html" class="card invert stack-sm" style="display:block">
-      <div class="row between"><span class="lbl">Próximo culto</span><span class="chip" id="state-chip" style="color:inherit;border-color:currentColor"></span></div>
-      <h2 style="font-size:var(--t-xl)">Culto principal</h2>
-      <p class="muted" id="date"></p>
-      <div class="stats" style="border-color:rgb(255 255 255 / .15);margin-top:var(--s3)">
-        <div class="stat"><span class="lbl">Início</span><b>10:00</b></div>
-        <div class="stat" style="border-color:rgb(255 255 255 / .15)"><span class="lbl">Término</span><b id="end"></b></div>
-        <div class="stat" style="border-color:rgb(255 255 255 / .15)"><span class="lbl">Itens</span><b id="count"></b></div>
+  <div class="ov">
+    <!-- esquerda: hora, saudação, estado, índice -->
+    <aside class="ov-l" aria-label="Agora">
+      <div class="stack-sm">
+        <div class="clk"><b id="clock">00:00</b><span class="badge" id="badge" title="Pendências"></span></div>
+        <p class="hi" id="hello"></p>
       </div>
-    </a>
-    <div class="grid grid-2" id="cta"></div>
+      <div><h1 class="ov-title">Visão geral</h1><p class="ov-st" id="status"></p></div>
+      <div class="as"><span class="lbl">Ver como</span><div class="seg" id="as"></div></div>
+    </aside>
 
-    <div class="split">
-      <div>
-        <div class="section-h"><h2 id="mine-h">Minha parte</h2><span class="lbl" id="mine-n"></span></div>
-        <div class="timeline" id="mine"></div>
-
-        <div class="section-h"><h2>Pendências</h2><span class="lbl">RF-10</span></div>
-        <div class="stack-sm" id="todo"></div>
-      </div>
-      <aside class="side">
-        <div class="section-h"><h2>Próximos</h2><a class="lbl" href="#">calendário →</a></div>
-        <div id="next"></div>
-      </aside>
-    </div>
+    <!-- direita: blocos -->
+    <section class="bento" aria-label="Blocos da visão geral">
+      <article class="wg w3 lt" id="w-culto"></article>
+      <article class="wg w3 dk" id="w-val"></article>
+      <article class="wg w4 dk" id="w-cont"></article>
+      <article class="wg w2 lt" id="w-quick"></article>
+      <article class="wg w2 lt" id="w-mood"></article>
+      <article class="wg w2 dk" id="w-map"></article>
+      <article class="wg w2 lt" id="w-dur"></article>
+    </section>
   </div>
 </main>
 <script>
-const { program, people, areas, types } = XL;
+const { people, areas } = XL;
+const esc = FILEUI.esc;
 const views = { bia: "Operador", lucas: "Música", ana: "Admin", pr: "Púlpito" };
-let me = new URLSearchParams(location.search).get("as") || "bia";
-const total = program.items.reduce((a, b) => a + b.planned, 0);
-const endH = () => { const m = 600 + total / 60; return `${Math.floor(m / 60)}:${String(Math.round(m % 60)).padStart(2, "0")}`; };
+let me = views[UI.me()] ? UI.me() : "ana";
+let durKind = "principal";
+const first = (n) => (n.startsWith("Pr.") ? n.split(" ").slice(0, 2).join(" ") : n.split(" ")[0]);
+const EXP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>`;
+const ARR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m9 6 6 6-6 6"/></svg>`;
+
+/* Semana do mockup: o culto é sábado 29/11 às 10:00; "hoje" é terça 25/11 na hora real do computador. */
+const SVC = new Date(2026, 10, 29, 10, 0);
+const now = () => { const d = new Date(); return new Date(2026, 10, 25, d.getHours(), d.getMinutes(), d.getSeconds()); };
+const P = XL.program, items = P.items;
+
+/* ── validação: o que falta antes do culto ── */
+function alerts() {
+  const L = [];
+  items.forEach((it) => {
+    if (it.type === "video") L.push(["warn", it.title, "Sem arquivo de vídeo", "comms", "programa.html"]);
+    if (it.type === "song" && XL.songs[it.song].langs.length < 2) L.push(["warn", it.title, "Letra só em português", "music", `musica.html?id=${it.song}`]);
+  });
+  PROGS.all().filter((x) => x.status === "rascunho" && x.id !== P.id).slice(0, 2).forEach((x) => L.push(["late", `${x.title}, ${x.short}`, "Ainda em rascunho", null, `programa.html?p=${x.id}`]));
+  L.push(["late", "Microfone 3", "Pilha fraca no último ensaio", "sound", "console.html"]);
+  return L.filter((a) => me === "ana" || me === "bia" || !a[3] || a[3] === people[me].area);
+}
+/* prontidão por área: itens sem pendência / itens da área */
+function readiness() {
+  const warnT = new Set(items.filter((it) => it.type === "video" || (it.type === "song" && XL.songs[it.song].langs.length < 2)).map((it) => it.title));
+  return Object.entries(areas).map(([k, n]) => { const L = items.filter((it) => it.area === k); return [n, L.filter((it) => !warnT.has(it.title)).length, L.length]; }).filter((r) => r[2]);
+}
+
+function tick() {
+  const n = now();
+  UI.qs("#clock").textContent = `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+  const ms = SVC - n, dd = Math.floor(ms / 864e5), hh = Math.floor((ms % 864e5) / 36e5);
+  const el = UI.qs("#cd"); el && (el.innerHTML = `${dd}<small>d</small> ${hh}<small>h</small>`);
+}
 
 function render() {
-  const p = people[me];
+  const p = people[me], h = now().getHours(), A = alerts(), R = readiness();
+  const okAll = R.reduce((a, r) => a + r[1], 0), tot = R.reduce((a, r) => a + r[2], 0);
   UI.qs("#as").innerHTML = Object.entries(views).map(([k, n]) => `<button class="${k === me ? "on" : ""}" data-k="${k}">${n}</button>`).join("");
-  UI.qsa("#as button").forEach((b) => (b.onclick = () => { me = b.dataset.k; render(); }));
-  UI.qs("#me-av").textContent = p.ini;
-  UI.qs("#hello").textContent = `Bom dia, ${p.name.replace("Pr. ", "").split(" ")[0]}.`;
-  UI.qs("#date").textContent = `${program.date} · faltam 4 dias`;
-  UI.qs("#state-chip").textContent = "Pronto";
-  UI.qs("#end").textContent = endH();
-  UI.qs("#count").textContent = program.items.length;
+  UI.qsa("#as button").forEach((b) => (b.onclick = () => { me = b.dataset.k; UI.setMe(me); UI.refreshNav(); render(); }));
+  UI.qs("#hello").innerHTML = `${h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"},<b>${esc(first(p.name))}.</b>`;
+  UI.qs("#badge").textContent = A.length; UI.qs("#badge").hidden = !A.length;
+  UI.qs("#status").className = "ov-st" + (A.length ? " warn" : "");
+  UI.qs("#status").innerHTML = `<i></i>${A.length ? `${A.length} ${A.length === 1 ? "coisa" : "coisas"} para resolver antes de sábado` : "Tudo pronto para sábado"}`;
 
-  const cta = {
-    bia: `<a class="btn live big" href="console.html">${UI.I.live}Abrir console<small>Você opera este culto</small></a><a class="btn big" href="tela.html">${UI.I.screen}Abrir tela<small>No computador do projetor</small></a>`,
-    lucas: `<a class="btn primary big" href="programa.html?area=music">${UI.I.music}Preencher músicas<small>4 itens · prazo quinta</small></a><a class="btn big" href="biblioteca.html">${UI.I.lib}Biblioteca<small>Nova música</small></a>`,
-    ana: `<a class="btn primary big" href="programa.html">${UI.I.check}Revisar e marcar pronto<small>RF-08</small></a><a class="btn big" href="relatorio.html">${UI.I.clock}Último relatório<small>22/11 · +9 min</small></a>`,
-    pr: `<a class="btn primary big" href="programa.html?area=pulpit">${UI.I.doc}Meu sermão<small>Casa de muitos · 40 min</small></a><a class="btn big" href="ao-vivo.html">${UI.I.qr}Página pública<small>O que os membros veem</small></a>`,
-  };
-  UI.qs("#cta").innerHTML = cta[me];
+  // 1 · próximo culto
+  const next2 = PROGS.all().filter((x) => x.id !== P.id && (x.status === "rascunho" || x.status === "salvo")).slice(0, 3);
+  UI.qs("#w-culto").innerHTML = `<div class="wg-h"><h2>Próximo culto <em>${esc(P.date)}</em></h2><a class="pill" href="agenda.html">Agenda</a></div>
+    <div class="nx">
+      <div class="nx-top"><div><span class="lbl">Começa em</span><div class="big" id="cd"></div></div><p><b>${esc(P.title)}</b>${P.starts} · ${items.length} itens · ${Math.round(items.reduce((a, b) => a + b.planned, 0) / 60)} min</p></div>
+      <div class="ready">${R.map(([n, ok, t]) => `<div class="ready-r${ok < t ? " w" : ""}"><span>${n}</span><span class="bar"><i style="width:${(ok / t) * 100}%"></i></span><b>${ok}/${t}</b></div>`).join("")}</div>
+      <div class="nx-next">${next2.map((x) => `<a href="programa.html?p=${x.id}"><b>${esc(x.title)}</b>${x.short} · ${x.status === "salvo" ? "salvo" : "rascunho"}</a>`).join("")}</div>
+      <div class="nx-acts"><a class="btn primary" href="programa.html">${UI.I.list}Programa</a><a class="btn" href="console.html">${UI.I.live}Ao vivo</a></div>
+    </div>`;
 
-  const mine = program.items.map((it, i) => ({ it, i })).filter(({ it }) => me === "ana" || (people[me].area ? it.area === people[me].area : it.owner === me) || it.owner === me);
-  UI.qs("#mine-h").textContent = me === "ana" ? "Programa" : `Minha parte · ${areas[people[me].area] || ""}`;
-  UI.qs("#mine-n").textContent = `${mine.length} itens`;
-  const st = LIVE.timing().starts;
-  UI.qs("#mine").innerHTML = mine.map(({ it, i }) => `
-    <a class="ti" href="programa.html#i${i}"><span class="t">${LIVE.wall(st[i])}</span>
-      <span class="what"><h3>${it.title}</h3><span class="meta">${UI.ty(it.type)} · ${UI.who(it.owner)}</span></span>
-      <span class="dur">${UI.min(it.planned)}</span></a>`).join("");
+  // 2 · validação
+  UI.qs("#w-val").innerHTML = `<div class="wg-h"><h2>${UI.I.alert.replace("<svg", '<svg width="16" height="16"')}Validação <em>${A.length}</em></h2><a class="pill" href="programa.html">Ver tudo</a></div>
+    <div class="al">${A.length ? A.slice(0, 5).map(([k, t, d, , f]) => `<a href="${f}"><i style="background:var(--${k})"></i><span><b>${esc(t)}</b><small>${esc(d)}</small></span>${ARR}</a>`).join("") : `<p class="muted">Nada pendente na sua área. O culto está pronto.</p>`}</div>`;
 
-  const todo = [
-    ["warn", "Vídeo: missão Rotterdam", "Sem arquivo de vídeo", "comms"],
-    ["warn", "Caminho aberto", "Letra só em português", "music"],
-    ["ok", "Casa de muitos", "Slides de apoio enviados", "pulpit"],
-    ["late", "Culto jovem · 06/12", "3 itens sem responsável", null],
-  ].filter((t) => me === "ana" || me === "bia" || t[3] === people[me].area);
-  UI.qs("#todo").innerHTML = todo.length ? todo.map(([k, t, d]) => `<div class="card row"><span class="chip ${k}"><span class="dot"></span></span><span class="grow"><h3>${t}</h3><span class="muted" style="font-size:var(--t-sm)">${d}</span></span>${UI.I.chev.replace("<svg", '<svg width="18" height="18"')}</div>`).join("") : `<p class="muted">Nada pendente. 🙌</p>`;
+  // 3 · continuar editando
+  const lastFile = FILES.mine(me).filter((f) => f.status === "ativo")[0];
+  const cont = [
+    lastFile && ["deck.html?f=" + lastFile.id, DRAWER.mini({ ...lastFile, seconds: 0 }), lastFile.name, `${FILEUI.folderName(lastFile.folder)} · ${lastFile.updated}`, 70],
+    ["programa.html", DRAWER.mini({ eyebrow: "Programa", title: P.title, bg: "wash:midnight" }), `Programa · ${P.title}`, `${P.date} · ${okAll}/${tot} prontos`, Math.round((okAll / tot) * 100)],
+    ["estudio.html?song=s2", `<div class="slide song">${XLOOK.songSlide("s2", 0, { section: false })}</div>`, "Caminho aberto", "Música · falta a tradução", 55],
+  ].filter(Boolean);
+  UI.qs("#w-cont").innerHTML = `<div class="wg-h"><h2>Continuar editando?</h2><a class="pill" href="arquivos.html">Arquivos</a></div>
+    <div class="ce">${cont.map(([f, pv, t, d, pc]) => `<a href="${f}"><span class="pv">${pv}</span><span style="min-width:0"><b>${esc(t)}</b><small>${esc(d)}</small><span class="bar"><i style="width:${pc}%"></i></span></span><em>Continuar ›</em></a>`).join("")}</div>`;
 
-  UI.qs("#next").innerHTML = [
-    ["29/11", "Culto principal", "Pronto", "ok", "13/13"],
-    ["06/12", "Culto jovem", "Rascunho", "warn", "6/9"],
-    ["06/12", "Culto principal", "Rascunho", "warn", "9/13"],
-    ["13/12", "Culto principal · Batismo", "Rascunho", "", "2/14"],
-  ].map(([d, n, s, k, f]) => `<div class="li"><span class="thumb">${d}</span><span class="grow"><h3>${n}</h3><span class="lbl">${f} preenchidos</span></span><span class="chip ${k}">${s}</span></div>`).join("");
+  // 4 · atalhos rápidos (o primeiro muda com o papel)
+  const hot = { bia: ["console.html", UI.I.live, "Abrir o ao vivo", "Você opera sábado"], lucas: ["estudio.html", UI.I.music, "Editor de música", "4 músicas no sábado"], ana: ["programa.html", UI.I.check, "Revisar o programa", "Marcar como pronto"], pr: ["kit.html?tipo=deck#testar", UI.I.slides, "Slides do sermão", "Casa de muitos"] }[me];
+  UI.qs("#w-quick").innerHTML = `<div class="wg-h"><h2>Atalhos</h2></div>
+    <div class="qk"><a class="hot" href="${hot[0]}">${hot[1]}<span>${hot[2]}<small>${hot[3]}</small></span></a>
+      <button type="button" onclick="UI.createSheet()">${UI.I.plus}<span>Criar<small>Deck, música, board</small></span></button>
+      <a href="agenda.html">${UI.I.cal}<span>Agenda<small>Semana do culto</small></span></a>
+      <a href="arquivos.html">${UI.I.folder}<span>Arquivos<small>${FILES.mine(me).filter((f) => f.status === "ativo").length} ativos</small></span></a></div>`;
+
+  // 5 · moodboard mais recente
+  const b = XL.boards.b1;
+  UI.qs("#w-mood").innerHTML = `<div class="wg-h"><h2>Moodboard recente</h2><span class="lbl">${b.items} itens</span></div>
+    <div style="display:grid;gap:var(--s3)"><div class="mb"><i style="background-image:url(${CARDS.yt(b.loops[0])})"></i><i style="background-image:url(${CARDS.yt(b.loops[1])})"></i><span class="sw">${b.colors.map((c) => `<i style="background:${c}"></i>`).join("")}</span></div>
+    <div class="wg-f"><span><b>${esc(b.title)}</b><small>${b.updated}, ${first(people[b.by].name)}</small></span><a class="cont" href="board.html?id=b1&v=mood">Continuar ${ARR}</a></div></div><a class="wg-x" href="boards.html" aria-label="Abrir boards">${EXP}</a>`;
+
+  // 6 · último mapa mental
+  const m = XL.boards.b2;
+  const nodes = [["Ideia", 24, 18], ["Slides", 136, 18], ["Músicas", 24, 90], ["Convite", 136, 90]];
+  UI.qs("#w-map").innerHTML = `<div class="wg-h"><h2>Último mapa mental</h2><span class="lbl">${m.items} cartões</span></div>
+    <div style="display:grid;gap:var(--s3)"><svg class="mm" viewBox="0 0 200 125" role="img" aria-label="Mapa: ${esc(m.title)}">${nodes.map(([, x, y]) => `<path d="M100 62 C ${x + 20} 62, ${x + 20} ${y + 8}, ${x + 20} ${y + 8}"/>`).join("")}<g class="c"><rect x="58" y="52" width="84" height="20"/><text x="100" y="65" text-anchor="middle">Casa de muitos</text></g>${nodes.map(([t, x, y]) => `<g><rect x="${x}" y="${y}" width="40" height="16"/><text x="${x + 20}" y="${y + 11}" text-anchor="middle">${t}</text></g>`).join("")}</svg>
+    <div class="wg-f"><span><b>${esc(m.title)}</b><small>${m.updated}, ${first(people[m.by].name)}</small></span><a class="cont" href="board.html?id=b2&v=map">Continuar ${ARR}</a></div></div><a class="wg-x" href="boards.html" aria-label="Abrir boards">${EXP}</a>`;
+
+  dur();
+  tick();
 }
-render();
+
+// 7 · duração típica do culto (planejado tracejado × real)
+function dur() {
+  const H = durKind === "principal" ? XL.history.filter((x) => x.planned >= 5700) : [{ date: "08/11", planned: 4500, real: 4740 }, { date: "25/10", planned: 4500, real: 4680 }, { date: "11/10", planned: 4500, real: 4920 }];
+  const avg = H.reduce((a, x) => a + x.real, 0) / H.length, plan = H[0].planned, max = Math.max(...H.map((x) => x.real)) * 1.1;
+  const hm = (s) => `${Math.floor(s / 3600)}h${String(Math.round((s % 3600) / 60)).padStart(2, "0")}`;
+  UI.qs("#w-dur").innerHTML = `<div class="wg-h"><h2>Duração típica</h2><div class="seg" id="dk"><button data-k="principal" class="${durKind === "principal" ? "on" : ""}">Principal</button><button data-k="jovem" class="${durKind === "jovem" ? "on" : ""}">Jovem</button></div></div>
+    <div class="du"><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s2)"><div class="big" style="font-size:56px">${hm(avg)}</div><span class="du-delta">+${Math.round((avg - plan) / 60)} min</span></div>
+      <div class="du-ch" style="--n:${H.length}">${H.slice().reverse().map((x) => { const o = Math.max(0, (x.real - x.planned) / x.real) * 100; return `<div title="${x.date}: planejado ${Math.round(x.planned / 60)} min, real ${Math.round(x.real / 60)} min"><i class="pl" style="bottom:${(x.planned / max) * 100}%"></i><i class="re${o ? " over" : ""}" style="height:${(x.real / max) * 100}%;--o:${o}%"></i><span style="bottom:calc(${(x.real / max) * 100}% + 4px)">${Math.round(x.real / 60)}</span></div>`; }).join("")}</div>
+      <div class="du-x" style="--n:${H.length}">${H.slice().reverse().map((x) => `<span>${x.date}</span>`).join("")}</div>
+      <div class="du-leg"><span><i></i>real</span><span><i class="p"></i>planejado ${Math.round(plan / 60)} min</span><span><i style="background:var(--late)"></i>passou</span></div></div><a class="wg-x" href="relatorio.html" aria-label="Abrir relatório">${EXP}</a>`;
+  UI.qsa("#dk button").forEach((b) => (b.onclick = () => { durKind = b.dataset.k; dur(); }));
+}
+
+render(); setInterval(tick, 20000);
 </script>
 </body>
 </html>

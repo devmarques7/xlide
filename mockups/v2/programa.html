@@ -4,9 +4,14 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIDE v2 · Programa</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
-<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script>
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script><script src="assets/trilha.js"></script><script src="assets/files.js"></script><script src="assets/media.js"></script>
 <style>
-  .ti { grid-template-columns: 24px 48px 1fr auto; cursor: pointer; }
+  .ti { grid-template-columns: 28px 52px minmax(0, 1fr) auto; cursor: pointer; }
+  .ti .thumb-s { display: none; }
+  @media (min-width: 640px) { .ti { grid-template-columns: 28px 52px 76px minmax(0, 1fr) auto; } .ti .thumb-s { display: block; } }
+  .hour > header { position: static; }
+  .hint-row { display: flex; gap: var(--s2); align-items: center; font-size: var(--t-sm); color: var(--fg-2); margin: var(--s2) 0 var(--s3); }
+  .hint-row svg { width: 16px; height: 16px; }
   .ti:hover { background: var(--sunken); }
   .ti.dragging { opacity: .3; }
   .ti.drop { box-shadow: inset 0 2px 0 var(--fg); }
@@ -20,33 +25,106 @@
   .mini-slides { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .mini-slides .slide { padding: 4cqw; }
   .mini-slides .s-lines { font-size: 8cqw; }
+  /* Programa Estúdio */
+  .ps { display: grid; gap: var(--s3); padding: var(--s3) 0 var(--s4); margin-bottom: var(--s4); border-bottom: 1px solid var(--fg); }
+  .ps-top { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+  .ps-k { display: flex; align-items: center; gap: var(--s3); flex: 1; min-width: 200px; }
+  .ps-save { font: 400 var(--t-xs) var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .ps-save.dirty { color: var(--warn); }
+  .ps-acts { display: flex; gap: var(--s2); flex-wrap: wrap; }
+  .ps-acts .btn { min-height: 40px; }
+  .ps-name { display: grid; gap: 4px; }
+  .ps-title { width: 100%; background: none; border: 0; border-bottom: 1px dashed transparent; color: var(--fg); font: 700 clamp(28px, 4vw, 44px)/1.05 var(--font); letter-spacing: -0.03em; padding: 0; }
+  .ps-title:hover, .ps-title:focus { border-bottom-color: var(--line); outline: none; }
+  .ps-meta { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+  .ps-date { background: none; border: 0; color: var(--fg-2); font: 400 var(--t-md) var(--font); padding: 0; min-width: 220px; }
+  .ps-date:focus { outline: 1px dashed var(--line); }
+  #p-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .ps-list { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .pc { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--line); background: var(--surface); }
+  .pc.on { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+  .pc-top { display: flex; justify-content: space-between; gap: var(--s2); font: 400 var(--t-xs) var(--mono); color: var(--fg-2); text-transform: uppercase; }
+  .pc h3 { font-size: var(--t-md); }
+  .pc .bar3 { display: flex; height: 6px; gap: 1px; }
+  .pc .bar3 i { display: block; height: 100%; }
+  .pc-acts { display: flex; gap: 4px; flex-wrap: wrap; }
+  .pc-acts button, .pc-acts a { height: 30px; padding: 0 9px; border: 1px solid var(--line); font: 400 10px var(--mono); text-transform: uppercase; display: inline-flex; align-items: center; }
+  .pc-acts button:hover, .pc-acts a:hover { border-color: var(--fg); }
+  .pc-acts .go { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .pc-acts .danger { color: var(--late); }
+
+  /* tabela do programa */
+  .ti { grid-template-columns: 24px 48px minmax(0, 1fr) auto; }
+  .ti .c-type, .ti .c-tr { display: none; }
+  .ti .acts { display: flex; gap: 2px; }
+  .ti .acts button { width: 30px; height: 30px; display: grid; place-items: center; color: var(--fg-2); border: 1px solid transparent; }
+  .ti .acts button:hover { color: var(--fg); border-color: var(--line); background: var(--surface); }
+  .ti .acts button.on { color: var(--warn); }
+  .ti .acts svg { width: 16px; height: 16px; }
+  .ti .acts .del:hover { color: var(--late); }
+  .ti .dur { white-space: nowrap; }
+  .ti.hid { opacity: .5; } .ti.hid h3 { text-decoration: line-through; }
+  .ti.th { min-height: 0; padding: var(--s2) 0; cursor: default; font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--fg-2); border-bottom: 1px solid var(--fg); }
+  .ti.th:hover { background: none; }
+  .thead { display: grid; grid-template-columns: 64px minmax(0, 1fr); }
+  .tag-t { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border: 1px solid currentColor; font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; color: var(--tc, var(--fg-2)); }
+  .tag-t i { width: 7px; height: 7px; background: currentColor; }
+  @media (min-width: 640px) { .ti { grid-template-columns: 24px 48px 76px minmax(0, 1fr) auto; } }
+  /* tabela quando a lista tem espaço (container query): sem a miniatura, com Tipo e Trilha em colunas */
+  #tl { container-type: inline-size; }
+  @container (min-width: 700px) {
+    .ti { grid-template-columns: 20px 44px minmax(0, 1fr) 152px 116px 48px 96px; gap: var(--s2); }
+    .ti .thumb-s { display: none !important; }
+    .ti .c-type, .ti .c-tr { display: flex; align-items: center; }
+    .ti .meta .ty, .ti .meta .tr-chip, .ti .meta .sep-t { display: none; }
+    .ti.th { display: grid; }
+  }
+  @container (max-width: 699.98px) { .ti .acts { grid-column: -2; } .ti.th { display: none; } }
+  .thead { grid-template-columns: 64px minmax(0, 1fr); }
+  @media (min-width: 900px) { .thead { grid-template-columns: 112px minmax(0, 1fr); } }
+  @media (min-width: 1100px) { .split { grid-template-columns: minmax(0, 1fr) 340px; } }
+  .bins { margin-top: var(--s5); display: grid; gap: var(--s2); }
+  .bins details { border: 1px solid var(--line); background: var(--surface); }
+  .bins summary { padding: var(--s3); cursor: pointer; font-weight: 600; display: flex; gap: var(--s2); align-items: center; }
+  .bins summary svg { width: 16px; height: 16px; }
+  .bin-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s2); align-items: center; padding: var(--s2) var(--s3); border-top: 1px solid var(--line); font-size: var(--t-sm); }
+  .bin-row small { color: var(--fg-2); display: block; }
+  .bin-row .pc-acts { justify-content: flex-end; }
+  .imp { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--live); }
   .summary { position: sticky; top: 30px; z-index: 5; background: var(--bg); padding: var(--s2) 0; }
 </style>
 </head>
 <body data-tab="programa">
 <main class="app">
-  <header class="top">
-    <a class="icon-btn" href="inicio.html"></a>
-    <span class="grow"><span class="lbl">Sábado, 29 de novembro</span><h2>Culto principal</h2></span>
-    <a class="icon-btn" href="console.html" title="Ir ao console" id="go-live"></a>
-  </header>
+  <!-- Programa Estúdio: pastas de programas + o programa aberto -->
+  <section class="ps" aria-label="Programa Estúdio">
+    <div class="ps-top">
+      <span class="ps-k"><span class="lbl">Programa Estúdio</span><span class="ps-save" id="p-dirty"></span></span>
+      <div class="ps-acts"><button class="btn" id="p-new"></button><button class="btn ghost" id="p-dup"></button><button class="btn ghost" id="p-draft">Salvar rascunho</button><button class="btn primary" id="p-save">Salvar</button><a class="icon-btn" href="console.html" title="Ir ao ao vivo" id="go-live"></a></div>
+    </div>
+    <div class="ps-name"><input class="ps-title" id="p-title" aria-label="Nome do programa"><span class="ps-meta"><input class="ps-date" id="p-date" aria-label="Data"><span id="p-chips"></span></span></div>
+    <div id="ps-fds"></div>
+    <div class="ps-list" id="ps-list" hidden></div>
+  </section>
 
   <div class="split">
     <div>
       <div class="summary stack-sm">
         <div class="stats">
-          <div class="stat"><span class="lbl">Início</span><b>10:00</b></div>
+          <div class="stat"><span class="lbl" data-en="Start" data-nl="Begin">Início</span><b>10:00</b></div>
           <div class="stat"><span class="lbl">Término</span><b id="end"></b></div>
           <div class="stat"><span class="lbl">Total / alvo</span><b id="tot"></b></div>
         </div>
         <div id="over"></div>
         <div class="scroll-x" id="areas"></div>
       </div>
-      <div class="timeline" id="tl"></div>
+      <p class="hint-row" id="drag-hint">Arraste pela alça para mudar a ordem. Os horários se ajustam e mostram o horário anterior.</p>
+      <div class="timeline" id="tl" style="border-top:0"></div>
       <div class="grid grid-2" style="margin-top:var(--s4)">
         <button class="btn block" id="add">+ Adicionar item</button>
-        <button class="btn ghost block">Copiar de 22/11</button>
+        <button class="btn ghost block" id="copy-from">Copiar de outro programa</button>
       </div>
+      <div class="bins" id="bins"></div>
     </div>
 
     <aside class="side stack">
@@ -72,93 +150,257 @@
 const P = XL.program, items = P.items;
 const params = new URLSearchParams(location.search);
 let area = params.get("area") || "all";
-let state = P.state;
-const myArea = area === "all" ? null : area;
+/* Qual programa está aberto (?p=); sem p, o que está no ao vivo. */
+let prog = PROGS.get(params.get("p")) || PROGS.get(PROGS.liveId);
+if (prog.id !== P.id) items.splice(0, items.length, ...PROGS.clone(prog.items));
+Object.assign(P, { starts: prog.starts, targetMin: prog.targetMin });
+prog.archived = prog.archived || []; prog.trash = prog.trash || [];
+let state = params.get("estado") || (prog.status === "rascunho" ? "draft" : "ready");
+const snap = () => JSON.stringify({ items, a: prog.archived, t: prog.trash, n: prog.title, d: prog.date, s: prog.status });
+let savedJSON = snap();
 UI.qs("#go-live").innerHTML = UI.I.live;
-UI.qs(".top .icon-btn").innerHTML = UI.I.back;
 UI.qs("#add").innerHTML = UI.I.plus + " Adicionar item";
 
+const hm = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, "0")}:${String(Math.floor(min % 60)).padStart(2, "0")}`;
+const START = (() => { const [h, m] = P.starts.split(":").map(Number); return h * 60 + m; })();
+const startsMin = () => { let c = START; return items.map((it) => { const s = c; c += it.planned / 60; return s; }); };
+let was = {};      // horário anterior de cada item depois de mover (id → "10:00")
+let moved = null;  // id do último item movido
+const DEFAULT_BG = { song: null, wait: "wash:midnight", notice: "wash:amber", prayer: "loop:CQ0keZI1gds", sermon: "wash:gold", video: "solid:#0e0e0d", pause: "solid:#0e0e0d" };
+const look = (it) => ({ bg: it.bg || DEFAULT_BG[it.type] || "loop:5djr6ofyLLY", font: it.font || (it.type === "sermon" ? "serif" : "grotesk") });
+const tplOf = (it) => it.type === "media" ? { kind: "Vídeo / áudio", media: it.media, mediaOnly: true, title: it.title, bg: "solid:#000" } : it.type === "song"
+  ? { eyebrow: XL.songs[it.song].title, title: XL.songSlides(it.song)[0].text, ...look({ ...it, bg: it.bg || XLOOK.resolve(it.song, 0).bg, font: it.font || XLOOK.resolve(it.song, 0).font }) }
+  : { kind: XL.types[it.type].name, eyebrow: it.eyebrow || XL.types[it.type].name, title: it.title, text: it.type === "wait" ? (it.text || "") : (it.text || "").replace(/ · /g, "\n"), seconds: it.type === "wait" ? it.planned : 0, layout: it.layout, ink: it.ink, ...look(it) };
+
 function render() {
-  const T = LIVE.timing();
+  const st = startsMin();
   const total = items.reduce((a, b) => a + b.planned, 0);
   const target = P.targetMin * 60;
-  UI.qs("#end").textContent = LIVE.wall(T.plannedEnd);
+  UI.qs("#end").textContent = hm(START + total / 60);
   UI.qs("#tot").textContent = `${Math.round(total / 60)}/${P.targetMin}`;
-  UI.qs("#over").innerHTML = total > target ? `<div class="banner" style="color:var(--late)">${UI.I.alert.replace("<svg", '<svg width="16" height="16"')} ${Math.round((total - target) / 60)} min acima do alvo · RF-06</div>` : "";
+  UI.qs("#over").innerHTML = total > target ? `<div class="banner" style="color:var(--late)">${UI.I.alert.replace("<svg", '<svg width="16" height="16"')} ${Math.round((total - target) / 60)} min acima do alvo</div>` : "";
   UI.qs("#areas").innerHTML = [["all", "Todas"], ...Object.entries(XL.areas)].map(([k, n]) => `<button class="chip ${k === area ? "solid" : ""}" data-a="${k}">${n}</button>`).join("");
   UI.qsa("#areas button").forEach((b) => (b.onclick = () => { area = b.dataset.a; render(); }));
 
   const locked = state === "ready";
   document.body.classList.toggle("locked", locked);
-  UI.qs("#tl").innerHTML = items.map((it, i) => {
-    const ro = area !== "all" && it.area !== area;
-    const warn = (it.type === "video") || (it.type === "song" && XL.songs[it.song].langs.length < 2);
-    return `<div class="ti ${ro ? "ro" : ""} ${warn ? "warn-row" : ""}" id="i${i}" data-i="${i}" draggable="${!locked && !ro}">
-      <span class="grip">${UI.I.grip}</span>
-      <span class="t">${LIVE.wall(T.starts[i])}</span>
-      <span class="what"><h3>${it.title}</h3><span class="meta">${UI.ty(it.type)} · ${UI.who(it.owner)}${it.advance === "auto" ? ' · <span class="lbl">auto</span>' : ""}${it.public ? "" : ' · <span class="lbl">interno</span>'}</span></span>
-      <span class="dur">${UI.min(it.planned)}</span></div>`;
+  // blocos por hora: 10h, 11h, 12h…
+  const groups = [];
+  items.forEach((it, i) => { const h = Math.floor(st[i] / 60); let g = groups[groups.length - 1]; if (!g || g.h !== h) groups.push((g = { h, rows: [] })); g.rows.push(i); });
+  UI.qs("#tl").innerHTML = `<div class="thead"><span></span><div class="ti th"><span></span><span>Hora</span><span class="thumb-s">Prévia</span><span>Item</span><span class="c-type">Tipo</span><span class="c-tr">Trilha</span><span>Tempo</span><span style="text-align:right;padding-right:6px">Ações</span></div></div>` + groups.map((g) => {
+    const mins = Math.round(g.rows.reduce((a, i) => a + items[i].planned, 0) / 60);
+    return `<section class="hour" aria-label="Bloco das ${g.h}h"><header><b>${g.h}h</b><span>${g.rows.length} ${g.rows.length === 1 ? "item" : "itens"}<br>${mins} min</span></header><div class="rows">${g.rows.map((i) => {
+      const it = items[i];
+      const ro = area !== "all" && it.area !== area;
+      const warn = it.type === "video" || (it.type === "song" && XL.songs[it.song].langs.length < 2);
+      const t = hm(st[i]);
+      const prev = was[it.id] && was[it.id] !== t ? `<span class="was">era ${was[it.id]}</span>` : "";
+      return `<div class="ti ${ro ? "ro" : ""} ${it.hidden ? "hid" : ""} ${warn ? "warn-row" : ""} ${it.id === moved ? "moved" : ""}" id="${it.id}" data-i="${i}">
+        <span class="grip" title="${locked ? "Programa pronto: mude para Rascunho para mover" : "Arraste para mudar a ordem"}" aria-label="Mover ${it.title}">${UI.I.grip}</span>
+        <span class="t">${t}${prev}</span>
+        <span class="thumb-s">${DRAWER.mini(tplOf(it))}</span>
+        <span class="what"><h3>${it.title}</h3><span class="meta">${UI.ty(it.type)}<span class="sep-t"> · </span>${UI.who(it.owner)}${it.advance === "auto" ? ' · <span class="lbl">auto</span>' : ""}${it.public ? "" : ' · <span class="lbl">interno</span>'}${it.hidden ? ' · <span class="lbl">oculto · não vai para a tela</span>' : ""}<span class="sep-t"> · </span>${TRILHA.chip(it)}</span></span>
+        <span class="c-type">${tag(it.type)}</span>
+        <span class="c-tr">${TRILHA.chip(it)}</span>
+        <span class="dur">${UI.min(it.planned)}</span>
+        <span class="acts"><button class="${it.hidden ? "on" : ""}" data-act="hide" aria-pressed="${!!it.hidden}" title="${it.hidden ? "Mostrar de novo" : "Ocultar: fica no programa, mas não vai para a tela"}" aria-label="Ocultar ${it.title}">${it.hidden ? IC.eye : IC.eyeOff}</button><button data-act="archive" title="Arquivar: sai do programa e fica guardado" aria-label="Arquivar ${it.title}">${UI.I.archive}</button><button class="del" data-act="trash" title="Mover para a lixeira" aria-label="Excluir ${it.title}">${UI.I.trash}</button></span></div>`;
+    }).join("")}</div></section>`;
   }).join("");
-  UI.qsa("#state button").forEach((b) => { b.classList.toggle("on", b.dataset.s === state); b.onclick = () => { state = b.dataset.s; render(); }; });
-  UI.qs("#state-note").textContent = locked ? "Pronto: estrutura travada (ordem, itens). Editores ainda ajustam conteúdo. Visível na página pública." : "Rascunho: cada diretor preenche a sua área. Só o administrador marca como pronto.";
+  UI.qsa("#state button").forEach((b) => { b.classList.toggle("on", b.dataset.s === state); b.onclick = () => { state = b.dataset.s; prog.status = state === "draft" ? "rascunho" : "salvo"; render(); }; });
+  UI.qs("#state-note").textContent = locked ? "Pronto: ordem e itens travados. Editores ainda ajustam o conteúdo. Para mover itens, volte para Rascunho." : "Rascunho: arraste os itens pela alça e os horários se ajustam. Só o administrador marca como pronto.";
   UI.qs("#add").disabled = locked;
-  bindRows();
+  bins(); studio();
 }
 
-let dragFrom = null;
-function bindRows() {
-  UI.qsa("#tl .ti").forEach((row) => {
-    const i = +row.dataset.i;
-    row.onclick = () => !row.classList.contains("ro") && edit(i);
-    row.ondragstart = () => { dragFrom = i; row.classList.add("dragging"); };
-    row.ondragend = () => row.classList.remove("dragging");
-    row.ondragover = (e) => { e.preventDefault(); row.classList.add("drop"); };
-    row.ondragleave = () => row.classList.remove("drop");
-    row.ondrop = (e) => { e.preventDefault(); const [m] = items.splice(dragFrom, 1); items.splice(i, 0, m); render(); };
-  });
+/* ── tags de tipo (coluna da tabela) e ações da linha ── */
+const P2 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square">${d}</svg>`;
+const IC = { eye: P2('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), eyeOff: P2('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>') };
+const TAGC = { media: "var(--live)", song: "var(--ok)", notice: "var(--warn)", wait: "var(--fg-2)", prayer: "var(--late)", sermon: "var(--live)", video: "var(--fg)", pause: "var(--fg-2)" };
+const tag = (k) => `<span class="tag-t" style="--tc:${TAGC[k]}"><i></i>${XL.types[k].name}</span>`;
+function rowAct(act, i) {
+  const it = items[i];
+  if (act === "hide") { it.hidden = !it.hidden; render(); return toastMsg(it.hidden ? `${it.title}: oculto. Fica no programa, mas o ao vivo pula.` : `${it.title}: volta para a tela.`); }
+  if (state === "ready") return toastMsg("Programa salvo como pronto: volte para Rascunho para arquivar ou excluir itens.");
+  const [m] = items.splice(i, 1);
+  (act === "archive" ? prog.archived : prog.trash).push({ ...m, from: i, when: "agora" });
+  render(); toastMsg(act === "archive" ? `${m.title} arquivado. Está em “Itens arquivados”, embaixo.` : `${m.title} foi para a lixeira.`);
+}
+function bins() {
+  const row = (x, k, kind) => `<div class="bin-row"><span><b>${x.title}</b><small>${XL.types[x.type].name} · ${UI.min(x.planned)} · era o item ${x.from + 1}</small></span><span class="pc-acts"><button data-res="${kind}:${k}">Restaurar</button>${kind === "trash" ? `<button class="danger" data-kill="${k}">Excluir de vez</button>` : `<button data-totrash="${k}">Lixeira</button>`}</span></div>`;
+  UI.qs("#bins").innerHTML = (prog.archived.length ? `<details><summary>${UI.I.archive}Itens arquivados <span class="lbl">${prog.archived.length}</span></summary>${prog.archived.map((x, k) => row(x, k, "archived")).join("")}</details>` : "")
+    + (prog.trash.length ? `<details><summary>${UI.I.trash}Lixeira do programa <span class="lbl">${prog.trash.length}</span></summary>${prog.trash.map((x, k) => row(x, k, "trash")).join("")}</details>` : "");
+}
+UI.qs("#bins").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.res) { const [kind, k] = b.dataset.res.split(":"); const L = kind === "trash" ? prog.trash : prog.archived; const [x] = L.splice(+k, 1); const { from, when, ...it } = x; items.splice(Math.min(from, items.length), 0, it); render(); return toastMsg(`${it.title} voltou para o programa.`); }
+  if (b.dataset.totrash) { const [x] = prog.archived.splice(+b.dataset.totrash, 1); prog.trash.push(x); render(); return; }
+  if (b.dataset.kill) { if (b.dataset.sure) { prog.trash.splice(+b.dataset.kill, 1); render(); return toastMsg("Excluído de vez."); } b.dataset.sure = 1; b.textContent = "Confirmar"; b.style.background = "var(--late)"; b.style.color = "#fff"; }
+});
+
+/* ── Programa Estúdio: pastas, cartões, novo, duplicar, salvar, rascunho ── */
+let psF = null;
+const STN = Object.fromEntries(PROGS.STATUS.map(([k, n]) => [k, n]));
+const stName = (k) => ({ rascunho: "Rascunho", salvo: "Salvo", feito: "Já feito", arquivado: "Arquivado", lixeira: "Na lixeira" })[k];
+function studio() {
+  const dirty = snap() !== savedJSON;
+  const d = UI.qs("#p-dirty"); d.textContent = dirty ? "● alterações não salvas" : `salvo ${prog.updated || ""}`; d.classList.toggle("dirty", dirty);
+  if (document.activeElement !== UI.qs("#p-title")) UI.qs("#p-title").value = prog.title;
+  if (document.activeElement !== UI.qs("#p-date")) UI.qs("#p-date").value = prog.date;
+  const live = prog.id === PROGS.liveId;
+  UI.qs("#p-chips").innerHTML = `<span class="chip ${prog.status === "salvo" ? "ok" : prog.status === "rascunho" ? "warn" : ""}">${stName(prog.status)}</span>${live ? '<span class="chip live">No ao vivo</span>' : `<button class="chip" id="p-live">Usar no ao vivo</button>`}${prog.status === "feito" ? `<a class="chip" href="relatorio.html">Relatório ${prog.real || ""}</a>` : ""}`;
+  UI.qs("#p-live") && (UI.qs("#p-live").onclick = () => { save(prog.status === "feito" || prog.status === "arquivado" ? "rascunho" : prog.status, true); PROGS.setLive(prog.id); toastMsg("Agora é este programa que vai para o ao vivo."); studio(); });
+  const counts = {}; PROGS.all().forEach((x) => (counts[x.status] = (counts[x.status] || 0) + 1));
+  const cell = (k, n, dsc, c) => `<button class="fd${psF === k ? " on" : ""}" data-psf="${k}" title="${dsc}">${FILEUI.folderSVG(c, k === "lixeira" ? "lixeira" : k === "arquivado" ? "arquivado" : k === "todos" ? "all" : "")}<b>${n}</b><small>${c} ${c === 1 ? "programa" : "programas"}</small></button>`;
+  UI.qs("#ps-fds").innerHTML = `<div class="fds">${cell("todos", "Todos", "Todos menos lixeira", PROGS.all().filter((x) => x.status !== "lixeira").length)}${PROGS.STATUS.map(([k, n, dsc]) => cell(k, n, dsc, counts[k] || 0)).join("")}</div>`;
+  const L = psF ? PROGS.all().filter((x) => (psF === "todos" ? x.status !== "lixeira" : x.status === psF)) : [];
+  UI.qs("#ps-list").hidden = !psF;
+  UI.qs("#ps-list").innerHTML = L.map((x) => {
+    const mins = Math.round(x.items.reduce((a, b) => a + b.planned, 0) / 60), isOn = x.id === prog.id;
+    return `<article class="pc${isOn ? " on" : ""}"><div class="pc-top"><span>${x.short} · ${x.starts}</span><span>${stName(x.status)}${x.id === PROGS.liveId ? " · ao vivo" : ""}</span></div><h3>${x.title}</h3>
+      <div class="bar3">${x.items.map((it) => `<i style="flex:${it.planned};background:${TAGC[it.type]}" title="${it.title}"></i>`).join("")}</div>
+      <span class="muted" style="font-size:var(--t-sm)">${x.items.length} itens · ${mins} min${x.real ? ` · terminou ${x.real}` : ""} · ${XL.people[x.by]?.name.split(" ")[0] || ""}, ${x.updated}</span>
+      <div class="pc-acts">${isOn ? '<span class="lbl" style="align-self:center">aberto</span>' : `<a class="go" href="programa.html?p=${x.id}">Abrir</a>`}<button data-pdup="${x.id}">Duplicar</button>${x.status === "lixeira" ? `<button data-pst="${x.id}:rascunho">Restaurar</button><button class="danger" data-pkill="${x.id}">Excluir de vez</button>` : `${x.status === "arquivado" ? `<button data-pst="${x.id}:rascunho">Desarquivar</button>` : `<button data-pst="${x.id}:arquivado">Arquivar</button>`}<button class="danger" data-pst="${x.id}:lixeira">Lixeira</button>`}</div></article>`;
+  }).join("") || (psF ? `<p class="muted">Nenhum programa em ${STN[psF] || "Todos"}.</p>` : "");
+}
+function save(status, quiet) {
+  Object.assign(prog, { items: PROGS.clone(items), status, updated: "agora" });
+  PROGS.put(prog); savedJSON = snap();
+  state = status === "rascunho" ? "draft" : "ready";
+  render();
+  if (!quiet) toastMsg(status === "rascunho" ? "Salvo como rascunho. Continua editável." : "Programa salvo. A ordem fica travada; volte para Rascunho para mexer.");
+}
+UI.qs("#p-new").innerHTML = UI.I.plus + "Novo programa";
+UI.qs("#p-dup").innerHTML = "Duplicar";
+UI.qs("#p-draft").onclick = () => save("rascunho");
+UI.qs("#p-save").onclick = () => save("salvo");
+UI.qs("#p-title").oninput = (e) => { prog.title = e.target.value; studio(); };
+UI.qs("#p-date").oninput = (e) => { prog.date = e.target.value; studio(); };
+UI.qs("#p-dup").onclick = () => { const n = PROGS.duplicate(prog.id, { items: PROGS.clone(items), date: "Sem data", short: "—" }); location.href = "programa.html?p=" + n.id; };
+UI.qs("#p-new").onclick = () => {
+  const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Novo programa</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
+    <label class="field"><span class="lbl">Nome</span><input class="input" id="np-n" value="Culto principal"></label>
+    <label class="field"><span class="lbl">Data</span><input class="input" id="np-d" value="Sábado, 20 de dezembro"></label>
+    <span class="lbl">Começar de</span>
+    <button class="pick" data-np="modelo"><span class="grow"><h3>Modelo: Culto principal</h3><span class="muted" style="font-size:var(--t-sm)">13 itens · 95 min, a estrutura de sempre</span></span>${UI.I.plus}</button>
+    <button class="pick" data-np="jovem"><span class="grow"><h3>Modelo: Culto jovem</h3><span class="muted" style="font-size:var(--t-sm)">8 itens · 75 min</span></span>${UI.I.plus}</button>
+    <button class="pick" data-np="branco"><span class="grow"><h3>Em branco</h3><span class="muted" style="font-size:var(--t-sm)">Só a contagem; você monta o resto</span></span>${UI.I.plus}</button>
+    <p class="muted" style="font-size:var(--t-sm)">Para partir de um culto que já aconteceu, abra a pasta Já feitos e use Duplicar.</p></div>`);
+  UI.qsa("[data-np]", sh).forEach((b) => (b.onclick = () => {
+    const src = PROGS.get(b.dataset.np === "jovem" ? "p_0612j" : "p_2911");
+    const n = PROGS.duplicate(src.id, { title: UI.qs("#np-n").value || "Novo programa", date: UI.qs("#np-d").value || "Sem data", short: (UI.qs("#np-d").value.match(/\d+/) || ["—"])[0], items: b.dataset.np === "branco" ? PROGS.clone(src.items.slice(0, 1)) : PROGS.clone(src.items), archived: [], trash: [] });
+    location.href = "programa.html?p=" + n.id;
+  }));
+};
+UI.qs("#copy-from").onclick = () => { psF = "feito"; studio(); UI.qs(".ps").scrollIntoView({ behavior: "smooth" }); };
+UI.qs(".ps").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.psf) { psF = psF === b.dataset.psf ? null : b.dataset.psf; return studio(); }
+  if (b.dataset.pdup) { const n = PROGS.duplicate(b.dataset.pdup, b.dataset.pdup === prog.id ? { items: PROGS.clone(items) } : {}); toastMsg(`Cópia criada em Rascunhos: ${n.title}`); psF = "rascunho"; return studio(); }
+  if (b.dataset.pst) { const [id, st] = b.dataset.pst.split(":"); const x = PROGS.get(id); x.status = st; PROGS.put(x); if (id === prog.id) { prog.status = st; savedJSON = snap(); } toastMsg(`${x.title} (${x.short}) → ${stName(st)}`); return render(); }
+  if (b.dataset.pkill) { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = "Confirmar"; return; } if (b.dataset.pkill === PROGS.liveId) return toastMsg("Este programa está no ao vivo; escolha outro antes."); PROGS.destroy(b.dataset.pkill); if (b.dataset.pkill === prog.id) location.href = "programa.html"; studio(); }
+});
+
+/* arrastar e soltar pela alça (mouse e toque); os horários se recalculam */
+const tl = UI.qs("#tl");
+let drag = null;
+const rowsEls = () => UI.qsa("#tl .ti");
+function targetIndex(y) { const rows = rowsEls(); for (let k = 0; k < rows.length; k++) { const r = rows[k].getBoundingClientRect(); if (y < r.top + r.height / 2) return k; } return rows.length; }
+function mark(k) { const rows = rowsEls(); rows.forEach((r) => r.classList.remove("before", "after")); if (k < rows.length) rows[k].classList.add("before"); else rows[rows.length - 1]?.classList.add("after"); }
+tl.addEventListener("pointerdown", (e) => {
+  const g = e.target.closest(".grip");
+  if (!g) return;
+  e.preventDefault();
+  const row = g.closest(".ti");
+  if (state === "ready") return toastMsg("Programa pronto: a ordem está travada. Mude para Rascunho para mover.");
+  if (row.classList.contains("ro")) return toastMsg("Este item é de outra área.");
+  drag = { from: +row.dataset.i, row, to: null };
+  row.classList.add("lifting");
+  tl.setPointerCapture(e.pointerId);
+});
+tl.addEventListener("pointermove", (e) => { if (!drag) return; drag.to = targetIndex(e.clientY); mark(drag.to); const r = tl.getBoundingClientRect(); if (e.clientY > innerHeight - 60) scrollBy(0, 12); if (e.clientY < 140) scrollBy(0, -12); });
+function drop() {
+  if (!drag) return;
+  const { from, to } = drag; drag = null;
+  if (to == null || to === from || to === from + 1) return render();
+  const before = startsMin();
+  was = {}; items.forEach((it, i) => (was[it.id] = hm(before[i])));
+  const [m] = items.splice(from, 1);
+  items.splice(to > from ? to - 1 : to, 0, m);
+  moved = m.id;
+  render();
+  const nowStart = startsMin()[items.indexOf(m)];
+  toastMsg(`${m.title}: agora às ${hm(nowStart)} (era ${was[m.id]}).`);
+}
+tl.addEventListener("pointerup", drop);
+tl.addEventListener("pointercancel", drop);
+tl.addEventListener("click", (e) => {
+  if (e.target.closest(".grip")) return;
+  const a = e.target.closest("[data-act]");
+  if (a) { e.stopPropagation(); return rowAct(a.dataset.act, +a.closest(".ti").dataset.i); }
+  const row = e.target.closest(".ti");
+  if (row && !row.classList.contains("ro")) edit(+row.dataset.i);
+});
+
+let tt;
+function toastMsg(m) {
+  let t = UI.qs("#p-toast");
+  if (!t) { t = document.createElement("div"); t.id = "p-toast"; t.className = "toast"; t.setAttribute("role", "status"); document.body.append(t); }
+  t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2600);
 }
 
+/* clique no item: gaveta com o template (fundo, texto, timer) + dados do item */
 function edit(i) {
   const it = items[i];
   const locked = state === "ready";
-  const content = it.type === "song"
-    ? `<span class="lbl">Música da biblioteca</span>${Object.entries(XL.songs).map(([k, s]) => `<button class="pick ${k === it.song ? "on" : ""}" data-song="${k}"><span class="grow"><h3>${s.title}</h3><span class="lbl">${s.author} · ${s.key} · ${s.langs.join(" ").toUpperCase()}</span></span></button>`).join("")}
-       <span class="lbl">Slides gerados (${XL.songSlides(it.song).length})</span>
-       <div class="mini-slides">${XL.songSlides(it.song).slice(0, 6).map((s) => `<div class="slide"><div class="s-lines">${s.text}</div></div>`).join("")}</div>
-       <a class="btn ghost block" href="musica.html?id=${it.song}">Abrir música</a>`
-    : it.deck || it.type === "notice" || it.type === "sermon"
-    ? `<span class="lbl">Deck do XLIDE</span>${Object.entries(XL.decks).map(([k, d]) => `<button class="pick ${k === it.deck ? "on" : ""}"><span class="thumb" style="width:44px;height:44px;background:var(--invert-bg);color:var(--invert-fg);display:grid;place-items:center;font:10px var(--mono)">${d.slides}</span><span class="grow"><h3>${d.title}</h3><span class="lbl">${d.layout} · ${d.updated}</span></span></button>`).join("")}
-       <label class="field"><span class="lbl">Texto do slide</span><textarea class="textarea" style="min-height:90px">${it.text || ""}</textarea></label>`
-    : it.type === "video" ? `<label class="field"><span class="lbl">Vídeo (arquivo ou link)</span><input class="input" placeholder="https:// ou arraste o .mp4"></label><div class="banner off">${UI.I.alert.replace("<svg", '<svg width="14" height="14"')} Sem arquivo ainda</div>`
-    : `<label class="field"><span class="lbl">Texto de apoio</span><textarea class="textarea" style="min-height:90px">${it.text || ""}</textarea></label>`;
-
-  const sh = UI.sheet(`<div class="stack">
-    <div class="row between"><span class="lbl">Item ${i + 1} de ${items.length}</span><button class="icon-btn" data-x>${UI.I.x}</button></div>
-    <label class="field"><span class="lbl">Título</span><input class="input" value="${it.title}" data-f="title"></label>
+  const tp = tplOf(it);
+  const extra = `<hr class="hr">
     <div class="field"><span class="lbl">Tipo</span><div class="scroll-x">${Object.entries(XL.types).map(([k, t]) => `<button class="chip ${k === it.type ? "solid" : ""}" ${locked ? "disabled" : ""} data-type="${k}">${t.name}</button>`).join("")}</div><span class="muted" style="font-size:var(--t-sm)">${XL.types[it.type].note}</span></div>
-    <div class="field"><span class="lbl">Duração prevista</span><div class="stepper"><button data-d="-30">−</button><b data-dur>${LIVE.mmss(it.planned)}</b><button data-d="30">+</button></div></div>
-    <label class="field"><span class="lbl">Responsável</span><select class="select" data-f="owner">${Object.entries(XL.people).map(([k, p]) => `<option value="${k}" ${k === it.owner ? "selected" : ""}>${p.name} · ${p.title}</option>`).join("")}</select></label>
-    <div class="row between"><span><h3>Avançar sozinho</h3><span class="muted" style="font-size:var(--t-sm)">Ao zerar o tempo</span></span><button class="toggle ${it.advance === "auto" ? "on" : ""}" data-t="advance"></button></div>
-    <div class="row between"><span><h3>Público</h3><span class="muted" style="font-size:var(--t-sm)">Aparece na página ao vivo</span></span><button class="toggle ${it.public ? "on" : ""}" data-t="public"></button></div>
-    <hr class="hr">
-    ${content}
-    <label class="field"><span class="lbl">Observações internas</span><input class="input" placeholder="Só a equipe vê"></label>
-    <div class="grid grid-2"><button class="btn primary block" data-x>Salvar</button><button class="btn danger block" ${locked ? "disabled" : ""} data-del>Remover</button></div>
-    <p class="lbl">Salvo por ${XL.people[XL.me].name} · histórico RF-46</p>
-  </div>`);
-  UI.qsa("[data-x]", sh).forEach((b) => (b.onclick = () => { it.title = UI.qs('[data-f="title"]', sh).value; it.owner = UI.qs('[data-f="owner"]', sh).value; UI.closeSheet(); render(); }));
-  UI.qsa("[data-d]", sh).forEach((b) => (b.onclick = () => { it.planned = Math.max(30, it.planned + +b.dataset.d); UI.qs("[data-dur]", sh).textContent = LIVE.mmss(it.planned); render(); }));
+    ${it.type === "song" ? `<a class="btn ghost block" href="estudio.html?song=${it.song}">Abrir no estúdio de música</a>` : ""}
+    ${it.deck ? `<a class="btn ghost block" href="deck.html?d=${it.deck}">Abrir o deck no editor (todos os slides)</a>` : ""}
+    ${it.type === "media" || it.type === "song" ? `<label class="field"><span class="lbl">${it.type === "song" ? "Faixa da música (link do YouTube, Spotify…)" : "Link do vídeo ou áudio"}</span><input class="input" data-f="media" value="${(it.media || "").replace(/"/g, "&quot;")}" placeholder="https://"><span class="muted" style="font-size:var(--t-sm)" data-media-lbl>${it.media ? MEDIA.label(it.media) : it.type === "song" ? "Sem link: a música usa os tempos do editor de música." : "Cole o link."}</span></label>` : ""}
+    ${TRILHA.picker(it)}
+    <label class="field"><span class="lbl">Responsável</span><select class="select" data-f="owner">${Object.entries(XL.people).map(([k, p]) => `<option value="${k}" ${k === it.owner ? "selected" : ""}>${p.name}, ${p.title}</option>`).join("")}</select></label>
+    <div class="row between"><span><h3>Avançar sozinho</h3><span class="muted" style="font-size:var(--t-sm)">Quando o timer zerar</span></span><button class="toggle ${it.advance === "auto" ? "on" : ""}" data-t="advance" role="switch"></button></div>
+    <div class="row between"><span><h3>Público</h3><span class="muted" style="font-size:var(--t-sm)">Aparece na página ao vivo</span></span><button class="toggle ${it.public ? "on" : ""}" data-t="public" role="switch"></button></div>
+    <button class="btn danger block" ${locked ? "disabled" : ""} data-del>Mover para a lixeira do programa</button>`;
+  const sh = DRAWER.open({
+    kind: XL.types[it.type].name, meta: `item ${i + 1} de ${items.length}, ${hm(startsMin()[i])}`,
+    // o botão de expandir abre o editor em tela cheia (o mesmo dos decks); música vai para o editor de música
+    editor: it.type === "media" ? null : () => { prog.items = PROGS.clone(items); PROGS.put(prog); return it.type === "song" ? `estudio.html?song=${it.song}` : `deck.html?p=${prog.id}&item=${it.id}`; },
+    eyebrow: tp.eyebrow, title: it.type === "song" ? tp.title : it.title, text: tp.text, bg: tp.bg, font: tp.font, seconds: it.planned, layout: it.layout, ink: it.ink, extra,
+    onSave: (p) => { if (it.type !== "song") { it.title = p.title; it.text = p.text; } it.bg = p.bg; it.font = p.font; it.planned = p.planned; it.layout = p.layout; it.ink = p.ink; if (p.eyebrow != null) it.eyebrow = p.eyebrow; it.owner = sh.querySelector('[data-f="owner"]').value; render(); toastMsg("Item salvo. Os horários seguintes foram ajustados."); },
+  });
+  TRILHA.bindPicker(sh, it, (m) => { render(); m && toastMsg(m); });
+  const mf = sh.querySelector('[data-f="media"]');
+  mf && (mf.oninput = () => { const v = mf.value.trim(); sh.querySelector("[data-media-lbl]").textContent = v ? MEDIA.label(v) : "Cole o link."; if (!v || MEDIA.parse(v)) { it.media = v || undefined; render(); } });
   UI.qsa("[data-t]", sh).forEach((b) => (b.onclick = () => { b.classList.toggle("on"); const k = b.dataset.t; it[k] = k === "advance" ? (b.classList.contains("on") ? "auto" : "manual") : b.classList.contains("on"); render(); }));
-  UI.qsa("[data-type]", sh).forEach((b) => (b.onclick = () => { it.type = b.dataset.type; if (it.type === "song" && !it.song) it.song = "s1"; it.advance = XL.types[it.type].advance; edit(i); render(); }));
-  UI.qsa("[data-song]", sh).forEach((b) => (b.onclick = () => { it.song = b.dataset.song; it.title = XL.songs[it.song].title; edit(i); render(); }));
-  UI.qs("[data-del]", sh).onclick = () => { items.splice(i, 1); UI.closeSheet(); render(); };
+  UI.qsa("[data-type]", sh).forEach((b) => (b.onclick = () => { it.type = b.dataset.type; if (it.type === "song" && !it.song) it.song = "s1"; it.advance = XL.types[it.type].advance; render(); edit(i); }));
+  UI.qs("[data-del]", sh).onclick = () => { UI.closeSheet(); rowAct("trash", i); };
 }
 
 UI.qs("#add").onclick = () => {
-  const sh = UI.sheet(`<div class="stack"><h2>Novo item</h2>${Object.entries(XL.types).map(([k, t]) => `<button class="pick" data-new="${k}"><span class="grow"><h3>${t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note}</span></span>${UI.I.plus.replace("<svg", '<svg width="18" height="18"')}</button>`).join("")}</div>`);
+  const pos = items.map((x, k) => `<option value="${k + 1}" ${k === items.length - 2 ? "selected" : ""}>depois de ${k + 1}. ${x.title}</option>`).join("");
+  const sh = UI.sheet(`<div class="stack"><h2>Novo item</h2>
+    <div class="imp"><span class="lbl">Importar vídeo ou áudio por link</span>
+      <input class="input" id="imp-url" placeholder="YouTube, Vimeo, Spotify ou link de .mp4 / .mp3">
+      <span class="muted" id="imp-lbl" style="font-size:var(--t-sm)">Entra do jeito que é: sem fonte, sem estilo. Toca sozinho quando o item entrar no ao vivo.</span>
+      <div class="grid grid-2"><label class="field"><span class="lbl">Título</span><input class="input" id="imp-t" placeholder="Ex.: Vídeo da missão"></label><label class="field"><span class="lbl">Duração (min:seg)</span><input class="input" id="imp-d" placeholder="3:20"></label></div>
+      <label class="field"><span class="lbl">Posição</span><select class="select" id="imp-pos"><option value="0">no começo</option>${pos}</select></label>
+      <button class="btn primary block" id="imp-ok">Importar para o programa</button></div>
+    <span class="lbl">Ou um item vazio</span>${Object.entries(XL.types).filter(([k]) => k !== "media").map(([k, t]) => `<button class="pick" data-new="${k}"><span class="grow"><h3>${t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note}</span></span>${UI.I.plus.replace("<svg", '<svg width="18" height="18"')}</button>`).join("")}</div>`);
+  sh.querySelector("#imp-url").oninput = (e) => { const m = MEDIA.parse(e.target.value); sh.querySelector("#imp-lbl").textContent = e.target.value.trim() ? (m ? MEDIA.label(m) + " · reconhecido" : "Link não reconhecido. Use YouTube, Vimeo, Spotify ou um arquivo .mp4/.mp3.") : "Entra do jeito que é: sem fonte, sem estilo."; };
+  sh.querySelector("#imp-ok").onclick = () => {
+    const url = sh.querySelector("#imp-url").value.trim(), m = MEDIA.parse(url);
+    if (!m) { sh.querySelector("#imp-url").focus(); return toastMsg("Cole um link do YouTube, Vimeo, Spotify ou de um arquivo de vídeo/áudio."); }
+    const [mm, ss] = (sh.querySelector("#imp-d").value.trim() || "3:00").split(":").map(Number), sec = (mm || 0) * 60 + (ss || 0) || 180;
+    if (state === "ready") return toastMsg("Programa salvo como pronto: volte para Rascunho para adicionar.");
+    const at = +sh.querySelector("#imp-pos").value;
+    items.splice(at, 0, { id: "n" + Date.now(), type: "media", media: url, title: sh.querySelector("#imp-t").value.trim() || MEDIA.label(m), planned: sec, owner: XL.me, area: "comms", advance: "auto", public: true });
+    UI.closeSheet(); render(); toastMsg(`${MEDIA.label(m)} importado na posição ${at + 1}, ${Math.round(sec / 60)} min. Os horários seguintes se ajustaram.`);
+  };
   UI.qsa("[data-new]", sh).forEach((b) => (b.onclick = () => {
     const k = b.dataset.new;
-    items.splice(items.length - 1, 0, { type: k, title: XL.types[k].name, planned: 180, owner: XL.me, area: "sound", advance: XL.types[k].advance, public: true, song: k === "song" ? "s1" : undefined });
+    items.splice(items.length - 1, 0, { id: "n" + Date.now(), type: k, title: XL.types[k].name, planned: 180, owner: XL.me, area: "sound", advance: XL.types[k].advance, public: true, song: k === "song" ? "s1" : undefined });
     render(); edit(items.length - 2);
   }));
 };

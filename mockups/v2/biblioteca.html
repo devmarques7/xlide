@@ -4,45 +4,166 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIDE v2 · Biblioteca</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
-<script src="assets/data.js"></script><script src="assets/shell.js"></script>
+<script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/cards.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script>
 <style>
+  .b-head { display: grid; gap: var(--s4); padding: var(--s5) 0 var(--s4); }
+  @media (min-width: 900px) { .b-head { grid-template-columns: minmax(0, 1fr) 360px; align-items: end; } }
+  .as { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
+  .as .seg { flex: 1; min-width: 260px; max-width: 440px; }
   .pane { display: none; } .pane.on { display: block; }
-  @media (min-width: 900px) { .lib-grid { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: var(--s5); } }
-  .src { display: flex; gap: var(--s3); align-items: center; width: 100%; padding: var(--s4) var(--s3); border: 1px solid var(--line); text-align: left; }
-  .src svg { width: 22px; height: 22px; flex: none; }
+  .dash { display: grid; border: 1px solid var(--line); margin-top: var(--s4); }
+  .dash .stats { border: 0; grid-template-columns: repeat(2, 1fr); }
+  .dash .stats > * { border-bottom: 1px solid var(--line); }
+  @media (min-width: 760px) { .dash .stats { grid-template-columns: repeat(4, 1fr); } .dash .stats > * { border-bottom: 0; } }
+  .dash .acts { display: grid; border-top: 1px solid var(--line); }
+  @media (min-width: 640px) { .dash .acts { grid-template-columns: repeat(3, 1fr); } }
+  .act { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s3); align-items: start; padding: var(--s4); text-align: left; background: var(--surface); }
+  .act + .act { border-top: 1px solid var(--line); }
+  @media (min-width: 640px) { .act + .act { border-top: 0; border-left: 1px solid var(--line); } }
+  .act svg { width: 24px; height: 24px; }
+  .act b { display: block; font-weight: 600; text-transform: uppercase; }
+  .act span span { font-size: var(--t-sm); color: var(--fg-2); }
+  .act:hover:not([disabled]) { background: var(--invert-bg); color: var(--invert-fg); }
+  .act:hover:not([disabled]) span span { color: color-mix(in srgb, var(--invert-fg) 60%, transparent); }
+  .act[disabled] { opacity: .45; cursor: not-allowed; }
+  .perm-note { display: flex; gap: var(--s2); align-items: center; margin-top: var(--s3); font-size: var(--t-sm); color: var(--fg-2); }
+  .perm-note svg { width: 16px; height: 16px; flex: none; }
+  .rc[data-deck] { cursor: pointer; text-align: left; }
+  .yt-prev { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--s3); align-items: center; padding: var(--s2); border: 1px solid var(--line); }
+  .yt-prev img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
 </style>
 </head>
 <body data-tab="biblioteca">
-<main class="app">
-  <header class="top"><h1>Biblioteca</h1><button class="btn primary" id="new">Nova</button></header>
-  <div class="stack">
-    <div class="search" id="sr"><input class="input" placeholder="Buscar título, autor, trecho da letra…" id="q"></div>
-    <div class="seg" id="tabs"><button class="on" data-p="songs">Músicas</button><button data-p="decks">Decks</button><button data-p="tpl">Modelos</button></div>
-    <section class="pane on" id="songs"><div class="lib-grid" id="song-list"></div></section>
-    <section class="pane" id="decks"><div class="lib-grid" id="deck-list"></div></section>
-    <section class="pane" id="tpl"><div class="lib-grid" id="tpl-list"></div><p class="muted" style="margin-top:var(--s3);font-size:var(--t-sm)">Modelo = sequência padrão por tipo de culto (RF-01). Duplicar cria outro tipo.</p></section>
-  </div>
+<main class="app home">
+  <header class="b-head">
+    <div class="stack-sm"><h1 class="disp">Biblioteca</h1></div>
+    <div class="stack-sm">
+      <div class="as"><span class="lbl">Ver como</span><div class="seg" id="as"></div></div>
+      <div class="search" id="sr"><input class="input" placeholder="Buscar título, autor, trecho da letra" id="q" aria-label="Buscar na biblioteca"></div>
+    </div>
+  </header>
+  <nav class="tabs-x" id="tabs" aria-label="Seções da biblioteca"></nav>
+
+  <section class="pane on" id="p-songs">
+    <div class="dash">
+      <div class="stats" id="song-stats"></div>
+      <div class="acts" id="song-acts"></div>
+    </div>
+    <p class="perm-note" id="song-perm"></p>
+    <header class="sec-x"><span class="n">01</span><h2>Músicas</h2><span class="lbl" id="song-n"></span></header>
+    <div class="rc-grid" id="song-list"></div>
+  </section>
+
+  <section class="pane" id="p-decks">
+    <p class="perm-note" id="deck-perm" style="margin-top:var(--s4)"></p>
+    <header class="sec-x"><span class="n">01</span><h2>Decks de slides</h2><span class="lbl">Clique para analisar</span></header>
+    <div class="rc-grid" id="deck-list"></div>
+  </section>
+
+  <section class="pane" id="p-boards">
+    <header class="sec-x"><span class="n">01</span><h2>Boards</h2><a class="lbl" href="boards.html">Ver todos</a></header>
+    <div class="rc-grid" id="board-list"></div>
+  </section>
+
+  <section class="pane" id="p-tpl">
+    <header class="sec-x"><span class="n">01</span><h2>Modelos de culto</h2></header>
+    <div id="tpl-list"></div>
+    <p class="muted" style="margin-top:var(--s3);font-size:var(--t-sm)">Modelo é a sequência padrão de um tipo de culto. Duplicar cria outro tipo.</p>
+  </section>
 </main>
 <script>
+/* Permissões (ver equipe.html): admin tudo; púlpito cria e edita slides; operador só vê; música cria faixas. */
+const ROLES = {
+  ana: { n: "Admin", song: "edit", deck: "edit", why: "Administrador: vê e edita tudo." },
+  pr: { n: "Púlpito", song: "view", deck: "edit", why: "Púlpito: cria e edita os slides do sermão. Músicas, só para ver." },
+  lucas: { n: "Música", song: "edit", deck: "view", why: "Música: cria faixas e importa do YouTube. Decks, só para ver." },
+  bia: { n: "Operador", song: "view", deck: "view", why: "Operador: vê músicas e slides para projetar. Não cria nem edita." },
+};
+const params = new URLSearchParams(location.search);
+let me = params.get("as") || "ana";
+let tab = params.get("tab") || "songs";
+let q = "";
+const can = (what) => ROLES[me][what] === "edit";
+const lock = UI.I.lock;
+
 UI.qs("#sr").insertAdjacentHTML("afterbegin", UI.I.search);
-UI.qs("#new").innerHTML = UI.I.plus + " Nova";
-const songRow = ([k, s]) => `<a class="li" href="musica.html?id=${k}"><span class="thumb">${s.key}</span><span class="grow"><h3>${s.title}</h3><span class="lbl">${s.author} · ${s.langs.join(" ").toUpperCase()}</span></span><span class="center"><b class="num">${s.uses}×</b><br><span class="lbl">${s.last}</span></span></a>`;
-function list(q = "") {
-  q = q.toLowerCase();
-  UI.qs("#song-list").innerHTML = Object.entries(XL.songs).filter(([, s]) => !q || (s.title + s.author + Object.values(s.lyrics).join(" ")).toLowerCase().includes(q)).map(songRow).join("") || `<p class="muted">Nada encontrado.</p>`;
-  UI.qs("#deck-list").innerHTML = Object.entries(XL.decks).filter(([, d]) => !q || d.title.toLowerCase().includes(q)).map(([k, d]) => `<a class="li" href="#"><span class="thumb">${d.slides}</span><span class="grow"><h3>${d.title}</h3><span class="lbl">${d.layout} · ${d.updated}</span></span>${UI.I.chev.replace("<svg", '<svg width="18" height="18"')}</a>`).join("");
-  UI.qs("#tpl-list").innerHTML = XL.templates.map((t) => `<div class="li"><span class="thumb">${t.items}</span><span class="grow"><h3>${t.name}</h3><span class="lbl">${t.minutes} min · usado ${t.uses}×</span></span><button class="chip">Duplicar</button></div>`).join("");
+UI.qs("#q").oninput = (e) => { q = e.target.value.toLowerCase(); render(); };
+
+function render() {
+  UI.qs("#as").innerHTML = Object.entries(ROLES).map(([k, r]) => `<button class="${k === me ? "on" : ""}" data-k="${k}">${r.n}</button>`).join("");
+  UI.qsa("#as button").forEach((b) => (b.onclick = () => { me = b.dataset.k; history.replaceState(null, "", `?as=${me}&tab=${tab}`); render(); }));
+  const T = [["songs", "Músicas", Object.keys(XL.songs).length], ["decks", "Decks", Object.keys(XL.decks).length], ["boards", "Boards", Object.keys(XL.boards).length], ["tpl", "Modelos", XL.templates.length]];
+  UI.qs("#tabs").innerHTML = T.map(([k, n, c]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${n}<span class="pill-n">${c}</span></button>`).join("");
+  UI.qsa("#tabs button").forEach((b) => (b.onclick = () => { tab = b.dataset.t; history.replaceState(null, "", `?as=${me}&tab=${tab}`); UI.navOn(tab); render(); }));
+  UI.qsa(".pane").forEach((p) => p.classList.toggle("on", p.id === "p-" + tab));
+
+  // músicas: painel + ações + cartões
+  const songs = Object.entries(XL.songs);
+  const mins = Math.round(songs.reduce((a, [, s]) => a + s.dur, 0) / 60);
+  UI.qs("#song-stats").innerHTML = [["Músicas", songs.length], ["Usadas em novembro", songs.filter(([, s]) => /\/11/.test(s.last)).length], ["Sem tradução", songs.filter(([, s]) => s.langs.length < 2).length], ["Minutos de música", mins]].map(([l, v]) => `<div class="stat"><span class="lbl">${l}</span><b>${v}</b></div>`).join("");
+  const dis = can("song") ? "" : "disabled";
+  UI.qs("#song-acts").innerHTML = `
+    <button class="act" data-yt ${dis}>${UI.I.live}<span><b>Importar do YouTube</b><span>Cole o link: a letra vem das legendas, com o tempo de cada linha.</span></span></button>
+    <button class="act" data-new ${dis}>${UI.I.music}<span><b>Nova faixa</b><span>Cole a letra. Linha em branco separa os slides.</span></span></button>
+    <a class="act" href="kit.html">${UI.I.palette}<span><b>Estúdio</b><span>Todos os fundos e fontes, e um lugar para testar.</span></span></a>`;
+  UI.qs("#song-perm").innerHTML = `${can("song") ? UI.I.check : lock}<span>${ROLES[me].why}</span>`;
+  const sl = songs.filter(([, s]) => !q || (s.title + s.author + Object.values(s.lyrics).join(" ")).toLowerCase().includes(q));
+  UI.qs("#song-n").textContent = `${sl.length} de ${songs.length}`;
+  UI.qs("#song-list").innerHTML = sl.map(([k]) => CARDS.card("song", k)).join("") || `<p class="muted">Nenhuma música com “${q}”.</p>`;
+
+  // decks: prévia com fundo; clique abre a gaveta analisável
+  UI.qs("#deck-perm").innerHTML = `${can("deck") ? UI.I.check : lock}<span>${ROLES[me].why}</span>`;
+  const decks = Object.entries(XL.decks).filter(([, d]) => !q || d.title.toLowerCase().includes(q));
+  const deckBg = { d1: "wash:amber", d2: "wash:gold", d3: "loop:CQ0keZI1gds", d4: "loop:1krnHdrN6q0" };
+  UI.qs("#deck-list").innerHTML = (can("deck") ? `<button class="rc-new" data-newdeck>${UI.I.plus}<b>Novo deck</b><span style="font-size:var(--t-sm)">Abre o editor de deck</span></button>` : "") +
+    decks.map(([k, d]) => `<button class="rc" data-deck="${k}"><span class="rc-top"><span>${d.updated.split(",")[0]}</span><span>Deck</span></span><h3>${d.title}</h3><div class="pv">${DRAWER.mini({ eyebrow: d.layout, title: d.title, bg: deckBg[k], font: k === "d2" ? "serif" : "grotesk" })}</div><span class="rc-foot"><span>${d.slides} slides</span><span>${can("deck") ? "Editar" : "Só ver"}</span></span></button>`).join("");
+  UI.qsa("[data-deck]").forEach((b) => (b.onclick = () => {
+    const k = b.dataset.deck, d = XL.decks[k];
+    DRAWER.open({ editor: () => `deck.html?d=${k}`, kind: "Deck", meta: `${d.slides} slides, ${d.updated}`, eyebrow: d.layout, title: d.title, bg: deckBg[k], font: k === "d2" ? "serif" : "grotesk", slides: DRAWER.deckSlides(d),
+      extra: `<a class="btn primary block" href="deck.html?d=${k}">Abrir no editor de deck</a>` + (can("deck") ? "" : `<p class="perm-note">${lock}<span>Você pode analisar o deck, mas não salvar mudanças.</span></p>`),
+      onSave: can("deck") ? () => toast("Deck salvo") : null });
+  }));
+  UI.qs("[data-newdeck]") && (UI.qs("[data-newdeck]").onclick = () => (location.href = "deck.html?novo=pregacao"));
+
+  UI.qs("#board-list").innerHTML = Object.keys(XL.boards).filter((id) => !q || XL.boards[id].title.toLowerCase().includes(q)).map((id) => CARDS.card("board", id).replace(`href="boards.html#${id}"`, `href="board.html?id=${id}"`)).join("");
+  UI.qs("#tpl-list").innerHTML = `<div class="cal">${XL.templates.map((t) => `<div class="cal-row" style="min-height:88px"><span class="cr-who"><span class="lbl">usado ${t.uses}×</span><span><b>${t.name}</b><small>${t.items} itens, ${t.minutes} min</small></span></span><span class="cr-n" style="font-size:72px">${t.minutes}</span></div>`).join("")}</div>`;
+
+  UI.qs("[data-yt]").onclick = youtube;
+  UI.qs("[data-new]").onclick = () => UI.sheet(`<div class="stack"><div class="row between"><h2>Nova faixa</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div><label class="field"><span class="lbl">Título</span><input class="input" placeholder="Nome da música"></label><label class="field"><span class="lbl">Letra</span><textarea class="textarea" placeholder="[Verso]\nPrimeira linha\nSegunda linha\n\n[Refrão]\n…"></textarea></label><p class="muted" style="font-size:var(--t-sm)">Linha em branco = novo slide. [Refrão] marca a seção.</p><a class="btn primary block" href="estudio.html">Criar e abrir no estúdio</a></div>`);
 }
-UI.qs("#q").oninput = (e) => list(e.target.value);
-UI.qsa("#tabs button").forEach((b) => (b.onclick = () => { UI.qsa("#tabs button").forEach((x) => x.classList.toggle("on", x === b)); UI.qsa(".pane").forEach((p) => p.classList.toggle("on", p.id === b.dataset.p)); }));
-UI.qs("#new").onclick = () => UI.sheet(`<div class="stack"><h2>Nova música</h2>
-  <button class="src">${UI.I.live}<span class="grow"><h3>Link do YouTube</h3><span class="muted" style="font-size:var(--t-sm)">Letra das legendas, com tempo de cada linha (XLIDE Music)</span></span></button>
-  <button class="src">${UI.I.doc}<span class="grow"><h3>Colar letra</h3><span class="muted" style="font-size:var(--t-sm)">Linha em branco separa os slides; [Refrão] marca seções</span></span></button>
-  <button class="src">${UI.I.clock}<span class="grow"><h3>Arquivo LRC / SRT</h3><span class="muted" style="font-size:var(--t-sm)">Letra já sincronizada</span></span></button>
-  <hr class="hr"><h2>Novo deck</h2>
-  <button class="src">${UI.I.screen}<span class="grow"><h3>Deck em branco</h3><span class="muted" style="font-size:var(--t-sm)">Abre o editor do XLIDE (desktop)</span></span></button>
-  <p class="lbl">Licença: confira a licença de uso da igreja antes de importar acervo grande.</p></div>`);
-list();
+
+/* Importar do YouTube: o que acontece em cada passo */
+function youtube() {
+  const STEPS = [
+    ["Colar o link", "youtube.com/watch?v=… ou youtu.be/…. Pode ser um clipe com letra ou um vídeo de culto."],
+    ["Ler o vídeo", "Título, canal, duração e a lista de legendas disponíveis. Nada é baixado ainda."],
+    ["Escolher a legenda", "Prefira a legenda escrita pelo canal. A automática é usada só se não houver outra, e precisa de revisão."],
+    ["Baixar a letra com os tempos", "Só o texto da legenda é baixado, com o tempo de cada linha. O vídeo e o áudio não são baixados: na hora do culto o som vem do próprio YouTube ou da mesa."],
+    ["Dividir em slides", "Uma estrofe por slide, seções [Verso] e [Refrão] reconhecidas, e o tempo de entrada de cada slide (Slide.at)."],
+    ["Revisar no estúdio", "Conferir a letra, o fundo e a fonte, e ajustar o tempo de cada slide na trilha."],
+  ];
+  const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Importar do YouTube</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
+    <label class="field"><span class="lbl">Link do vídeo</span><input class="input" id="yt-url" value="https://www.youtube.com/watch?v=5djr6ofyLLY"></label>
+    <button class="btn primary block" id="yt-go">Importar</button>
+    <div id="yt-prev"></div>
+    <ol class="steps" id="yt-steps">${STEPS.map(([t, d], k) => `<li data-k="${k}"><i>${String(k + 1).padStart(2, "0")}</i><span><b>${t}</b><small>${d}</small></span><span class="st">a fazer</span></li>`).join("")}</ol>
+    <p class="muted" style="font-size:var(--t-xs)">Use só músicas que a igreja tem licença para projetar. A letra importada fica como rascunho até alguém da música revisar.</p></div>`);
+  sh.querySelector("#yt-go").onclick = () => {
+    let k = 0;
+    const lis = [...sh.querySelectorAll("#yt-steps li")];
+    const step = () => {
+      lis.forEach((li, j) => { li.className = j < k ? "done" : j === k ? "run" : ""; li.querySelector(".st").textContent = j < k ? "feito" : j === k ? "agora" : "a fazer"; });
+      if (k === 1) sh.querySelector("#yt-prev").innerHTML = `<div class="yt-prev"><img src="${CARDS.yt("5djr6ofyLLY")}" alt=""><span><b>Luz da manhã (ao vivo)</b><br><span class="muted" style="font-size:var(--t-sm)">Ministério Mosaico, 4:22, legendas em PT e EN</span></span></div>`;
+      if (k < lis.length) { k++; setTimeout(step, 700); }
+      else sh.querySelector("#yt-go").outerHTML = `<a class="btn primary block" href="estudio.html?song=s1">Revisar no estúdio</a>`;
+    };
+    step();
+  };
+}
+
+let tt;
+function toast(m) { let t = UI.qs("#toast"); if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.append(t); } t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2200); }
+render();
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 /* XLIDE v2 · tokens (primitivo → semântico). Mesma identidade do app:
    monocromático, sem raio, BDO Grotesk + Fragment Mono. */
-@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Fragment+Mono&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Fragment+Mono&family=Instrument+Serif:ital@0;1&family=Bebas+Neue&display=swap");
 
 :root {
   /* primitivos */

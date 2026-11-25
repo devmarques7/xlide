@@ -11,7 +11,7 @@
 
   const fresh = () => ({
     status: "idle", index: 0, slide: 0, itemStart: 0, pausedAt: 0, pausedMs: 0, ext: 0, extCount: 0,
-    runStart: 0, log: [], version: 0, offline: false,
+    runStart: 0, log: [], version: 0, offline: false, transition: "fade",
     clock: { base: Date.now(), real: Date.now(), speed: 1 },
   });
 
@@ -58,8 +58,10 @@
       if (st.status === "idle") return cmd.play();
       if (st.status === "done") return;
       const t = now(); closeItem(t, skipped);
-      if (st.index >= items().length - 1) { st.status = "done"; save(); return; }
-      openItem(st.index + 1, t); save();
+      // itens ocultos (Programa → Ocultar) ficam no programa, mas o ao vivo pula
+      let j = st.index + 1; while (j < items().length && items()[j].hidden) j++;
+      if (j >= items().length) { st.status = "done"; save(); return; }
+      openItem(j, t); save();
     },
     prev() { if (st.status === "idle" || st.index === 0) return; const t = now(); closeItem(t); openItem(st.index - 1, t); save(); },
     goto(i) { if (st.status === "idle") cmd.play(); const t = now(); closeItem(t, i > st.index + 1); openItem(i, t); save(); },
@@ -70,8 +72,12 @@
       if (s >= n && d > 0) return cmd.next();
       st.slide = Math.max(0, Math.min(n - 1, s)); save();
     },
+    at(i, k) { if (i !== st.index || st.status === "idle") cmd.goto(i); const n = slidesOf(items()[i]).length; st.slide = Math.max(0, Math.min(n - 1, k)); save(); },
     finish() { if (st.status === "idle") return; closeItem(now()); st.status = "done"; save(); },
-    reset() { const c = st.clock; st = fresh(); st.clock = { base: Date.now(), real: Date.now(), speed: c.speed }; save(); },
+    reset() { const c = st.clock, t = st.transition, ap = !!st.autopilot; st = fresh(); st.clock = { base: Date.now(), real: Date.now(), speed: c.speed }; st.transition = t || "fade"; st.autopilot = ap; save(); },
+    // transição entre telas: "corte" | "fade" (padrão) | "slide" | "sobrepor"
+    transition(t) { st.transition = t; save(); },
+    autopilot(v = !st.autopilot) { st.autopilot = v; save(); },
     speed(x) { st.clock = { base: now(), real: Date.now(), speed: x }; save(); },
     offline(v) { st.offline = v; save(); },
   };
@@ -106,7 +112,13 @@
     setInterval(() => {
       if (st.status !== "live") return;
       const T = timing(); const it = T.it;
-      if ((it.advance === "auto") && T.remaining <= 0) cmd.next();
+      // piloto automático: todo item passa quando o tempo acaba, e os slides de um item
+      // se dividem pelo tempo dele (música segue a própria faixa no console)
+      if ((it.advance === "auto" || st.autopilot) && T.remaining <= 0) return cmd.next();
+      if (st.autopilot && it.type !== "song") {
+        const n = slidesOf(it).length;
+        if (n > 1) { const k = Math.min(n - 1, Math.floor(T.elapsed / ((it.planned + st.ext) / n))); if (k > st.slide) { st.slide = k; save(); } }
+      }
     }, 250);
   }
 
