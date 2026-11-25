@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Tela</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/render.js"></script>
+<style>
+  html, body { background: #000; height: 100%; overflow: hidden; }
+  .stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  /* Projetar: o slide ocupa a tela inteira (padrão). "16:9" volta para o quadro com faixas pretas. */
+  .stage .tx-host { width: 100vw; height: 100vh; height: 100dvh; }
+  .fit .stage .tx-host { width: min(100vw, 177.78vh); height: auto; aspect-ratio: 16 / 9; }
+  .fs-hint { position: fixed; left: 50%; top: 24px; transform: translateX(-50%); padding: 8px 14px; background: rgb(0 0 0 / .7); color: #f1f0ec; font: 400 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; transition: opacity .4s; pointer-events: none; }
+  .fs-hint.off { opacity: 0; }
+  .hud { position: fixed; right: 12px; bottom: 12px; display: flex; gap: 8px; opacity: 0; transition: opacity .3s; }
+  body:hover .hud { opacity: 1; }
+  .hud .chip { background: #000; color: #f1f0ec; border-color: #333; }
+  .mk { position: fixed; left: 0; right: 0; opacity: 0; transition: opacity .3s; }
+  .mk:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="tx-host" id="s" data-media-on="live"></div></div>
+<div class="fs-hint" id="fs-hint">Clique em qualquer lugar para tela cheia</div>
+<div class="hud"><span class="chip" id="info"></span><button class="chip" id="fit" title="Alternar entre preencher a tela e o quadro 16:9 (R)">16:9 (R)</button><button class="chip" onclick="document.documentElement.requestFullscreen?.()">tela cheia (F)</button></div>
+<script>
+const full = () => document.fullscreenElement || document.documentElement.requestFullscreen?.().catch(() => {});
+const fit = () => { const on = document.body.classList.toggle("fit"); document.getElementById("fit").textContent = on ? "preencher (R)" : "16:9 (R)"; try { localStorage.setItem("xlide.v2.tela.fit", on ? "1" : ""); } catch {} };
+if (localStorage.getItem("xlide.v2.tela.fit")) fit();
+addEventListener("keydown", (e) => { if (e.key === "f") full(); if (e.key === "r") fit(); });
+// o navegador só deixa entrar em tela cheia depois de um clique nesta janela
+addEventListener("click", (e) => { if (!e.target.closest(".hud")) full(); }, { once: false });
+document.addEventListener("fullscreenchange", () => document.getElementById("fs-hint").classList.toggle("off", !!document.fullscreenElement));
+setTimeout(() => document.getElementById("fs-hint").classList.add("off"), 6000);
+document.getElementById("fit").onclick = fit;
+/* Culto encerrado no console: sai da tela cheia e fecha esta janela (se o navegador deixar). */
+function closeScreen() { document.fullscreenElement && document.exitFullscreen?.(); window.close(); }
+addEventListener("storage", (e) => { if (e.key === "xlide.v2.close-screens") closeScreen(); });
+LIVE.loop((s, T) => {
+  paintTransition(document.getElementById("s"), T.it, s.slide, T, "pt", s.status, s.transition || "fade");
+  document.getElementById("info").textContent = `${s.status} · item ${s.index + 1} · ${s.offline ? "local" : "realtime"}`;
+});
+</script>
+</body>
+</html>

@@ -43,8 +43,22 @@ Branches: **main** (o que está no ar), **develop** (integração com Supabase, 
 
 Tudo o que o MCP muda entra em `xlide_audit` com `via = mcp`.
 
-## O que ainda não está ligado
+## XLIDE v2 no app (`/v2/`) · 26/11
 
-- O app real ainda não tem as telas do v2 (Programa Estúdio, Ao vivo multiview, editor de deck novo, Meus arquivos): elas estão nos mockups. As tabelas e o MCP já guardam programas e arquivos para quando forem construídas.
-- Papéis por área (admin, púlpito, música, operador): por enquanto toda a equipe logada edita tudo.
-- Imagens novas continuam indo para o Redis/Blob; mover para o bucket `xlide-media` é o próximo passo.
+As telas dos mockups v2 agora rodam dentro do app, ligadas ao Supabase (projeto `fazbojlfbnglvuzcdcxy`). Entrada: botão **Live Church** no topo do XLIDE, ou `/v2/`.
+
+| Parte | Onde | O que faz |
+| --- | --- | --- |
+| Telas | `public/v2/*.html` + `public/v2/assets/` | Início, Arquivos, Biblioteca, Programa, Ao vivo (console), Tela, Agenda, Estúdio, Editor de deck, Editor de música, Boards, Relatório, Equipe. Sem a barra do mockup. `mockups/v2/` continua como referência. |
+| Ponte | `public/v2/assets/cloud.js` | Login obrigatório (volta para a mesma tela), cópia local para abrir na hora, toda gravação sobe para o banco, Realtime recebe as mudanças dos outros, fila quando cai a internet, imagens `data:` vão para o bucket `xlide-media`. |
+| Config | `vite.config.ts` → `/v2/config.js` | URL e chave anon a partir de `VITE_SUPABASE_*`. Sem elas o v2 roda como mockup (dados de exemplo). |
+| Banco | `supabase/migrations/20261126*` | `xlide_kv` (decks do editor novo, agenda, visuais, trilha, setlist, testes, imagens), `xlide_runs` (o culto ao vivo), `xlide_live_public()` (página pública sem login), `xlide_server_time()`, Realtime nas tabelas, papéis (1ª pessoa = admin; só admin muda papéis). |
+
+De onde vem cada coisa: pessoas = `profiles`; músicas e decks = `xlide_decks` (os mesmos do editor clássico e do MCP); boards = `xlide_boards` (abrem no editor de boards); programas = `xlide_programs` (o mesmo formato do MCP); arquivos = `xlide_files`; culto = `xlide_runs` + broadcast `xlide-live`. No fim do culto o tempo real de cada item vai para o programa (`runLog`) e o Relatório/Início usam isso.
+
+## O que ainda falta (precisa do Daniel)
+
+- **Google**: ativar o provedor Google no Supabase (passo 3 acima). Até lá, a tela de login também aceita **link por e-mail**.
+- **URL Configuration** no Supabase: Site URL e Redirect URLs (`http://localhost:5173/**` e o domínio da Vercel).
+- **`SUPABASE_SERVICE_ROLE_KEY`** e **`REDIS_URL`** no `.env.local` (e na Vercel, escopo Preview) para o MCP, os eventos e para copiar os decks e boards atuais: `node scripts/migrate-redis-to-supabase.mjs`. Sem isso o v2 abre vazio (sem músicas/decks) e o editor clássico continua lendo o Redis.
+- Permissões por papel nas telas (hoje o banco só trava a mudança de papéis; todo logado edita o resto).

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Música</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script>
+<style>
+  .slides { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s2); }
+  @media (min-width: 640px) { .slides { grid-template-columns: repeat(3, 1fr); } }
+  .slides figure { margin: 0; }
+  .slides figcaption { margin-top: 4px; }
+  .use { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; height: 48px; align-items: end; }
+  .use i { background: var(--fg); display: block; }
+  .use i.z { background: var(--line); height: 2px !important; }
+</style>
+</head>
+<body data-tab="biblioteca">
+<main class="app">
+  <header class="top"><a class="icon-btn" href="biblioteca.html" id="back"></a><span class="grow"><span class="lbl">Música · xlide_decks (kind song)</span><h2 id="title"></h2></span><button class="btn primary">Salvar</button></header>
+  <div class="split">
+    <div class="stack">
+      <div class="grid grid-3">
+        <label class="field"><span class="lbl">Autor</span><input class="input" id="author"></label>
+        <label class="field"><span class="lbl">Tom</span><input class="input" id="key"></label>
+        <label class="field"><span class="lbl">Fonte</span><input class="input" id="source"></label>
+      </div>
+      <div class="field"><span class="lbl">Idioma da letra · RF-13</span><div class="seg" id="langs"></div></div>
+      <div class="field"><span class="lbl">Dividir em slides · RF-12</span><div class="seg" id="rule"><button class="on" data-r="stanza">Por estrofe</button><button data-r="2">2 linhas</button><button data-r="4">4 linhas</button></div></div>
+      <label class="field"><span class="lbl">Letra (linha em branco = novo slide)</span><textarea class="textarea" id="lyr" style="min-height:260px"></textarea></label>
+    </div>
+    <aside class="side stack">
+      <div class="row between"><h2>Slides</h2><span class="pill-n" id="n"></span></div>
+      <div class="slides" id="prev"></div>
+      <div class="card stack-sm">
+        <div class="row between"><span class="lbl">Uso · últimas 12 semanas · RF-16</span><b class="num" id="uses"></b></div>
+        <div class="use" id="use"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+<script>
+UI.qs("#back").innerHTML = UI.I.back;
+const id = new URLSearchParams(location.search).get("id") || Object.keys(XL.songs)[0] || "s1";
+const s = XL.songs[id];
+let lang = "pt", rule = "stanza";
+UI.qs("#title").textContent = s.title;
+UI.qs("#author").value = s.author; UI.qs("#key").value = s.key; UI.qs("#source").value = s.source;
+const all = ["pt", "en", "nl"];
+function langs() {
+  UI.qs("#langs").innerHTML = all.map((l) => `<button class="${l === lang ? "on" : ""}" data-l="${l}">${l.toUpperCase()}${s.lyrics[l] ? "" : " +"}</button>`).join("");
+  UI.qsa("#langs button").forEach((b) => (b.onclick = () => { lang = b.dataset.l; UI.qs("#lyr").value = s.lyrics[lang] || ""; UI.qs("#lyr").placeholder = "Tradução ainda vazia. Traduzir automaticamente (Google) e revisar."; langs(); split(); }));
+}
+function split() {
+  const txt = UI.qs("#lyr").value;
+  let blocks = txt.split(/\n\s*\n/).map((b) => { const r = b.trim().split("\n"); const m = r[0]?.match(/^\[(.+)\]$/); return { section: m ? m[1] : "", rows: (m ? r.slice(1) : r).filter(Boolean) }; }).filter((b) => b.rows.length);
+  if (rule !== "stanza") { const n = +rule; blocks = blocks.flatMap((b) => { const out = []; for (let i = 0; i < b.rows.length; i += n) out.push({ section: b.section, rows: b.rows.slice(i, i + n) }); return out; }); }
+  UI.qs("#n").textContent = blocks.length;
+  UI.qs("#prev").innerHTML = blocks.map((b, i) => `<figure><div class="slide"><div class="s-section">${b.section}</div><div class="s-lines">${b.rows.join("\n")}</div></div><figcaption class="lbl">${i + 1}${b.section ? " · " + b.section : ""}</figcaption></figure>`).join("") || `<p class="muted">Sem letra neste idioma.</p>`;
+}
+UI.qsa("#rule button").forEach((b) => (b.onclick = () => { rule = b.dataset.r; UI.qsa("#rule button").forEach((x) => x.classList.toggle("on", x === b)); split(); }));
+UI.qs("#lyr").value = s.lyrics.pt; UI.qs("#lyr").oninput = split;
+UI.qs("#uses").textContent = `${s.uses}×`;
+UI.qs("#use").innerHTML = Array.from({ length: 12 }, (_, i) => { const on = (i * 7 + s.uses) % 3 !== 0 && i > 12 - s.uses - 2; return `<i class="${on ? "" : "z"}" style="height:${on ? 40 + ((i * 13) % 60) : 2}%"></i>`; }).join("");
+langs(); split();
+</script>
+</body>
+</html>

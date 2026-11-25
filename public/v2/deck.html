@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Editor de deck</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script><script src="assets/trilha.js"></script><script src="assets/files.js"></script><script src="assets/media.js"></script>
+<style>
+  /* Editor de deck, como no Canva: ferramentas à esquerda, o slide no centro (edição direto nele),
+     os slides embaixo com + para criar outro com a mesma estrutura. */
+  html, body { height: 100%; }
+  body.dk { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; height: 100dvh; overflow: hidden; }
+  .dk-top { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); background: var(--surface); min-width: 0; }
+  .dk-name { display: grid; min-width: 0; flex: 1; }
+  .dk-name input { background: none; border: 0; color: var(--fg); font: 600 var(--t-lg) var(--font); letter-spacing: -0.01em; padding: 0; min-width: 0; }
+  .dk-name input:focus { outline: 1px dashed var(--line); }
+  .dk-name span { font: 400 var(--t-xs) var(--mono); color: var(--fg-2); text-transform: uppercase; }
+  .dk-name span.dirty { color: var(--warn); }
+  .dk-top .btn { min-height: 40px; }
+  .dk-top .tr-chip { height: 30px; padding: 0 10px; cursor: pointer; font-size: 11px; }
+
+  .dk-body { display: grid; grid-template-columns: 72px auto minmax(0, 1fr); min-height: 0; }
+  .dk-rail { display: grid; align-content: start; border-right: 1px solid var(--line); background: var(--surface); overflow-y: auto; }
+  .dk-rail button { display: grid; justify-items: center; gap: 4px; padding: 12px 4px; font: 400 10px var(--mono); text-transform: uppercase; color: var(--fg-2); border-bottom: 1px solid var(--line); }
+  .dk-rail button svg { width: 20px; height: 20px; }
+  .dk-rail button:hover { color: var(--fg); background: var(--sunken); }
+  .dk-rail button.on { background: var(--invert-bg); color: var(--invert-fg); }
+  .dk-panel { width: 0; overflow: hidden; border-right: 1px solid var(--line); background: var(--bg); }
+  .dk-panel.on { width: 320px; overflow-y: auto; }
+  .dk-pi { display: grid; gap: var(--s3); padding: var(--s3); width: 320px; }
+  .dk-pi h3 { font-size: var(--t-md); display: flex; justify-content: space-between; align-items: center; }
+  .dk-pi .seg button { min-height: 34px; font-size: 10px; }
+  .bg-g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .bg-g button { display: grid; gap: 3px; text-align: left; font-size: 10px; color: var(--fg-2); }
+  .bg-g .slide { width: 100%; display: block; }
+  .bg-g button.on .slide { outline: 2px solid var(--live); outline-offset: 2px; }
+  .bg-g button:hover .slide { outline: 1px solid var(--fg); outline-offset: 1px; }
+  .vopt { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--line); background: var(--surface); }
+  .vopt .row { justify-content: space-between; font-size: var(--t-sm); }
+  .up { display: grid; place-items: center; gap: 4px; aspect-ratio: 16 / 9; border: 1px dashed var(--fg-2); font-size: 11px; color: var(--fg-2); }
+  .up:hover { border-color: var(--fg); color: var(--fg); }
+  .up svg { width: 20px; height: 20px; }
+  .ly-g { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .ly-g button { display: grid; gap: 4px; font-size: var(--t-xs); text-align: left; }
+  .ly-g .slide { width: 100%; display: block; }
+  .ly-g button:hover .slide { outline: 1px solid var(--fg); }
+  .blk-l { display: grid; gap: 4px; }
+  .blk-l button { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--line); font-size: var(--t-sm); }
+  .blk-l button b { font-weight: 600; } .blk-l button span { font: 400 10px var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .blk-l button.on span { color: var(--ok); }
+  .kb { display: grid; grid-template-columns: auto 1fr; gap: 6px var(--s3); font-size: var(--t-sm); align-items: center; }
+  .kb kbd { font: 400 11px var(--mono); padding: 2px 6px; border: 1px solid var(--line); background: var(--surface); white-space: nowrap; justify-self: start; }
+
+  .dk-main { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--sunken); overflow: auto; }
+  .dk-sw { display: grid; place-items: center; padding: var(--s3) var(--s4); min-height: 0; }
+  .dk-sw .cv { width: min(100%, calc((100dvh - 330px) * 16 / 9)); }
+  .dk-stage { width: 100%; box-shadow: 0 30px 70px -40px rgb(0 0 0 / .6); }
+  .dk-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; padding: 0 var(--s4) var(--s2); font: 400 10px var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .dk-keys kbd { font: inherit; padding: 0 4px; border: 1px solid var(--line); }
+
+  .dk-strip { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-top: 1px solid var(--line); background: var(--surface); overflow-x: auto; scrollbar-width: thin; }
+  .th { position: relative; flex: none; width: 132px; display: grid; gap: 2px; padding: 3px; border: 2px solid transparent; cursor: pointer; }
+  .th .slide { width: 100%; display: block; pointer-events: none; }
+  .th.on { border-color: var(--live); }
+  .th:hover { border-color: var(--line); } .th.on:hover { border-color: var(--live); }
+  .th .n { font: 400 10px var(--mono); color: var(--fg-2); }
+  .th.drop-l { box-shadow: -4px 0 0 var(--live); } .th.drop-r { box-shadow: 4px 0 0 var(--live); }
+  .th .ta { position: absolute; top: 6px; right: 6px; display: none; gap: 2px; }
+  .th:hover .ta, .th.on .ta { display: flex; }
+  .th .ta button { width: 22px; height: 22px; display: grid; place-items: center; background: rgb(0 0 0 / .7); color: #fff; }
+  .th .ta svg { width: 12px; height: 12px; }
+  .th-add { flex: none; width: 72px; height: 74px; display: grid; place-items: center; background: var(--sunken); border: 1px dashed var(--fg-2); }
+  .th-add:hover { border-color: var(--fg); }
+  .th-add svg { width: 22px; height: 22px; }
+
+  /* trilha do deck */
+  .tr-added { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px var(--s2); padding: var(--s2); border: 1px solid var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--surface)); }
+  .tr-added .ok { grid-column: 1 / -1; color: var(--ok); display: flex; align-items: center; gap: 6px; font-size: var(--t-sm); font-weight: 600; }
+  .tr-added .ok svg { width: 14px; height: 14px; }
+  .tr-added.none { border-color: var(--line); background: var(--surface); }
+  .tr-added.none .ok { color: var(--fg-2); }
+  .tr-added img { width: 64px; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #000; }
+  .tr-added b { font-size: var(--t-xs); font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tr-added small { font: 400 10px var(--mono); color: var(--fg-2); text-transform: uppercase; }
+  .tr-added .acts { grid-column: 1 / -1; display: flex; gap: 4px; flex-wrap: wrap; }
+  .tr-added .acts button, .trk-r .ac button { height: 28px; padding: 0 8px; border: 1px solid var(--line); font: 400 10px var(--mono); text-transform: uppercase; white-space: nowrap; }
+  .tr-added .acts button:hover, .trk-r .ac button:hover { border-color: var(--fg); }
+  .trk-l { display: grid; gap: 2px; }
+  .trk-r { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--s2); align-items: center; padding: 4px; border: 1px solid transparent; }
+  .trk-r:hover { border-color: var(--line); background: var(--surface); }
+  .trk-r.on { border-color: var(--ok); }
+  .trk-r.bad { opacity: .45; }
+  .trk-r img { width: 56px; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #000; }
+  .trk-r b { font-size: 11px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .trk-r small { font: 400 10px var(--mono); color: var(--fg-2); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .trk-r .ac { display: flex; gap: 2px; }
+  .trk-r .ac .add { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tr-modes2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .tr-modes2 button { min-height: 34px; border: 1px solid var(--line); font-size: var(--t-xs); }
+  .tr-modes2 button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .th .tg { display: block; font: 400 9px var(--mono); text-transform: uppercase; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--line); color: var(--fg-2); }
+  .th .tg.on { color: var(--live); border-color: currentColor; }
+  .th .tg.deck { color: var(--ok); border-color: currentColor; }
+  .tr-mini { position: fixed; left: 84px; bottom: 112px; z-index: 60; display: none; grid-template-columns: 96px minmax(0, 1fr) auto; gap: var(--s2); align-items: center; width: 340px; padding: 6px; background: var(--invert-bg); color: var(--invert-fg); box-shadow: 0 12px 30px rgb(0 0 0 / .4); }
+  .tr-mini.on { display: grid; }
+  .tr-mini .yt { width: 96px; aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: #000; }
+  .tr-mini .yt iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+  .tr-mini b { font-size: 11px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tr-mini small { font: 400 10px var(--mono); opacity: .7; text-transform: uppercase; }
+  .tr-mini button { padding: 0 8px; height: 28px; border: 1px solid currentColor; font: 400 10px var(--mono); text-transform: uppercase; }
+  .pres { position: fixed; inset: 0; z-index: 100; background: #000; display: grid; place-items: center; }
+  .pres .slide { width: min(100vw, 177.78vh); }
+  .pres-hud { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: rgb(0 0 0 / .6); color: #fff; font: 400 12px var(--mono); }
+  .pres-hud button { color: #fff; padding: 4px 8px; }
+  .toast { position: fixed; left: 50%; bottom: 120px; z-index: 90; display: flex; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); background: var(--invert-bg); color: var(--invert-fg); font-size: var(--t-sm); opacity: 0; transform: translate(-50%, 8px); transition: opacity .2s, transform .2s; pointer-events: none; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast.err { background: var(--late); color: #fff; }
+  .toast button { text-decoration: underline; font-weight: 600; }
+  @media (max-width: 800px) {
+    .dk-body { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(0, 1fr); }
+    .dk-rail { grid-auto-flow: column; grid-auto-columns: 1fr; border-right: 0; border-bottom: 1px solid var(--line); }
+    .dk-rail button { border-bottom: 0; border-right: 1px solid var(--line); }
+    .dk-panel.on { width: 100%; max-height: 42vh; } .dk-pi { width: auto; }
+    .dk-keys { display: none; }
+    .dk-top .btn span { display: none; }
+  }
+</style>
+</head>
+<body class="dk">
+<header class="dk-top">
+  <a class="icon-btn" id="back" aria-label="Voltar"></a>
+  <div class="dk-name"><input id="name" aria-label="Nome do deck"><span id="meta"></span></div>
+  <span id="tr-chip"></span>
+  <button class="btn ghost" id="present"></button>
+  <button class="btn primary" id="save">Salvar</button>
+</header>
+<div class="dk-body">
+  <nav class="dk-rail" id="rail" aria-label="Ferramentas"></nav>
+  <aside class="dk-panel" id="panel" aria-label="Painel"></aside>
+  <main class="dk-main">
+    <div class="dk-sw"><div class="slide song animate dk-stage" id="stage" data-media-on="edit" aria-label="Slide atual"></div></div>
+    <p class="dk-keys"><span><kbd>←</kbd><kbd>→</kbd> slides</span><span><kbd>N</kbd> novo slide</span><span><kbd>⌘D</kbd> duplicar</span><span><kbd>⌫</kbd> apagar bloco ou slide</span><span><kbd>Enter</kbd> escrever</span><span><kbd>⌘S</kbd> salvar</span><span><kbd>?</kbd> atalhos</span></p>
+  </main>
+</div>
+<footer class="dk-strip" id="strip" aria-label="Slides"></footer>
+<input type="file" id="file" accept="image/*" hidden>
+<div class="tr-mini" id="tr-mini" aria-live="polite"><div class="yt" id="tr-yt"></div><span style="min-width:0"><small id="tr-mini-k">Ouvindo</small><b id="tr-mini-t"></b></span><button id="tr-mini-x">Parar</button></div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+const { I } = UI, esc = FILEUI.esc;
+const P2 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square">${d}</svg>`;
+const IC = { bg: P2('<rect x="3" y="4" width="18" height="16"/><path d="m3 16 5-5 5 5 3-3 5 5"/>'), layout: P2('<rect x="3" y="4" width="18" height="16"/><path d="M3 10h18M10 10v10"/>'), text: P2('<path d="M5 6V4h14v2M12 4v16M9 20h6"/>'), img: P2('<rect x="3" y="4" width="18" height="16"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/>'), music: I.music, keys: P2('<rect x="2" y="6" width="20" height="12"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'), dup: P2('<rect x="8" y="8" width="12" height="12"/><path d="M4 16V4h12"/>'), trash: I.trash, play: I.present };
+
+/* ── o deck aberto: de um arquivo (?f=), de um deck da Biblioteca (?d=) ou novo (?novo=pasta) ── */
+const KEY = "xlide.v2.decks";
+const store = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })();
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const q = new URLSearchParams(location.search);
+const AVISOS = [["Sábado 13/12 · 10:00", "Batismo", "Inscrições com o Pr. Carlos até 06/12"], ["Quinta · 19h30", "Ensaio do coral", "Salão de baixo, aberto a todos"], ["Depois do culto", "Almoço fraterno", "Traga um prato para dividir"], ["Dezembro", "Campanha de Natal", "Doações de alimentos na entrada"], ["Domingo 07/12", "Mutirão de limpeza", "Às 9h, no templo"]];
+function slidesFor(folder, n, s1) {
+  return Array.from({ length: Math.max(1, Math.min(n, 8)) }, (_, k) => {
+    if (k === 0) return { ...s1 };
+    if (folder === "avisos") { const a = AVISOS[(k - 1) % AVISOS.length]; return { eyebrow: a[0], title: a[1], text: a[2] }; }
+    if (folder === "versiculo") return { eyebrow: "Versículo " + (k + 1), title: s1.title, text: "" };
+    return { eyebrow: String(k + 1).padStart(2, "0"), title: k === n - 1 ? "Próximo passo" : `Ponto ${k}`, text: "Uma frase curta que resume o ponto." };
+  });
+}
+let key, file = null, doc, itemRef = null;
+if (q.get("f") && FILES.get(q.get("f"))) {
+  file = FILES.get(q.get("f")); key = "f:" + file.id;
+  doc = store[key] || { name: file.name, folder: file.folder, bg: file.bg, font: file.font, ink: file.ink || null, images: [],
+    slides: slidesFor(file.folder, file.slides, { eyebrow: file.eyebrow, title: file.title, text: file.text }).map((s) => ({ ...s, layout: clone(file.layout || DRAWER.PRESETS[file.folder === "avisos" ? "esquerda" : "centro"]) })) };
+} else if (q.get("d") && XL.decks[q.get("d")]) {
+  const d = XL.decks[q.get("d")], bgs = { d1: "wash:amber", d2: "wash:gold", d3: "loop:CQ0keZI1gds", d4: "loop:1krnHdrN6q0" };
+  key = "d:" + q.get("d");
+  doc = store[key] || { name: d.title, folder: q.get("d") === "d1" ? "avisos" : "pregacao", bg: bgs[q.get("d")], font: q.get("d") === "d2" ? "serif" : "grotesk", ink: null, images: [],
+    slides: slidesFor(q.get("d") === "d1" ? "avisos" : "pregacao", d.slides, { eyebrow: d.layout, title: d.title, text: "" }).map((s) => ({ ...s, layout: clone(DRAWER.PRESETS[q.get("d") === "d1" ? "esquerda" : "centro"]) })) };
+} else if (q.get("item") && PROGS.get(q.get("p")) && PROGS.get(q.get("p")).items.find((x) => x.id === q.get("item"))) {
+  /* um item do programa: o mesmo editor; salvar grava de volta no programa */
+  const pr = PROGS.get(q.get("p")), it = pr.items.find((x) => x.id === q.get("item"));
+  itemRef = { pr, it };
+  const FOLD = { wait: "inicio", notice: "avisos", prayer: "oracao", sermon: "pregacao" };
+  const DBG = { wait: "wash:midnight", notice: "wash:amber", prayer: "loop:CQ0keZI1gds", sermon: "wash:gold", video: "solid:#0e0e0d", pause: "solid:#0e0e0d" };
+  key = "i:" + pr.id + ":" + it.id;
+  const L0 = clone(it.layout || DRAWER.PRESETS[it.type === "wait" ? "contagem" : "centro"]);
+  doc = { name: it.title, folder: FOLD[it.type] || "avisos", bg: it.bg || DBG[it.type] || "loop:5djr6ofyLLY", font: it.font || (it.type === "sermon" ? "serif" : "grotesk"), ink: it.ink || null, images: [], seconds: it.type === "wait" ? it.planned : 0,
+    slides: it.slides ? clone(it.slides) : it.deck ? slidesFor(FOLD[it.type] || "avisos", XL.decks[it.deck].slides, { eyebrow: it.eyebrow || XL.types[it.type].name, title: it.title, text: (it.text || "").replace(/ · /g, "\n") }).map((x) => ({ ...x, layout: clone(L0) }))
+      : [{ eyebrow: it.eyebrow || XL.types[it.type].name, title: it.title, text: (it.text || "").replace(/ · /g, "\n"), layout: L0 }] };
+} else {
+  const folder = q.get("novo") && FILEUI.KIND[q.get("novo")] ? q.get("novo") : "avisos";
+  key = "n:" + Date.now().toString(36);
+  doc = { name: folder === "avisos" ? "Avisos · novo deck" : "Novo deck", folder, bg: folder === "avisos" ? "plain:papel" : "wash:midnight", font: "grotesk", ink: null, images: [],
+    slides: [{ eyebrow: "Data · hora", title: "Título do aviso", text: "Uma linha com o detalhe", layout: clone(DRAWER.PRESETS[folder === "avisos" ? "esquerda" : "centro"]) }] };
+}
+doc.slides.forEach((s) => (s.layout = s.layout || clone(DRAWER.PRESETS.centro)));
+let cur = 0, saved = JSON.stringify(doc), panel = null, bgTab = "wash", bgScope = "one";
+const S = () => doc.slides[cur];
+const view = (i = cur) => { const s = doc.slides[i]; return { ...s, bg: s.image ? null : s.bg || doc.bg, image: s.image || null, font: s.font || doc.font, ink: s.ink || doc.ink, seconds: doc.seconds || 0 }; };
+/* Trilha: cada slide pode ter a sua (slide.tr); a do deck (doc.tr) vale para os outros e se estende
+   (a mesma faixa continua tocando de um slide para o outro). Sem nada: sem trilha. */
+const trOf = (i = cur) => { const s = doc.slides[i]; const t = s.tr || doc.tr || { mode: "off" }; return { ...t, own: !!s.tr, deck: !s.tr && !!doc.tr }; };
+const trId = (t) => (t.mode || "").startsWith("track:") ? t.mode.slice(6) : null;
+const trLabel = (t) => t.mode === "off" ? "sem trilha" : t.mode === "inherit" ? TRILHA.src(TRILHA.conf.service.src).name : trId(t) ? TRILHA.title(trId(t)) : TRILHA.src(t.mode).name;
+const trResolve = (t) => t.mode === "off" ? { on: false } : trId(t) ? { on: true, track: trId(t), vol: t.vol ?? TRILHA.conf.service.vol } : { on: true, src: TRILHA.src(t.mode === "inherit" ? TRILHA.conf.service.src : t.mode), vol: t.vol ?? TRILHA.conf.service.vol };
+let trTab = TRILHA.conf.service.src, trQ = "", trScope = "one", pl = null, plFor = null;
+
+/* ── o slide no centro: o mesmo editor do Estúdio e da gaveta (canvas.js) ── */
+const cv = CANVAS.attach(UI.qs("#stage"), {
+  view, layout: () => S().layout,
+  text(f, v) { S()[f] = v; },
+  changed(k) { if (k !== "select") { thumbs(); meta(); } },
+});
+
+function render() { cv.render(); thumbs(); meta(); if (panel) openPanel(panel, true); }
+function meta() {
+  const dirty = JSON.stringify(doc) !== saved;
+  UI.qs("#meta").textContent = `${FILEUI.folderName(doc.folder)} · slide ${cur + 1} de ${doc.slides.length} · ${dirty ? "alterações não salvas" : "salvo"}`;
+  UI.qs("#meta").classList.toggle("dirty", dirty);
+  if (document.activeElement !== UI.qs("#name")) UI.qs("#name").value = doc.name;
+  const t = trOf();
+  UI.qs("#tr-chip").innerHTML = `<span class="tr-chip${t.mode === "off" ? "" : " on"}" title="Trilha deste slide">♪ ${esc(TRILHA.short(trLabel(t)))}${t.deck ? " · deck" : ""}</span>`;
+}
+function thumbs() {
+  UI.qs("#strip").innerHTML = doc.slides.map((s, i) => `<div class="th${i === cur ? " on" : ""}" draggable="true" data-i="${i}" role="button" tabindex="0" aria-label="Slide ${i + 1}">${DRAWER.mini(view(i))}<span class="n">${i + 1}${s.title ? " · " + esc(String(s.title).split("\n")[0]).slice(0, 18) : ""}</span>${(() => { const t = trOf(i); return `<span class="tg${t.own ? " on" : t.deck ? " deck" : ""}" title="${esc(trLabel(t))}">♪ ${t.mode === "off" ? "off" : esc(TRILHA.short(trLabel(t)))}${t.deck ? " · deck" : ""}</span>`; })()}<span class="ta"><button data-dup="${i}" title="Duplicar (⌘D)" aria-label="Duplicar slide ${i + 1}">${IC.dup}</button><button data-del="${i}" title="Apagar (⌫)" aria-label="Apagar slide ${i + 1}">${IC.trash}</button></span></div>`).join("")
+    + `<button class="th-add" id="add" title="Novo slide com a mesma estrutura (N)" aria-label="Novo slide">${I.plus}</button>`;
+  UI.qs("#strip .th.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+function go(i, quiet) {
+  if (i < 0) return quiet || toast("Este é o primeiro slide.", true);
+  if (i >= doc.slides.length) return quiet || toast("Último slide. Aperte N para criar outro.", true);
+  cur = i; cv.select(null); render();
+}
+/* Novo slide: copia a estrutura (layout, fundo) do slide atual, com os textos para preencher. */
+function addSlide(after = cur, dup = false) {
+  const base = doc.slides[after];
+  const n = dup ? clone(base) : { eyebrow: doc.folder === "avisos" ? "Data · hora" : base.eyebrow ? "Rótulo" : "", title: doc.folder === "avisos" ? "Novo aviso" : "Título", text: base.text != null ? "Detalhe" : "", layout: clone(base.layout), bg: base.bg, image: base.image, vloop: base.vloop, vplay: base.vplay };
+  if (n.layout.img && !dup) delete n.layout.img;
+  doc.slides.splice(after + 1, 0, n);
+  cur = after + 1; cv.select(null); render();
+  toast(dup ? `Slide ${after + 1} duplicado.` : `Slide ${cur + 1} criado com a mesma estrutura.`);
+}
+function delSlide(i = cur) {
+  if (doc.slides.length === 1) return toast("O deck precisa ter pelo menos um slide.", true);
+  const [gone] = doc.slides.splice(i, 1);
+  cur = Math.min(i, doc.slides.length - 1); cv.select(null); render();
+  toast(`Slide ${i + 1} apagado.`, false, () => { doc.slides.splice(i, 0, gone); cur = i; render(); });
+}
+function save() {
+  doc.name = UI.qs("#name").value.trim() || doc.name;
+  if (key.startsWith("n:")) {
+    const f = FILES.add({ id: "u" + Date.now().toString(36), name: doc.name, folder: doc.folder, kind: "deck", status: "ativo", star: false, owner: UI.me(), shared: [], slides: doc.slides.length, updated: "agora", font: doc.font, bg: doc.bg, eyebrow: doc.slides[0].eyebrow, title: doc.slides[0].title, text: doc.slides[0].text, layout: doc.slides[0].layout });
+    delete store[key]; key = "f:" + f.id; file = f; history.replaceState(null, "", "deck.html?f=" + f.id);
+  } else if (itemRef) {
+    const { pr, it } = itemRef, s0 = doc.slides[0];
+    Object.assign(it, { title: s0.title || doc.name, text: s0.text, eyebrow: s0.eyebrow, bg: s0.bg || doc.bg, font: doc.font, ink: doc.ink, layout: s0.layout, slides: doc.slides.length > 1 ? clone(doc.slides) : undefined });
+    if (doc.seconds) it.planned = doc.seconds;
+    pr.updated = "agora"; PROGS.put(pr);
+  } else if (file) FILES.update(file.id, { name: doc.name, slides: doc.slides.length, updated: "agora", bg: doc.slides[0].bg || doc.bg, font: doc.font, eyebrow: doc.slides[0].eyebrow, title: doc.slides[0].title, text: doc.slides[0].text, layout: doc.slides[0].layout });
+  store[key] = doc;
+  try { localStorage.setItem(KEY, JSON.stringify(store)); } catch { return toast("Não deu para salvar: o navegador está sem espaço (imagens grandes?).", true); }
+  saved = JSON.stringify(doc); meta(); toast(`Salvo em ${FILEUI.folderName(doc.folder)}.`);
+}
+
+/* ── painéis da esquerda ── */
+const RAIL = [["bg", "Fundo", IC.bg], ["layout", "Layout", IC.layout], ["text", "Texto", IC.text], ["img", "Imagem", IC.img], ["media", "Mídia", IC.play], ["trilha", "Trilha", IC.music], ["keys", "Atalhos", IC.keys]];
+UI.qs("#rail").innerHTML = RAIL.map(([k, n, ic]) => `<button data-p="${k}" aria-pressed="false">${ic}<span>${n}</span></button>`).join("");
+const tile = (bg, n, on) => `<button class="${on ? "on" : ""}" data-bg="${bg}" title="${n}"><span class="slide song">${XLOOK.backdrop(bg)}</span>${n}</button>`;
+function openPanel(k, keep) {
+  if (!keep && panel === k) { panel = null; UI.qs("#panel").classList.remove("on"); UI.qsa("#rail button").forEach((b) => b.classList.remove("on")); return; }
+  panel = k;
+  UI.qsa("#rail button").forEach((b) => { b.classList.toggle("on", b.dataset.p === k); b.setAttribute("aria-pressed", b.dataset.p === k); });
+  const s = S(), v = view(), el = UI.qs("#panel"); el.classList.add("on");
+  let h = "";
+  if (k === "bg") {
+    const isLoop = (v.bg || "").startsWith("loop:");
+    const L = bgTab === "wash" ? XLOOK.WASHES.map((w) => ["wash:" + w.id, w.name]) : bgTab === "loop" ? XLOOK.LOOPS.map((l) => ["loop:" + l.id, l.name]) : bgTab === "plain" ? XLOOK.PLAIN.map((p) => ["plain:" + p.id, p.name]) : [];
+    h = `<h3>Fundo</h3>
+      <div class="seg"><button data-scope="one" class="${bgScope === "one" ? "on" : ""}">Este slide</button><button data-scope="all" class="${bgScope === "all" ? "on" : ""}">Todos os slides</button></div>
+      <div class="seg"><button data-tab="wash" class="${bgTab === "wash" ? "on" : ""}">Cores</button><button data-tab="loop" class="${bgTab === "loop" ? "on" : ""}">Vídeos</button><button data-tab="plain" class="${bgTab === "plain" ? "on" : ""}">Avisos</button><button data-tab="img" class="${bgTab === "img" ? "on" : ""}">Imagens</button></div>
+      ${isLoop && bgTab === "loop" || isLoop ? `<div class="vopt"><span class="lbl">Vídeo deste slide</span><div class="row"><span>Reprodução</span><button class="toggle${s.vplay !== false ? " on" : ""}" data-vplay role="switch" aria-checked="${s.vplay !== false}" aria-label="Reprodução do vídeo"></button></div><div class="seg"><button data-vloop="1" class="${s.vloop !== false ? "on" : ""}">Em loop</button><button data-vloop="0" class="${s.vloop === false ? "on" : ""}">Uma vez</button></div><span class="muted" style="font-size:var(--t-xs)">Desligado, fica a imagem parada do vídeo.</span></div>` : ""}
+      ${bgTab === "img" ? `<div class="bg-g"><button class="up" data-import>${IC.img}Importar imagem</button>${doc.images.map((src, i) => `<button class="${s.image === src ? "on" : ""}" data-img="${i}"><span class="slide song"><img class="xw-media" src="${src}" alt=""></span>Imagem ${i + 1}</button>`).join("")}</div>${s.image ? `<button class="btn ghost block" data-noimg>Tirar a imagem de fundo</button>` : ""}<p class="muted" style="font-size:var(--t-xs)">A imagem fica atrás do texto. Para pôr uma imagem como bloco solto, use Imagem.</p>` : `<div class="bg-g">${L.map(([bg, n]) => tile(bg, n, !s.image && (s.bg || doc.bg) === bg)).join("")}</div>`}`;
+  } else if (k === "layout") {
+    h = `<h3>Layout</h3><p class="muted" style="font-size:var(--t-xs)">A estrutura do slide. Escolha e depois ajuste arrastando no slide.</p>
+      <div class="ly-g">${Object.entries(DRAWER.PRESETS).map(([pk, p]) => `<button data-ly="${pk}">${DRAWER.mini({ ...v, layout: { ...clone(p), name: undefined }, seconds: pk === "contagem" ? 300 : 0 })}${p.name}</button>`).join("")}</div>
+      <button class="btn block" data-ly-all>Aplicar este layout em todos os slides</button>
+      <button class="btn ghost block" data-ly-next ${cur < doc.slides.length - 1 ? "" : "disabled"}>Aplicar no próximo slide</button>`;
+  } else if (k === "text") {
+    const L = s.layout;
+    h = `<h3>Texto</h3><div class="blk-l">${[["eb", "Rótulo"], ["t", "Título"], ["b", "Texto"]].map(([bk, n]) => `<button data-blk="${bk}" class="${L[bk]?.on ? "on" : ""}"><b>${n}</b><span>${L[bk]?.on ? "na tela · editar" : "oculto · mostrar"}</span></button>`).join("")}</div>
+      <span class="lbl">Fonte do deck</span><div class="seg">${XLOOK.FONTS.map((f) => `<button data-font="${f.id}" class="${doc.font === f.id ? "on" : ""}" style="font-family:${f.family};text-transform:none;letter-spacing:0;font-size:14px">${f.name}</button>`).join("")}</div>
+      <span class="lbl">Cor do texto do deck</span><div class="inks"><button class="sw auto${doc.ink ? "" : " on"}" data-ink="">Auto</button>${XLOOK.INKS.map((c) => `<button class="sw${doc.ink === c ? " on" : ""}" data-ink="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div>
+      <p class="muted" style="font-size:var(--t-xs)">Clique num texto no slide para trocar a fonte e a cor só dele.</p>`;
+  } else if (k === "img") {
+    h = `<h3>Imagem no slide</h3><button class="up" data-addimg>${IC.img}Inserir imagem no slide</button><p class="muted" style="font-size:var(--t-xs)">Vira um bloco que se move e muda de tamanho. Para imagem de fundo, use Fundo → Imagens.</p>${s.layout.img?.src ? `<button class="btn ghost block" data-rmimg>Tirar a imagem deste slide</button>` : ""}`;
+  } else if (k === "media") {
+    const m = s.media ? MEDIA.parse(s.media) : null;
+    h = `<h3>Vídeo ou áudio no slide</h3>
+      <p class="muted" style="font-size:var(--t-xs)">Cole um link do YouTube, Vimeo, Spotify ou de um arquivo .mp4/.mp3. Quando este slide entrar (Apresentar, Ao vivo), toca sozinho.</p>
+      <input class="input" data-md placeholder="https://" value="${esc(s.media || "")}" style="min-height:40px">
+      <span class="muted" data-md-l style="font-size:var(--t-xs)">${m ? MEDIA.label(m) + (m.kind === "audio" ? " · o player fica no canto do slide; dá para tocar enquanto você escreve o texto e escolhe o fundo." : " · o vídeo ocupa o slide inteiro (fica no lugar do fundo).") : ""}</span>
+      <div class="grid grid-2"><button class="btn primary" data-md-ok>Pôr neste slide</button><button class="btn" data-md-all>Em todos os slides</button></div>
+      ${m ? `<button class="btn ghost block" data-md-x>Tirar a mídia deste slide</button>` : ""}`;
+  } else if (k === "trilha") {
+    const t = trOf(), id = trId(t);
+    const added = t.mode === "off" ? `<div class="tr-added none"><span class="ok">Este slide está sem trilha</span><span style="grid-column:1/-1;font-size:var(--t-xs);color:var(--fg-2)">Escolha uma faixa abaixo e toque em + Adicionar.</span></div>`
+      : `<div class="tr-added${t.own || t.deck ? "" : " none"}"><span class="ok">${t.own || t.deck ? I.check : ""}${t.own ? "Trilha adicionada para esse slide" : t.deck ? "Trilha do deck: se estende por todos os slides" : "Trilha"}</span>${id ? `<img src="${TRILHA.thumb(id)}" alt="">` : `<span></span>`}<span style="min-width:0"><b>${esc(trLabel(t))}</b><small>${id ? esc(TRILHA.author(id)) : TRILHA.src(TRILHA.conf.service.src).name} · ${t.vol ?? TRILHA.conf.service.vol}%</small></span>
+        <span class="acts">${id ? `<button data-tr-play="${id}">Ouvir</button>` : ""}${t.own ? `<button data-tr-clear>Tirar deste slide</button>` : ""}${t.deck ? `<button data-tr-cleardeck>Tirar do deck</button>` : ""}<button data-trm="off">Sem trilha</button></span></div>`;
+    const ids = TRILHA.conf.lists[trTab];
+    if (!ids) TRILHA.list(trTab).then(() => panel === "trilha" && openPanel("trilha", true));
+    const L = (ids || []).filter((x) => !trQ || (TRILHA.title(x) + " " + TRILHA.author(x)).toLowerCase().includes(trQ));
+    const own = doc.slides.filter((x) => x.tr).length;
+    h = `<h3>Trilha sonora</h3>${added}
+      <div class="seg"><button data-trs="one" class="${trScope === "one" ? "on" : ""}">Este slide</button><button data-trs="all" class="${trScope === "all" ? "on" : ""}">Todos os slides</button></div>
+      <p class="muted" style="font-size:var(--t-xs)">${trScope === "all" ? `A faixa vai para todos os slides do deck e se estende: continua tocando de um slide para o outro, sem recomeçar.${own ? ` ${own} ${own === 1 ? "slide tem" : "slides têm"} trilha própria e passam a usar a do deck.` : ""}` : "A faixa toca quando este slide entrar."}</p>
+      <div class="tr-modes2"><button data-trm="${trTab}">${TRILHA.src(trTab).name} inteira</button><button data-trm="off">Sem trilha</button></div>
+      <label class="tr-vol"><span>Volume</span><input type="range" min="0" max="100" step="5" data-trv value="${t.vol ?? TRILHA.conf.service.vol}"><output>${t.vol ?? TRILHA.conf.service.vol}%</output></label>
+      <div class="seg">${TRILHA.sources().map((x) => `<button data-trt="${x.id}" class="${x.id === trTab ? "on" : ""}">${x.name}</button>`).join("")}</div>
+      <input class="input" data-trq placeholder="Buscar faixa" value="${esc(trQ)}" aria-label="Buscar faixa" style="min-height:36px">
+      <span class="lbl">${ids ? `${L.length} de ${ids.length} faixas` : "Lendo as faixas…"}</span>
+      <div class="trk-l">${L.map((x) => { const on = id === x, bad = TRILHA.conf.titles[x]?.bad; return `<div class="trk-r${on ? " on" : ""}${bad ? " bad" : ""}"><img src="${TRILHA.thumb(x)}" alt="" loading="lazy"><span style="min-width:0"><b>${esc(TRILHA.title(x))}</b><small>${on ? (t.own ? "neste slide" : "no deck") : esc(TRILHA.author(x))}</small></span><span class="ac"><button data-tr-play="${x}" aria-label="Ouvir">▶</button><button class="add" data-tr-add="${x}">${on ? "✓" : "+ Adicionar"}</button></span></div>`; }).join("")}</div>`;
+  } else {
+    h = `<h3>Atalhos de teclado</h3><div class="kb">
+      <kbd>← →</kbd><span>Slide anterior e próximo</span><kbd>Home / End</kbd><span>Primeiro e último slide</span><kbd>N</kbd><span>Novo slide com a mesma estrutura</span><kbd>⌘D</kbd><span>Duplicar o slide</span>
+      <kbd>⌫ / Delete</kbd><span>Com um bloco selecionado: oculta o bloco. Sem seleção: apaga o slide (com Desfazer)</span><kbd>Enter</kbd><span>Escrever no bloco selecionado</span><kbd>Setas</kbd><span>Com bloco selecionado: move 1% (Shift, 5%)</span><kbd>Esc</kbd><span>Solta a seleção</span><kbd>⌘S</kbd><span>Salvar</span><kbd>P</kbd><span>Apresentar</span></div>`;
+  }
+  el.innerHTML = `<div class="dk-pi">${h}</div>`;
+  if (k === "media") el.querySelector("[data-md]").oninput = (e) => { const m = MEDIA.parse(e.target.value); el.querySelector("[data-md-l]").textContent = e.target.value.trim() ? (m ? MEDIA.label(m) + " · reconhecido" : "Link não reconhecido") : ""; };
+  if (k === "trilha") {
+    const qi = el.querySelector("[data-trq]"); qi && (qi.oninput = (e) => { trQ = e.target.value.toLowerCase(); const pos = e.target.selectionStart; openPanel("trilha", true); const n = UI.qs("[data-trq]"); n.focus(); n.setSelectionRange(pos, pos); });
+    const v = el.querySelector("[data-trv]"); v && (v.oninput = (e) => { setTr({ vol: +e.target.value }, true); e.target.nextElementSibling.textContent = e.target.value + "%"; pl && pl.st.playing && pl.setVol(+e.target.value); });
+  }
+}
+UI.qs("#rail").onclick = (e) => { const b = e.target.closest("[data-p]"); b && openPanel(b.dataset.p); };
+UI.qs("#panel").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  const s = S(), d = b.dataset;
+  if (d.mdOk != null || d.mdAll != null) {
+    const v = UI.qs("[data-md]").value.trim(), m = MEDIA.parse(v);
+    if (!m) return toast("Link não reconhecido. Use YouTube, Vimeo, Spotify ou um arquivo .mp4/.mp3.", true);
+    if (d.mdAll != null) doc.slides.forEach((x) => (x.media = v)); else s.media = v;
+    render(); return toast(`${MEDIA.label(m)} ${d.mdAll != null ? "em todos os slides" : "neste slide"}.${m.kind === "audio" ? " Aperte play no player para ouvir enquanto edita." : ""}`);
+  }
+  if (d.mdX != null) { delete s.media; render(); return toast("Mídia tirada do slide."); }
+  if (d.trs) { trScope = d.trs; return openPanel("trilha", true); }
+  if (d.trt) { trTab = d.trt; return openPanel("trilha", true); }
+  if (d.trAdd) return addTrack(d.trAdd);
+  if (d.trm) { setTr({ mode: d.trm }); return toast(d.trm === "off" ? (trScope === "all" ? "Todos os slides sem trilha." : "Este slide ficou sem trilha.") : `${TRILHA.src(d.trm).name} inteira ${trScope === "all" ? "em todos os slides" : "neste slide"}.`); }
+  if (d.trClear != null) { delete s.tr; render(); return toast("Trilha tirada deste slide."); }
+  if (d.trCleardeck != null) { delete doc.tr; render(); return toast("Trilha tirada do deck."); }
+  if (d.trPlay) return preview(d.trPlay);
+  if (d.scope) { bgScope = d.scope; return openPanel("bg", true); }
+  if (d.tab) { bgTab = d.tab; return openPanel("bg", true); }
+  if (d.bg) { if (bgScope === "all") { doc.bg = d.bg; doc.slides.forEach((x) => { delete x.bg; delete x.image; }); } else { s.bg = d.bg; delete s.image; } return render(); }
+  if (d.vplay != null) { s.vplay = s.vplay === false; return render(); }
+  if (d.vloop) { s.vloop = d.vloop === "1"; return render(); }
+  if (d.import != null || d.addimg != null) { file_mode = d.addimg != null ? "block" : "bg"; return UI.qs("#file").click(); }
+  if (d.img) { const src = doc.images[+d.img]; if (bgScope === "all") doc.slides.forEach((x) => (x.image = src)); else s.image = src; return render(); }
+  if (d.noimg != null) { delete s.image; return render(); }
+  if (d.rmimg != null) { delete s.layout.img; return render(); }
+  if (d.ly) { const p = clone(DRAWER.PRESETS[d.ly]); delete p.name; if (s.layout.img) p.img = s.layout.img; s.layout = p; return render(); }
+  if (d.lyAll != null) { doc.slides.forEach((x, i) => { if (i !== cur) { const img = x.layout.img; x.layout = clone(s.layout); delete x.layout.img; if (img) x.layout.img = img; } }); render(); return toast("Layout aplicado em todos os slides."); }
+  if (d.lyNext != null) { const x = doc.slides[cur + 1]; const img = x.layout.img; x.layout = clone(s.layout); delete x.layout.img; if (img) x.layout.img = img; render(); return toast(`Layout aplicado no slide ${cur + 2}.`); }
+  if (d.blk) { const bl = s.layout[d.blk]; if (!bl.on) { bl.on = true; s[{ eb: "eyebrow", t: "title", b: "text" }[d.blk]] ||= { eb: "Rótulo", t: "Título", b: "Texto" }[d.blk]; } render(); return cv.select(d.blk); }
+  if (d.font) { doc.font = d.font; return render(); }
+  if (d.ink != null) { doc.ink = d.ink || null; return render(); }
+});
+let file_mode = "bg";
+/* Pôr a trilha: no slide atual ou no deck inteiro (os slides com trilha própria passam a usar a do deck). */
+function setTr(patch, quiet) {
+  if (trScope === "all") {
+    const prev = doc.slides.map((x) => x.tr);
+    doc.tr = { ...(doc.tr || { mode: "off" }), ...patch }; doc.slides.forEach((x) => delete x.tr);
+    if (!quiet) render(); else { thumbs(); meta(); }
+    return prev;
+  }
+  const s = S(); s.tr = { ...(s.tr || { mode: (doc.tr || {}).mode || "off", vol: (doc.tr || {}).vol }), ...patch };
+  if (!quiet) render(); else { thumbs(); meta(); }
+}
+function addTrack(id) {
+  const prev = setTr({ mode: "track:" + id });
+  if (trScope === "all") toast(`“${TRILHA.short(TRILHA.title(id))}” vai para todos os slides e se estende.`, false, () => { delete doc.tr; doc.slides.forEach((x, i) => { if (prev && prev[i]) x.tr = prev[i]; }); render(); });
+  else toast(`Trilha adicionada para esse slide: ${TRILHA.short(TRILHA.title(id))}`);
+  UI.qs("#panel").scrollTop = 0;
+}
+/* Ouvir antes: um player pequeno no canto, que também toca na apresentação. */
+function ensurePlayer() { if (!pl) pl = TRILHA.player(UI.qs("#tr-yt"), { onChange: (st) => { UI.qs("#tr-mini-t").textContent = st.title || "Carregando…"; } }); return pl; }
+function preview(id) {
+  ensurePlayer(); UI.qs("#tr-mini").classList.add("on"); UI.qs("#tr-mini-k").textContent = "Ouvindo antes";
+  const go = () => { pl.setVol(trOf().vol ?? TRILHA.conf.service.vol); pl.playTrack(id); };
+  pl.st.ready ? go() : (function w() { pl.st.ready ? go() : setTimeout(w, 200); })();
+}
+UI.qs("#tr-mini-x").onclick = () => { pl && pl.pause(); UI.qs("#tr-mini").classList.remove("on"); };
+UI.qs("#file").onchange = (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  if (!/^image\//.test(f.type)) return toast("Esse arquivo não é uma imagem.", true);
+  const rd = new FileReader();
+  rd.onload = () => {
+    if (file_mode === "block") { S().layout.img = { x: 74, y: 50, w: 32, s: 1, a: "center", on: true, src: rd.result }; render(); cv.select("img"); toast("Imagem inserida. Arraste para mover, puxe o canto para mudar o tamanho."); }
+    else { doc.images.push(rd.result); if (bgScope === "all") doc.slides.forEach((x) => (x.image = rd.result)); else S().image = rd.result; bgTab = "img"; render(); toast("Imagem importada como fundo."); }
+    e.target.value = "";
+  };
+  rd.readAsDataURL(f);
+};
+
+/* ── fileira de slides: clicar, duplicar, apagar, arrastar para reordenar, + ── */
+const strip = UI.qs("#strip");
+strip.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b?.id === "add") return addSlide();
+  if (b?.dataset.dup) return addSlide(+b.dataset.dup, true);
+  if (b?.dataset.del) return delSlide(+b.dataset.del);
+  const t = e.target.closest(".th"); if (t) go(+t.dataset.i, true);
+});
+let dragI = null;
+strip.addEventListener("dragstart", (e) => { const t = e.target.closest(".th"); if (!t) return; dragI = +t.dataset.i; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragI); });
+strip.addEventListener("dragover", (e) => { const t = e.target.closest(".th"); if (dragI == null || !t) return; e.preventDefault(); const r = t.getBoundingClientRect(); UI.qsa(".th").forEach((x) => x.classList.remove("drop-l", "drop-r")); t.classList.add(e.clientX < r.left + r.width / 2 ? "drop-l" : "drop-r"); });
+strip.addEventListener("drop", (e) => {
+  const t = e.target.closest(".th"); if (dragI == null || !t) return; e.preventDefault();
+  let to = +t.dataset.i + (t.classList.contains("drop-r") ? 1 : 0); const from = dragI; dragI = null;
+  if (to === from || to === from + 1) return render();
+  const [m] = doc.slides.splice(from, 1); if (to > from) to--; doc.slides.splice(to, 0, m); cur = to; render(); toast(`Slide movido para a posição ${to + 1}.`);
+});
+strip.addEventListener("dragend", () => { dragI = null; UI.qsa(".th").forEach((x) => x.classList.remove("drop-l", "drop-r")); });
+
+/* ── teclado: o canvas cuida do bloco selecionado; sem seleção, as teclas são do deck ── */
+addEventListener("keydown", (e) => {
+  const mod = e.metaKey || e.ctrlKey, k = e.key;
+  if (mod && k.toLowerCase() === "s") { e.preventDefault(); return save(); }
+  if (UI.qs(".pres")) return;
+  if (e.defaultPrevented || e.target.closest("input, textarea, select, [contenteditable='plaintext-only']")) return;
+  if (mod && k.toLowerCase() === "d") { e.preventDefault(); return addSlide(cur, true); }
+  if (cv.sel) { // setas e Enter vão para o bloco; Delete oculta o bloco
+    if (k === "Backspace" || k === "Delete") { e.preventDefault(); S().layout[cv.sel].on = false; cv.select(null); render(); toast("Bloco ocultado. Para voltar: Texto → mostrar."); }
+    return;
+  }
+  if (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown") { e.preventDefault(); return go(cur + 1); }
+  if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") { e.preventDefault(); return go(cur - 1); }
+  if (k === "Home") return go(0); if (k === "End") return go(doc.slides.length - 1);
+  if (k === "Backspace" || k === "Delete") { e.preventDefault(); return delSlide(); }
+  if (k.toLowerCase() === "n" && !mod) return addSlide();
+  if (k.toLowerCase() === "p" && !mod) return present();
+  if (k === "?") return openPanel("keys", true);
+  if (k === "Enter") return toast("Selecione um texto no slide para escrever.", true);
+});
+
+/* ── apresentar: os slides em tela cheia, com o vídeo de fundo rodando ── */
+function present() {
+  let i = cur;
+  const el = document.createElement("div"); el.className = "pres"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Apresentação");
+  ensurePlayer();
+  const music = () => { const r = trResolve(trOf(i)); const run = () => pl.apply(r); pl.st.ready ? run() : setTimeout(music, 300); UI.qs("#tr-mini").classList.toggle("on", r.on); UI.qs("#tr-mini-k").textContent = r.on ? `Trilha · slide ${i + 1}` : "Sem trilha"; };
+  const paint = () => { music(); el.innerHTML = `<div class="slide song animate" data-video data-media-on="live">${DRAWER.template(view(i), { timer: false })}</div><div class="pres-hud"><button data-pv="-1" aria-label="Anterior">‹</button><span>${i + 1} / ${doc.slides.length}</span><button data-pv="1" aria-label="Próximo">›</button><button data-px aria-label="Sair">Sair (Esc)</button></div>`; XLOOK.hydrate(el); };
+  const keyp = (e) => { if (e.key === "Escape") close(); else if (/ArrowRight|PageDown| /.test(e.key)) { e.preventDefault(); i < doc.slides.length - 1 ? (i++, paint()) : toast("Fim do deck.", true); } else if (/ArrowLeft|PageUp/.test(e.key)) { i > 0 ? (i--, paint()) : toast("Este é o primeiro slide.", true); } };
+  const close = () => { removeEventListener("keydown", keyp, true); el.remove(); pl && pl.st.playing && pl.fadeTo(0, () => pl.pause()); UI.qs("#tr-mini").classList.remove("on"); };
+  el.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.px != null) close(); else { const n = i + +b.dataset.pv; if (n >= 0 && n < doc.slides.length) { i = n; paint(); } } };
+  addEventListener("keydown", keyp, true);
+  document.body.append(el); paint();
+}
+
+let tt;
+function toast(m, err, undo) {
+  const t = UI.qs("#toast");
+  t.innerHTML = `<span>${m}</span>${undo ? '<button id="undo">Desfazer</button>' : ""}`;
+  t.classList.toggle("err", !!err); t.classList.add("on");
+  undo && (UI.qs("#undo").onclick = () => { undo(); t.classList.remove("on"); });
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), undo ? 5000 : 2600);
+}
+
+UI.qs("#back").innerHTML = I.back;
+UI.qs("#back").href = itemRef ? `programa.html?p=${itemRef.pr.id}#${itemRef.it.id}` : file ? `arquivos.html?pasta=${doc.folder}` : key.startsWith("d:") ? "biblioteca.html?tab=decks" : "arquivos.html";
+UI.qs("#present").innerHTML = `${I.play}<span>Apresentar</span>`;
+UI.qs("#present").onclick = present;
+UI.qs("#save").onclick = save;
+UI.qs("#name").oninput = (e) => { doc.name = e.target.value; meta(); };
+UI.qs("#tr-chip").onclick = () => openPanel("trilha", true);
+TRILHA.on(() => { meta(); if (panel === "trilha") openPanel("trilha", true); });
+render();
+openPanel("bg");
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Mapa</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script>
+<style>
+  .hero { padding: var(--s6) 0 var(--s5); }
+  .hero h1 { font-size: clamp(36px, 9vw, 72px); }
+  .flow { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .flow > div { background: var(--surface); padding: var(--s4); }
+  .flow .n { font: 400 var(--t-xs) var(--mono); color: var(--fg-2); }
+  @media (min-width: 760px) { .flow { grid-template-columns: repeat(4, 1fr); } }
+  .scr { display: grid; gap: var(--s2); }
+  .scr a.card { display: grid; gap: 6px; transition: background .15s; }
+  .scr a.card:hover { background: var(--sunken); }
+  .reuse { font: 400 var(--t-xs) var(--mono); color: var(--live); }
+  @media (min-width: 640px) { .scr { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1000px) { .scr { grid-template-columns: repeat(3, 1fr); } }
+  table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+  td, th { text-align: left; padding: 10px 8px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font: 400 var(--t-xs) var(--mono); text-transform: uppercase; color: var(--fg-2); letter-spacing: .06em; }
+  .wrap-t { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="hero stack">
+    <span class="lbl">XLIDE v2 · Live Church · mockups mobile-first</span>
+    <h1>O culto inteiro<br>numa linha do tempo.</h1>
+    <p class="muted" style="max-width:56ch">Os decks e as músicas que já fazemos no XLIDE viram itens de um programa. Dá play e ele avança sozinho; o operador pausa, estende, pula ou volta. Usuários, papéis e dados agora moram no Supabase.</p>
+    <div class="chips"><span class="chip">390 px primeiro</span><span class="chip">sem raio</span><span class="chip">monocromático</span><span class="chip live">azul = ao vivo</span></div>
+  </header>
+
+  <div class="flow">
+    <div><span class="n">01 · Biblioteca</span><h3>Decks + músicas do XLIDE</h3><p class="muted">Letra sincronizada, tradução, slides prontos.</p></div>
+    <div><span class="n">02 · Programa</span><h3>Montar o sábado</h3><p class="muted">Do modelo, cada diretor preenche a sua área.</p></div>
+    <div><span class="n">03 · Execução</span><h3>Play</h3><p class="muted">Console, tela e página pública em sincronia.</p></div>
+    <div><span class="n">04 · Aprender</span><h3>Planejado × real</h3><p class="muted">Tempos reais sugerem o próximo modelo.</p></div>
+  </div>
+
+  <div class="section-h"><h2>Telas</h2><span class="lbl">Teste: abra Console, Tela e Ao vivo em 3 abas</span></div>
+  <div class="scr" id="scr"></div>
+
+  <div class="section-h"><h2>Ferramentas para integrar</h2><a class="lbl" href="integracao.md">plano completo →</a></div>
+  <div class="wrap-t"><table>
+    <tr><th>Ferramenta</th><th>Substitui / faz</th><th>Fase</th></tr>
+    <tr><td>Supabase Auth</td><td>PIN 1423 → login Google / link mágico, o mesmo da Classe</td><td>MVP</td></tr>
+    <tr><td>Tabelas <span class="mono">xlide_*</span> + <span class="mono">live_*</span> com RLS</td><td>Redis → Postgres por igreja (decks, boards, programas, execuções, papéis)</td><td>MVP</td></tr>
+    <tr><td>RPCs <span class="mono">live_run_*</span></td><td>Comandos do culto com <span class="mono">expected_version</span></td><td>MVP</td></tr>
+    <tr><td>Supabase Realtime</td><td>Polling de 2,5 s → troca em &lt; 2 s</td><td>MVP</td></tr>
+    <tr><td>Supabase Storage</td><td>Vercel Blob / Redis cheio → bucket <span class="mono">xlide-media</span></td><td>MVP</td></tr>
+    <tr><td>Script Redis → Supabase</td><td>Leva decks e boards atuais</td><td>MVP</td></tr>
+    <tr><td>Service Worker + IndexedDB</td><td>Culto continua sem internet; fila de comandos</td><td>MVP</td></tr>
+    <tr><td>Vitest</td><td><span class="mono">computeTiming</span> e <span class="mono">lyricsToSlides</span> testados</td><td>MVP</td></tr>
+    <tr><td>MCP do Live + <span class="mono">mcp_keys</span></td><td>IA monta programa e biblioteca</td><td>V2</td></tr>
+  </table></div>
+</main>
+<script>
+const groups = [
+  ["Base", [
+    ["entrar.html", "Entrar", "Login Supabase, escolha da igreja", "Login.tsx (sai o PIN)"],
+    ["equipe.html", "Equipe e papéis", "Admin, operador, editor por área, leitor", "novo"],
+    ["componentes.html", "Componentes", "Todos os blocos das telas, num lugar", "src/components/ui"],
+  ]],
+  ["Planejar", [
+    ["inicio.html", "Início", "Hoje, criar, próximos cultos, pendências, recentes", "Dashboard.tsx + Boards.tsx"],
+    ["boards.html", "Boards", "Lista de moodboards e mapas mentais", "Boards.tsx"],
+    ["board.html", "Board", "Mapa mental, moodboard, quadro e tudo junto", "Board.tsx + board/*"],
+    ["programa.html", "Programa", "Blocos por hora, arrastar e ajustar horários, gaveta com template", "dnd-kit do editor"],
+    ["biblioteca.html", "Biblioteca", "Músicas e decks buscáveis, uso por semana", "Dashboard + Music"],
+    ["musica.html", "Música", "Letra → slides por estrofe, idiomas", "Music.tsx + lyrics.tsx"],
+    ["agenda.html", "Agenda", "Mês com marcadores, escala e tarefas; dias com número gigante, linha do agora, eventos por tipo; painel do culto com slide, arquivos e equipe", "events + services"],
+    ["arquivos.html", "Meus arquivos", "Quem sou eu + pastas (Avisos, Pregação, Início, Oração, Versículos), Padrão, Arquivados, Lixeira; prévia e ações", "xlide_decks + folders"],
+    ["deck.html?f=f1", "Editor de deck", "Como no Canva: slides embaixo com +, fundo (cores, vídeos em loop ou uma vez, avisos, imagem importada), layout, texto, imagem, trilha, apresentar, atalhos de teclado", "Editor.tsx"],
+    ["kit.html", "Estúdio", "Todos os fundos (cores, loops, avisos) e fontes com exemplos; testar música, deck ou aviso", "song-style.ts + SlideView"],
+    ["estudio.html", "Editor de música", "Canvas do slide, fundos, fontes, trilha da música, ordem", "Editor.tsx + music-panels"],
+  ]],
+  ["Executar", [
+    ["console.html", "Console", "Multiview: tela agora + as duas próximas (clique avança/volta), pad de controle; celular deitado vira controle", "Remote.tsx"],
+    ["tela.html", "Tela de projeção", "Tela cheia, contagem, tela neutra", "Present.tsx"],
+    ["ao-vivo.html", "Ao vivo (público)", "Programa, item atual, término, letra", "Viewer.tsx"],
+  ]],
+  ["Aprender", [
+    ["relatorio.html", "Relatório", "Planejado × real, médias, sugestão", "novo"],
+  ]],
+];
+document.getElementById("scr").innerHTML = groups.map(([g, list]) =>
+  list.map(([f, n, d, r]) => `<a class="card" href="${f}"><span class="lbl">${g}</span><h3>${n}</h3><p class="muted">${d}</p><span class="reuse">↳ XLIDE: ${r}</span></a>`).join("")
+).join("");
+</script>
+</body>
+</html>

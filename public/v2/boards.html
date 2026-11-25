@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Boards</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/cards.js"></script>
+<style>
+  .b-head { display: grid; gap: var(--s4); padding: var(--s5) 0 var(--s4); border-bottom: 1px solid var(--fg); }
+  @media (min-width: 900px) { .b-head { grid-template-columns: minmax(0, 1fr) 320px; align-items: end; } }
+  .views { display: grid; border: 1px solid var(--line); }
+  .views > div { padding: var(--s4); display: grid; gap: var(--s2); background: var(--surface); }
+  .views > div + div { border-top: 1px solid var(--line); }
+  @media (min-width: 760px) { .views { grid-template-columns: repeat(3, 1fr); } .views > div + div { border-top: 0; border-left: 1px solid var(--line); } }
+  .views svg { width: 100%; height: 72px; color: var(--fg); }
+  .views b { font-weight: 600; text-transform: uppercase; }
+  .views p { font-size: var(--t-sm); color: var(--fg-2); }
+  .rc:target { outline: 2px solid var(--fg); outline-offset: 2px; }
+</style>
+</head>
+<body data-tab="boards">
+<main class="app home">
+  <header class="b-head">
+    <h1 class="disp">Boards</h1>
+    <div class="stack-sm"><p class="muted">Cada ideia vira um board: o mapa da ideia, um moodboard livre com referências e um quadro por etapas. É o mesmo editor de boards do XLIDE.</p>
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="q" placeholder="Buscar board" aria-label="Buscar board"></div></div>
+  </header>
+
+  <header class="sec-x"><span class="n">01</span><h2>Seus boards</h2><span class="lbl" id="count"></span></header>
+  <div class="rc-grid" id="grid"></div>
+
+  <header class="sec-x"><span class="n">02</span><h2>Três vistas, uma ideia</h2></header>
+  <div class="views">
+    <div><svg viewBox="0 0 200 72" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="80" y="26" width="40" height="20" fill="currentColor"/><rect x="10" y="6" width="36" height="16"/><rect x="10" y="50" width="36" height="16"/><rect x="154" y="6" width="36" height="16"/><rect x="154" y="50" width="36" height="16"/><path d="M46 14h34v12M46 58h34V46M154 14h-34v12M154 58h-34V46" stroke-dasharray="3 3"/></svg><b>Mapa</b><p>A ideia no centro e as etapas em volta, ligadas por linhas pontilhadas.</p></div>
+    <div><svg viewBox="0 0 200 72" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="10" y="6" width="54" height="60" fill="currentColor" opacity=".85"/><rect x="72" y="6" width="56" height="28"/><rect x="72" y="40" width="16" height="26" fill="currentColor"/><rect x="92" y="40" width="16" height="26" fill="currentColor" opacity=".5"/><rect x="112" y="40" width="16" height="26" fill="currentColor" opacity=".2"/><path d="M140 12h50M140 22h40M140 32h46"/><rect x="140" y="44" width="50" height="22"/></svg><b>Moodboard</b><p>Tela livre com imagens, notas, cores, links e vídeos de referência.</p></div>
+    <div><svg viewBox="0 0 200 72" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M70 4v64M134 4v64"/><rect x="10" y="8" width="52" height="16" fill="currentColor"/><rect x="10" y="30" width="52" height="16"/><rect x="76" y="8" width="52" height="16"/><rect x="140" y="8" width="52" height="16"/><rect x="140" y="30" width="52" height="16"/><rect x="140" y="52" width="52" height="16"/></svg><b>Quadro</b><p>As tarefas por etapa, do topo do funil até a entrega.</p></div>
+  </div>
+</main>
+<script>
+const ids = Object.keys(XL.boards);
+function list(q = "") {
+  q = q.toLowerCase();
+  const show = ids.filter((id) => !q || XL.boards[id].title.toLowerCase().includes(q));
+  UI.qs("#count").textContent = `${show.length} de ${ids.length}`;
+  UI.qs("#grid").innerHTML = `<button class="rc-new" id="new">${UI.I.plus}<b>Novo moodboard</b><span style="font-size:var(--t-sm)">Abre em branco no editor de boards</span></button>` +
+    (show.map((id) => CARDS.card("board", id)).join("") || `<p class="muted">Nenhum board com “${q}”.</p>`);
+  UI.qs("#new").onclick = () => UI.sheet(`<div class="stack"><h2>Novo moodboard</h2><label class="field"><span class="lbl">Nome</span><input class="input" placeholder="Ex.: Retiro jovem 2027" autofocus></label><button class="btn primary block" onclick="UI.closeSheet()">Criar board</button><p class="hint muted" style="font-size:var(--t-xs)">No app, abre o editor de boards do XLIDE (mapa, moodboard e quadro).</p></div>`);
+}
+UI.qs("#q").oninput = (e) => list(e.target.value);
+list();
+if (new URLSearchParams(location.search).get("novo")) setTimeout(() => UI.qs("#new").click(), 50);
+</script>
+</body>
+</html>

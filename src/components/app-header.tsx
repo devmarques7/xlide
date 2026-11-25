@@ -5,6 +5,7 @@ import { Logo } from "@/components/logo";
 import { FontSizeControl, LanguageMenu, PrefsMenu, ThemeToggle } from "@/components/prefs-controls";
 import { Button } from "@/components/ui/button";
 import { lock } from "@/lib/auth";
+import { supabaseEnabled } from "@/lib/supabase";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,12 @@ export function AppHeader({ children, className }: { children?: ReactNode; class
       {label}
     </NavLink>
   );
+  // XLIDE v2 (Live Church): páginas em /v2, só com o Supabase ligado
+  const live = supabaseEnabled && (
+    <a href="/v2/inicio.html" className="label-xs rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:text-foreground">
+      {t("nav.live")}
+    </a>
+  );
   return (
     <header className={cn("sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md", className)}>
       <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-4 sm:h-16 sm:px-6">
@@ -32,6 +39,7 @@ export function AppHeader({ children, className }: { children?: ReactNode; class
           {nav("/", t("nav.dashboard"))}
           {nav("/boards", t("nav.boards"))}
           {nav("/identity", t("nav.identity"))}
+          {live}
         </nav>
         <div className="ml-auto flex items-center gap-1">
           {children}
@@ -61,6 +69,7 @@ export function AppHeader({ children, className }: { children?: ReactNode; class
         {nav("/", t("nav.dashboard"))}
         {nav("/boards", t("nav.boards"))}
         {nav("/identity", t("nav.identity"))}
+        {live}
       </nav>
     </header>
   );

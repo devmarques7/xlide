@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Agenda</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/drawer.js"></script><script src="assets/files.js"></script>
+<style>
+  /* Agenda: mês + escala + tarefas | dias com número gigante | o culto selecionado */
+  .ag .app { padding-top: 0; }
+  .ag-grid { display: grid; gap: 0; }
+  @media (min-width: 1000px) { .ag-grid { grid-template-columns: 300px minmax(0, 1fr); } }
+  @media (min-width: 1400px) { .ag-grid { grid-template-columns: 300px minmax(0, 1fr) 380px; } }
+  .ag-l, .ag-r { padding: var(--s4) var(--s4) var(--s6); background: var(--surface); }
+  .ag-l { border-bottom: 1px solid var(--line); }
+  @media (min-width: 1000px) { .ag-l { border: 0; border-right: 1px solid var(--line); position: sticky; top: var(--mk-h, 0px); height: calc(100vh - var(--mk-h, 0px)); overflow-y: auto; } }
+  .ag-r { display: none; }
+  @media (min-width: 1400px) { .ag-r { display: grid; align-content: start; gap: var(--s4); border-left: 1px solid var(--line); position: sticky; top: var(--mk-h, 0px); height: calc(100vh - var(--mk-h, 0px)); overflow-y: auto; } }
+  .ag-c { padding: var(--s4) var(--s5) var(--s7); min-width: 0; }
+
+  /* esquerda */
+  .l-h { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); margin-bottom: var(--s4); }
+  .l-h h2 { font-size: var(--t-xl); font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: var(--s2); }
+  .l-h h2 svg { width: 22px; height: 22px; }
+  .mo-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s2); }
+  .mo-h b { font-weight: 600; }
+  .mo-h button { width: 28px; height: 28px; display: grid; place-items: center; }
+  .mo-h svg { width: 16px; height: 16px; }
+  .mo { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
+  .mo .wd { font: 400 10px var(--mono); text-transform: uppercase; color: var(--fg-2); padding-bottom: var(--s2); }
+  .mo .wd.today { color: var(--fg); font-weight: 600; }
+  .mo button { position: relative; height: 40px; display: grid; place-items: center; font-size: var(--t-lg); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .mo button.out { color: color-mix(in srgb, var(--fg-2) 55%, transparent); font-weight: 400; }
+  .mo button:hover { background: var(--sunken); }
+  .mo button.sel { outline: 1px solid var(--fg); outline-offset: -1px; }
+  .mo button.today { background: var(--live); color: #fff; }
+  .mo .dots { position: absolute; bottom: 3px; left: 0; right: 0; display: flex; justify-content: center; gap: 3px; }
+  .mo .dots i { width: 5px; height: 5px; }
+  .l-sec { margin-top: var(--s5); }
+  .l-sec-h { display: flex; align-items: center; justify-content: space-between; padding-bottom: var(--s2); border-bottom: 1px solid var(--line); margin-bottom: var(--s2); }
+  .l-sec-h b { font-weight: 600; font-size: var(--t-md); }
+  .l-sec-h button { width: 28px; height: 28px; display: grid; place-items: center; }
+  .l-sec-h svg { width: 18px; height: 18px; }
+  .esc { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: var(--s2); align-items: center; padding: 6px 0; font-size: var(--t-sm); }
+  .esc .avatar { width: 28px; height: 28px; font-size: 10px; }
+  .esc b { font-weight: 600; display: block; } .esc small { color: var(--fg-2); font-size: var(--t-xs); }
+  .esc .t { font: 400 var(--t-xs) var(--mono); color: var(--fg-2); }
+  .tk { display: grid; grid-template-columns: 10px minmax(0, 1fr) 20px; gap: var(--s3); align-items: center; padding: 7px 0; font-size: var(--t-sm); font-weight: 500; cursor: pointer; }
+  .tk i { width: 8px; height: 8px; }
+  .tk .bx { width: 18px; height: 18px; border: 1px dashed var(--fg-2); display: grid; place-items: center; }
+  .tk.ok span { text-decoration: line-through; color: var(--fg-2); }
+  .tk.ok .bx { background: var(--fg); border: 1px solid var(--fg); color: var(--bg); font-size: 12px; }
+
+  /* centro */
+  .c-h { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s2) 0 var(--s3); border-bottom: 1px solid var(--line); position: sticky; top: var(--mk-h, 0px); z-index: 5; background: var(--bg); }
+  .c-h h1 { font-size: var(--t-xl); font-weight: 700; letter-spacing: -0.02em; }
+  .c-h h1 span { color: var(--fg-2); font-weight: 500; }
+  .c-h .grow { flex: 1; }
+  .c-h .nav { display: inline-flex; border: 1px solid var(--line); }
+  .c-h .nav button { height: 36px; min-width: 36px; padding: 0 10px; display: grid; place-items: center; font-size: var(--t-sm); }
+  .c-h .nav button + button { border-left: 1px solid var(--line); }
+  .c-h .nav svg { width: 16px; height: 16px; }
+  .c-h .seg { min-width: 300px; }
+  .share { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; background: var(--fg); color: var(--bg); font-weight: 600; font-size: var(--t-sm); }
+  .share svg { width: 16px; height: 16px; }
+
+  .day { display: grid; gap: var(--s3); padding: var(--s4) 0 var(--s5); border-top: 1px solid var(--line); }
+  .day.today { border-top: 3px solid var(--fg); }
+  @media (min-width: 760px) { .day { grid-template-columns: minmax(200px, 0.9fr) minmax(0, 1.5fr); gap: var(--s4); } }
+  .dn { display: flex; align-items: flex-start; gap: var(--s2); line-height: .8; }
+  .dn b { font-size: clamp(96px, 11vw, 168px); font-weight: 800; letter-spacing: -0.07em; font-variant-numeric: tabular-nums; }
+  .dn span { font-size: var(--t-xl); font-weight: 700; color: var(--late); padding-top: 6px; letter-spacing: -0.01em; }
+  .dn small { display: block; font: 400 var(--t-xs) var(--mono); color: var(--fg-2); text-transform: uppercase; margin-top: 10px; letter-spacing: .04em; }
+  .day.past .dn b { color: color-mix(in srgb, var(--fg) 35%, transparent); }
+  .evs { display: grid; gap: var(--s2); align-content: start; }
+  .ev { display: grid; grid-template-columns: 112px 2px minmax(0, 1fr) auto; gap: var(--s3); padding: var(--s3) var(--s3) var(--s2); background: var(--surface); border: 1px solid var(--line); text-align: left; min-height: 64px; cursor: pointer; }
+  .ev:hover { border-color: color-mix(in srgb, var(--fg) 45%, var(--line)); }
+  .ev.on { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+  .ev.next { border-style: dashed; border-color: var(--fg-2); }
+  .ev.short { min-height: 0; padding: var(--s2) var(--s3); align-items: center; }
+  .ev.done { opacity: .55; }
+  .ev .tm { font: 600 var(--t-xl)/1 var(--font); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ev .tm small { font: 400 var(--t-sm) var(--font); color: var(--fg-2); letter-spacing: 0; }
+  .ev .rule { background: var(--c, var(--fg)); }
+  .ev .what { display: grid; gap: 2px; align-content: start; min-width: 0; }
+  .ev .cat { font-size: var(--t-sm); font-weight: 600; color: var(--c, var(--fg-2)); }
+  .ev h3 { font-size: var(--t-md); font-weight: 650; line-height: 1.2; }
+  .ev .where { margin-top: var(--s3); display: flex; align-items: center; gap: 6px; font-size: var(--t-xs); color: var(--fg-2); }
+  .ev .where svg { width: 13px; height: 13px; }
+  .ev .avs { align-self: start; }
+  .ev.short .where { display: none; }
+  .nowline { position: relative; height: 22px; display: flex; align-items: center; }
+  .nowline::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--late); }
+  .nowline i { position: absolute; width: 8px; height: 8px; background: var(--late); top: 50%; transform: translateY(-50%); }
+  .nowline i:first-child { left: -3px; } .nowline i:last-of-type { right: -3px; }
+  .nextlbl { font-size: var(--t-xs); color: var(--fg-2); padding-left: calc(112px + 2px + var(--s3) * 2 + var(--s3)); }
+  .nextlbl b { color: var(--fg); font-weight: 600; }
+  .addrow { display: flex; justify-content: flex-end; }
+  .add { width: 40px; height: 40px; display: grid; place-items: center; background: var(--sunken); border: 1px solid var(--line); }
+  .add:hover { border-color: var(--fg); }
+  .add svg { width: 18px; height: 18px; }
+  .none { display: grid; gap: var(--s2); padding: var(--s4); border: 1px dashed var(--line); color: var(--fg-2); font-size: var(--t-sm); }
+  .none svg { width: 22px; height: 22px; }
+  @media (max-width: 759px) { .ev { grid-template-columns: 76px 2px minmax(0, 1fr); } .ev .avs { display: none; } .ev .tm { font-size: var(--t-lg); } .nextlbl { padding-left: 0; } .c-h .seg { min-width: 0; width: 100%; } }
+
+  /* direita: o culto/evento selecionado */
+  .r-h h2 { font-size: var(--t-xl); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+  .r-h p { font-size: var(--t-xl); font-weight: 600; color: var(--fg-2); letter-spacing: -0.02em; line-height: 1.05; }
+  .r-stage { position: relative; aspect-ratio: 4 / 3.2; display: grid; place-items: center; background-color: var(--sunken); background-image: radial-gradient(color-mix(in srgb, var(--fg) 28%, transparent) 1px, transparent 1.3px); background-size: 12px 12px; }
+  .r-stage .slide { width: 86%; box-shadow: 0 20px 50px -24px rgb(0 0 0 / .6); }
+  .r-stage .xglyph { width: 46%; color: var(--fg); }
+  .r-wid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .wid { padding: var(--s3); background: var(--bg); border: 1px solid var(--line); min-width: 0; }
+  .wid-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--s2); font-weight: 600; font-size: var(--t-sm); }
+  .wid .tk { font-size: var(--t-xs); padding: 5px 0; grid-template-columns: 8px minmax(0, 1fr) 16px; gap: var(--s2); }
+  .wid .tk .bx { width: 14px; height: 14px; }
+  .docs { position: relative; height: 96px; }
+  .docs .slide { position: absolute; width: 78%; left: 11%; top: 8px; box-shadow: 0 8px 20px -10px rgb(0 0 0 / .5); }
+  .docs .slide:nth-child(1) { transform: rotate(-7deg) translate(-8px, 4px); }
+  .docs .slide:nth-child(2) { transform: rotate(5deg) translate(8px, 2px); }
+  .docs + small { display: block; margin-top: var(--s2); font-size: var(--t-xs); color: var(--fg-2); }
+  .docs + small b { display: block; color: var(--fg); font-size: var(--t-sm); }
+  .r-meta { display: grid; gap: 6px; font-size: var(--t-sm); }
+  .r-meta div { display: flex; justify-content: space-between; gap: var(--s3); padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .r-meta span { color: var(--fg-2); }
+  .r-acts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+</style>
+</head>
+<body data-tab="agenda" class="ag">
+<main class="app" style="padding-left:0;padding-right:0">
+  <div class="ag-grid">
+    <aside class="ag-l" aria-label="Mês, escala e tarefas">
+      <div class="l-h"><h2 id="l-title"></h2><button class="icon-btn" id="find" aria-label="Buscar"></button></div>
+      <div class="mo-h"><button id="m-prev" aria-label="Mês anterior"></button><b id="m-name"></b><button id="m-next" aria-label="Próximo mês"></button></div>
+      <div class="mo" id="mo"></div>
+      <div class="l-sec"><div class="l-sec-h"><b>Escala do sábado</b><a class="lbl" href="equipe.html">Equipe</a></div><div id="esc"></div></div>
+      <div class="l-sec"><div class="l-sec-h"><b>Tarefas</b><button id="tk-add" aria-label="Nova tarefa"></button></div><div id="tks"></div></div>
+    </aside>
+
+    <section class="ag-c" aria-label="Dias">
+      <header class="c-h">
+        <h1 id="c-title"></h1>
+        <div class="nav"><button id="w-prev" aria-label="Semana anterior"></button><button id="w-today">Hoje</button><button id="w-next" aria-label="Próxima semana"></button></div>
+        <span class="grow"></span>
+        <div class="seg" id="flt"><button class="on" data-f="all">Tudo</button><button data-f="culto">Cultos</button><button data-f="ensaio">Ensaios</button><button data-f="reuniao">Reuniões</button></div>
+        <button class="share" id="share"></button>
+      </header>
+      <div id="days"></div>
+    </section>
+
+    <aside class="ag-r" id="side" aria-label="Evento selecionado"></aside>
+  </div>
+</main>
+<div class="toast" id="toast" role="status" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;padding:12px 16px;background:var(--invert-bg);color:var(--invert-fg);font-size:var(--t-sm);opacity:0;transition:opacity .2s;pointer-events:none"></div>
+<script>
+const { I } = UI, esc = FILEUI.esc;
+const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square">${d}</svg>`;
+const IC = { cal: P('<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>'), pin: P('<path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), video: P('<rect x="3" y="6" width="13" height="12"/><path d="m16 10 5-3v10l-5-3"/>'), share: P('<path d="M4 12v8h16v-8M12 3v12M7 8l5-5 5 5"/>') };
+UI.qs("#l-title").innerHTML = IC.cal + "Agenda";
+UI.qs("#find").innerHTML = I.search;
+UI.qs("#m-prev").innerHTML = UI.qs("#w-prev").innerHTML = I.back;
+UI.qs("#m-next").innerHTML = UI.qs("#w-next").innerHTML = I.chev;
+UI.qs("#tk-add").innerHTML = I.plus;
+UI.qs("#share").innerHTML = IC.share + "Compartilhar";
+
+/* "Hoje" do mockup: terça 25/11, na hora real do computador (como no Início).
+   O mockup inteiro conta o culto como sábado 29/11; os dias da semana seguem esse calendário
+   (o de 2025) e o ano mostrado é o do mockup. */
+const Y = 2025, YEAR = (y) => y + 1;
+const now = () => { const d = new Date(); return new Date(Y, 10, 25, d.getHours(), d.getMinutes()); };
+const TODAY = new Date(Y, 10, 25);
+const WD = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const WDL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const MON = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const key = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+const same = (a, b) => key(a) === key(b);
+const addD = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+
+/* Tipos de evento: a cor da régua vem da área (mesmas cores de estado do XLIDE). */
+const CAT = {
+  culto: { n: "Culto", c: "var(--live)" }, ensaio: { n: "Ensaio", c: "var(--ok)" }, reuniao: { n: "Reunião", c: "var(--warn)" },
+  oracao: { n: "Oração", c: "var(--late)" }, som: { n: "Sonoplastia", c: "var(--fg-2)" }, social: { n: "Comunhão", c: "var(--fg)" },
+};
+const E = (y, m, d, s, e, cat, title, o = {}) => ({ id: `${m}-${d}-${s}`, date: new Date(y, m - 1, d), s, e, cat, title, who: [], where: "Salão principal", ...o });
+const BASE = [
+  E(Y, 11, 23, "10:00", "11:30", "social", "Café com novos membros", { who: ["ana", "rute"] }),
+  E(Y, 11, 25, "19:30", "21:00", "ensaio", "Ensaio do louvor", { who: ["lucas", "bia"], note: "Luz da manhã, Mesa grande, Caminho aberto", files: ["f8"] }),
+  E(Y, 11, 25, "21:00", "21:15", "reuniao", "Café com a equipe de som", { who: ["bia"], short: true }),
+  E(Y, 11, 26, "20:00", "21:00", "oracao", "Reunião de oração", { who: ["rute", "ana"], where: "Online", online: true, files: ["f10", "f11"] }),
+  E(Y, 11, 27, "19:30", "21:00", "ensaio", "Ensaio do coral", { who: ["lucas"] }),
+  E(Y, 11, 27, "21:00", "21:30", "reuniao", "Revisão do programa de sábado", { who: ["ana", "pr", "joao"], where: "Online", online: true, prog: true, files: ["f1", "f5"] }),
+  E(Y, 11, 29, "08:30", "09:30", "som", "Passagem de som", { who: ["bia", "lucas"] }),
+  E(Y, 11, 29, "10:00", "11:35", "culto", "Culto principal", { who: ["ana", "pr", "lucas", "bia", "joao"], prog: true, files: ["f1", "f5", "f8"] }),
+  E(Y, 11, 29, "12:00", "13:30", "social", "Almoço fraterno", { who: ["rute"], where: "Salão de baixo" }),
+  E(Y, 11, 29, "16:00", "17:30", "culto", "Culto jovem", { who: ["joao", "bia"], files: ["f3"] }),
+  E(Y, 12, 2, "20:00", "21:00", "oracao", "Reunião de oração", { who: ["rute"], where: "Online", online: true }),
+  E(Y, 12, 4, "19:30", "21:00", "ensaio", "Ensaio do louvor", { who: ["lucas", "bia"] }),
+  E(Y, 12, 6, "10:00", "11:30", "culto", "Culto principal", { who: ["ana", "pr", "bia"], prog: true }),
+  E(Y, 12, 6, "16:00", "17:30", "culto", "Culto jovem", { who: ["joao"] }),
+  E(Y, 12, 13, "10:00", "12:00", "culto", "Culto principal, batismo", { who: ["ana", "pr", "lucas", "bia"], prog: true, files: ["f2"] }),
+];
+const KEY = "xlide.v2.agenda";
+let saved = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || { added: [], tasks: {} }; } catch { return { added: [], tasks: {} }; } })();
+const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {} };
+const events = () => [...BASE, ...saved.added.map((e) => ({ ...e, date: new Date(e.date) }))].sort((a, b) => a.date - b.date || a.s.localeCompare(b.s));
+const onDay = (d) => events().filter((e) => same(e.date, d) && (flt === "all" || e.cat === flt || (flt === "reuniao" && e.cat === "oracao")));
+const mins = (hm) => { const [h, m] = hm.split(":").map(Number); return h * 60 + m; };
+
+let sel = TODAY, month = new Date(Y, 10, 1), flt = "all", selEv = BASE.find((e) => e.id === "11-29-10:00").id;
+
+/* ── esquerda: mês ── */
+function monthHTML() {
+  UI.qs("#m-name").textContent = `${MON[month.getMonth()]} ${YEAR(month.getFullYear())}`;
+  const first = new Date(month.getFullYear(), month.getMonth(), 1), start = addD(first, -first.getDay());
+  let h = WD.map((w, i) => `<span class="wd${i === TODAY.getDay() ? " today" : ""}">${w.slice(0, 2)}</span>`).join("");
+  for (let k = 0; k < 42; k++) {
+    const d = addD(start, k);
+    if (k === 35 && d.getMonth() !== month.getMonth()) break;
+    const evs = events().filter((e) => same(e.date, d));
+    const cats = [...new Set(evs.map((e) => e.cat))].slice(0, 3);
+    h += `<button class="${d.getMonth() !== month.getMonth() ? "out" : ""}${same(d, TODAY) ? " today" : ""}${same(d, sel) ? " sel" : ""}" data-d="${key(d)}" aria-label="${d.getDate()} de ${MON[d.getMonth()]}${evs.length ? ", " + evs.length + " eventos" : ""}">${d.getDate()}${cats.length ? `<span class="dots">${cats.map((c) => `<i style="background:${same(d, TODAY) ? "#fff" : CAT[c].c}"></i>`).join("")}</span>` : ""}</button>`;
+  }
+  UI.qs("#mo").innerHTML = h;
+  UI.qsa("#mo [data-d]").forEach((b) => (b.onclick = () => { const [y, m, d] = b.dataset.d.split("-").map(Number); sel = new Date(y, m - 1, d); render(); jump(sel); }));
+}
+function escala() {
+  const sab = events().filter((e) => same(e.date, new Date(Y, 10, 29)));
+  const rows = []; sab.forEach((e) => e.who.forEach((k) => { if (!rows.some((r) => r[0] === k)) rows.push([k, e]); }));
+  UI.qs("#esc").innerHTML = rows.slice(0, 6).map(([k, e]) => `<div class="esc"><span class="avatar">${XL.people[k].ini}</span><span><b>${esc(XL.people[k].name)}</b><small>${esc(e.title)}</small></span><span class="t">${e.s}</span></div>`).join("");
+}
+const TASKS = [["t1", "Revisar letras de sábado", "var(--ok)"], ["t2", "Vídeo da missão Rotterdam", "var(--warn)"], ["t3", "Trocar pilha do microfone 3", "var(--late)"], ["t4", "Enviar avisos para o João", "var(--live)"]];
+const tasksHTML = () => TASKS.concat(saved.extra || []).map(([k, n, c]) => `<div class="tk${saved.tasks[k] ? " ok" : ""}" data-tk="${k}" role="checkbox" aria-checked="${!!saved.tasks[k]}" tabindex="0"><i style="background:${c}"></i><span>${esc(n)}</span><span class="bx">${saved.tasks[k] ? "✓" : ""}</span></div>`).join("");
+function tasks() { UI.qs("#tks").innerHTML = tasksHTML(); }
+document.addEventListener("click", (e) => { const t = e.target.closest("[data-tk]"); if (!t) return; saved.tasks[t.dataset.tk] = !saved.tasks[t.dataset.tk]; keep(); tasks(); side(); });
+UI.qs("#tk-add").onclick = () => { UI.sheet(`<div class="stack"><h2>Nova tarefa</h2><label class="field"><span class="lbl">Tarefa</span><input class="input" id="nt" placeholder="Ex.: Imprimir a escala"></label><button class="btn primary block" id="nt-ok">Adicionar</button></div>`); UI.qs("#nt").focus(); UI.qs("#nt-ok").onclick = () => { const v = UI.qs("#nt").value.trim(); if (!v) return; (saved.extra = saved.extra || []).push(["x" + Date.now(), v, "var(--fg)"]); keep(); tasks(); side(); UI.closeSheet(); }; };
+
+/* ── centro: a semana, um dia por linha com o número gigante ── */
+function weekStart(d) { return addD(d, -d.getDay()); }
+function evHTML(e, nextId) {
+  const n = now(), past = same(e.date, TODAY) ? mins(e.e) < n.getHours() * 60 + n.getMinutes() : e.date < TODAY;
+  const c = CAT[e.cat];
+  return `<button class="ev${e.short ? " short" : ""}${e.id === selEv ? " on" : ""}${e.id === nextId ? " next" : ""}${past ? " done" : ""}" data-ev="${e.id}" style="--c:${c.c}">
+    <span class="tm">${e.s}<small>–${e.e}</small></span><span class="rule"></span>
+    <span class="what">${e.short ? "" : `<span class="cat">${c.n}</span>`}<h3>${esc(e.title)}</h3><span class="where">${e.online ? IC.video : IC.pin}${esc(e.where)}${e.prog ? " · com programa" : ""}</span></span>
+    <span class="avs">${e.who.slice(0, 3).map((k) => `<span class="av" title="${esc(XL.people[k].name)}">${XL.people[k].ini}</span>`).join("")}</span></button>`;
+}
+function days() {
+  const ws = weekStart(sel), we = addD(ws, 6);
+  UI.qs("#c-title").innerHTML = `${MON[ws.getMonth()]}${ws.getMonth() !== we.getMonth() ? "–" + MON[we.getMonth()] : ""} <span>${YEAR(we.getFullYear())}</span>`;
+  const n = now(), nm = n.getHours() * 60 + n.getMinutes();
+  const upcoming = events().filter((e) => e.date > TODAY || (same(e.date, TODAY) && mins(e.s) > nm));
+  const next = upcoming[0];
+  let h = "";
+  for (let k = 0; k < 7; k++) {
+    const d = addD(ws, k), L = onDay(d), isT = same(d, TODAY);
+    let list = "";
+    if (isT) {
+      // linha do "agora" entre os eventos de hoje
+      const before = L.filter((e) => mins(e.s) <= nm), after = L.filter((e) => mins(e.s) > nm);
+      const gap = next ? Math.round(((next.date - TODAY) / 6e4 + mins(next.s) - nm)) : null;
+      const gapTxt = gap == null ? "" : gap < 60 ? `${gap} min` : gap < 1440 ? `${Math.floor(gap / 60)} h${gap % 60 ? " " + (gap % 60) + " min" : ""}` : `${Math.round(gap / 1440)} dias`;
+      list = before.map((e) => evHTML(e, next?.id)).join("") + `<div class="nowline" aria-label="Agora, ${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}"><i></i><i></i></div>${next ? `<p class="nextlbl">Próximo: <b>${esc(next.title)}</b> em <b>${gapTxt}</b></p>` : ""}` + after.map((e) => evHTML(e, next?.id)).join("");
+    } else list = L.map((e) => evHTML(e, next?.id)).join("") || `<div class="none">${IC.cal}<span>Nada marcado ainda.</span></div>`;
+    h += `<article class="day${isT ? " today" : ""}${d < TODAY ? " past" : ""}" id="d-${key(d)}"><div class="dn"><b>${String(d.getDate()).padStart(2, "0")}</b><span>${WD[d.getDay()]}<small>${MON[d.getMonth()].slice(0, 3)} · ${L.length} ${L.length === 1 ? "evento" : "eventos"}</small></span></div>
+      <div class="evs">${list}<div class="addrow"><button class="add" data-add="${key(d)}" aria-label="Novo evento em ${d.getDate()} de ${MON[d.getMonth()]}">${I.plus}</button></div></div></article>`;
+  }
+  UI.qs("#days").innerHTML = h;
+}
+function jump(d) { const el = document.getElementById("d-" + key(d)); el && el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); }
+
+/* ── direita: o evento escolhido ── */
+function side() {
+  const e = events().find((x) => x.id === selEv) || events()[0], c = CAT[e.cat];
+  const prog = e.prog ? XL.program.items[0] : null;
+  const files = (e.files || []).map((id) => FILES.get(id)).filter(Boolean);
+  const stage = files[0] ? `<div class="slide song animate" data-video>${DRAWER.template({ ...files[0], seconds: 0 })}</div>` : UI.glyph();
+  UI.qs("#side").innerHTML = `
+    <div class="r-h"><h2>${esc(e.title)}</h2><p>${WDL[e.date.getDay()]}, ${e.date.getDate()} de ${MON[e.date.getMonth()].toLowerCase()}</p></div>
+    <div class="r-stage">${stage}</div>
+    <div class="r-meta"><div><span>Horário</span><b>${e.s}–${e.e}</b></div><div><span>Tipo</span><b style="color:${c.c}">${c.n}</b></div><div><span>Local</span><b>${esc(e.where)}</b></div>${e.note ? `<div><span>Repertório</span><b style="text-align:right">${esc(e.note)}</b></div>` : ""}</div>
+    <div class="r-wid">
+      <div class="wid"><div class="wid-h"><span>Tarefas</span><span class="lbl">${TASKS.filter(([k]) => !saved.tasks[k]).length}</span></div>${tasksHTML()}</div>
+      <div class="wid"><div class="wid-h"><span>Arquivos</span><a class="lbl" href="arquivos.html">Ver</a></div>${files.length ? `<div class="docs">${files.slice(0, 3).map((f) => DRAWER.mini({ ...f, seconds: 0 })).join("")}</div><small><b>${esc(files[0].name)}</b>${files.length > 1 ? `e mais ${files.length - 1}` : ""}</small>` : `<p class="muted" style="font-size:var(--t-xs)">Nenhum arquivo ligado a este evento.</p>`}</div>
+    </div>
+    <div class="r-meta"><div><span>Equipe</span><b>${e.who.length} pessoas</b></div></div>
+    <div>${e.who.map((k) => `<div class="esc"><span class="avatar">${XL.people[k].ini}</span><span><b>${esc(XL.people[k].name)}</b><small>${esc(XL.people[k].title)}</small></span><span></span></div>`).join("")}</div>
+    <div class="r-acts">${e.prog ? `<a class="btn primary" href="programa.html">${I.list}Programa</a><a class="btn" href="console.html">${I.live}Ao vivo</a>` : `<a class="btn" href="arquivos.html">${I.folder}Arquivos</a><button class="btn" id="r-share">${IC.share}Compartilhar</button>`}</div>`;
+  XLOOK.hydrate(UI.qs("#side"));
+}
+
+/* ── interações ── */
+UI.qs("#days").addEventListener("click", (e) => {
+  const ev = e.target.closest("[data-ev]");
+  if (ev) {
+    selEv = ev.dataset.ev; UI.qsa(".ev").forEach((x) => x.classList.toggle("on", x === ev));
+    if (matchMedia("(min-width: 1400px)").matches) side();
+    else { const sh = UI.sheet(`<div class="stack" id="side-m"></div>`); const box = sh.querySelector("#side-m"); const real = UI.qs("#side"); side(); box.innerHTML = `<div class="row between"><span class="lbl">Evento</span><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${I.x}</button></div>` + real.innerHTML; XLOOK.hydrate(box); }
+    return;
+  }
+  const add = e.target.closest("[data-add]");
+  if (add) {
+    const [y, m, d] = add.dataset.add.split("-").map(Number);
+    UI.sheet(`<div class="stack"><div class="row between"><h2>Novo evento · ${d}/${m}</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${I.x}</button></div>
+      <label class="field"><span class="lbl">Título</span><input class="input" id="ne-t" placeholder="Ex.: Ensaio do coral"></label>
+      <div class="grid grid-2"><label class="field"><span class="lbl">Começa</span><input class="input" id="ne-s" type="time" value="19:30"></label><label class="field"><span class="lbl">Termina</span><input class="input" id="ne-e" type="time" value="21:00"></label></div>
+      <div class="field"><span class="lbl">Tipo</span><div class="seg" id="ne-c">${Object.entries(CAT).slice(0, 4).map(([k, c], i) => `<button data-c="${k}" class="${i === 1 ? "on" : ""}">${c.n}</button>`).join("")}</div></div>
+      <label class="field"><span class="lbl">Local</span><input class="input" id="ne-w" value="Salão principal"></label>
+      <button class="btn primary block" id="ne-ok">Adicionar à agenda</button></div>`);
+    let cat = "ensaio";
+    UI.qsa("#ne-c button").forEach((b) => (b.onclick = () => { cat = b.dataset.c; UI.qsa("#ne-c button").forEach((x) => x.classList.toggle("on", x === b)); }));
+    UI.qs("#ne-t").focus();
+    UI.qs("#ne-ok").onclick = () => {
+      const t = UI.qs("#ne-t").value.trim(); if (!t) return UI.qs("#ne-t").focus();
+      const ne = { id: "a" + Date.now(), date: new Date(y, m - 1, d).toISOString(), s: UI.qs("#ne-s").value, e: UI.qs("#ne-e").value, cat, title: t, who: [UI.me()], where: UI.qs("#ne-w").value || "Salão principal" };
+      saved.added.push(ne); keep(); selEv = ne.id; UI.closeSheet(); render(); toast("Evento adicionado");
+    };
+  }
+});
+UI.qs("#w-prev").onclick = () => { sel = addD(weekStart(sel), -7); month = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); scrollTo(0, 0); };
+UI.qs("#w-next").onclick = () => { sel = addD(weekStart(sel), 7); month = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); scrollTo(0, 0); };
+UI.qs("#w-today").onclick = () => { sel = TODAY; month = new Date(Y, 10, 1); render(); jump(TODAY); };
+UI.qs("#m-prev").onclick = () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); monthHTML(); };
+UI.qs("#m-next").onclick = () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); monthHTML(); };
+UI.qsa("#flt button").forEach((b) => (b.onclick = () => { flt = b.dataset.f; UI.qsa("#flt button").forEach((x) => x.classList.toggle("on", x === b)); days(); }));
+UI.qs("#share").onclick = () => toast("Link da agenda copiado (no app: página pública da igreja)");
+UI.qs("#find").onclick = () => UI.qs("#flt button").focus();
+let tt; function toast(m) { const t = UI.qs("#toast"); t.textContent = m; t.style.opacity = 1; clearTimeout(tt); tt = setTimeout(() => (t.style.opacity = 0), 2400); }
+
+function render() { monthHTML(); escala(); tasks(); days(); side(); }
+render();
+setInterval(days, 60000);
+</script>
+</body>
+</html>

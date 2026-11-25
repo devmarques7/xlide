@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Ao vivo</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script>
+<style>
+  .app { max-width: 560px; margin: 0 auto; padding-bottom: var(--s7); }
+  .lyr { font: 600 calc(22px * var(--z, 1))/1.3 var(--font); white-space: pre-line; letter-spacing: -0.01em; }
+  .lyr-sec { margin-bottom: var(--s2); }
+  .url { font: 400 var(--t-sm) var(--mono); word-break: break-all; }
+  .ti .dur { color: var(--fg-2); }
+  .ti.now .dur { color: inherit; }
+</style>
+</head>
+<body>
+<main class="app stack">
+  <header class="top"><span class="brand"><span class="mark">X</span>Nova Semente</span><div class="seg" id="lang" style="width:150px"></div></header>
+
+  <div class="stack-sm">
+    <span class="lbl" id="date"></span>
+    <h1 style="font-size:var(--t-2xl)">Culto principal</h1>
+  </div>
+
+  <section class="card invert stack-sm" id="now"></section>
+
+  <section class="card stack-sm" id="lyrics"></section>
+
+  <div class="stats">
+    <div class="stat"><span class="lbl">Começou</span><b id="start">10:00</b></div>
+    <div class="stat"><span class="lbl">Termina ~</span><b id="end"></b></div>
+    <div class="stat"><span class="lbl">Falta</span><b id="left"></b></div>
+  </div>
+
+  <div><div class="section-h"><h2>Programa</h2><span class="lbl">só itens públicos · RF-39</span></div><div class="timeline" id="tl"></div></div>
+
+  <div class="card row" style="align-items:flex-start">
+    <span id="qr" style="width:56px;flex:none"></span>
+    <span class="stack-sm grow"><span class="lbl">Endereço fixo · QR na entrada · RF-38</span><span class="url">xlide.app/ao-vivo/culto-principal</span><span class="muted" style="font-size:var(--t-sm)">Sem login. Atualiza sozinho.</span></span>
+  </div>
+  <p class="lbl center">feito com XLIDE · Live Church</p>
+</main>
+<script>
+const items = XL.program.items;
+let lang = "pt", z = 1;
+UI.qs("#qr").innerHTML = UI.I.qr.replace("<svg", '<svg width="56" height="56"');
+UI.qs("#date").textContent = XL.program.date;
+const L = { pt: "PT", en: "EN", nl: "NL" };
+function langs() { UI.qs("#lang").innerHTML = Object.entries(L).map(([k, n]) => `<button class="${k === lang ? "on" : ""}" data-l="${k}">${n}</button>`).join(""); UI.qsa("#lang button").forEach((b) => (b.onclick = () => { lang = b.dataset.l; langs(); last = ""; })); }
+langs();
+let last = "";
+LIVE.loop((s, T) => {
+  const it = T.it, idle = s.status === "idle", done = s.status === "done";
+  UI.set("#now", idle
+    ? `<span class="lbl">Ainda não começou</span><h2>Começa às 10:00</h2><p class="muted">Primeiro: ${it.title}</p>`
+    : done ? `<span class="lbl">Encerrado</span><h2>Obrigado por estar aqui.</h2><p class="muted">Até sábado que vem.</p>`
+    : `<div class="row between"><span class="chip live"><span class="dot pulse"></span>Agora</span><span class="lbl">${it.public ? XL.types[it.type].name : "Intervalo"}</span></div>
+       <h2 style="font-size:var(--t-xl)">${it.public ? it.title : "Em instantes"}</h2>
+       <p class="muted">${it.public ? XL.people[it.owner].name : ""}</p>
+       <div class="bar ${T.over ? "" : ""}"><i style="width:${Math.min(100, T.progress * 100)}%"></i></div>
+       ${T.next ? `<p class="muted" style="font-size:var(--t-sm)">A seguir: ${T.next.public ? T.next.title : "—"}</p>` : ""}`);
+
+  // letra da música atual (V3 · RF-37, o Viewer do XLIDE já faz quase tudo)
+  if (!idle && !done && it.type === "song") {
+    const sl = XL.songSlides(it.song, lang)[s.slide];
+    const has = XL.songs[it.song].lyrics[lang];
+    UI.set("#lyrics", `<div class="row between"><span class="lbl">Letra · ${XL.songs[it.song].title}</span><span class="row" style="gap:4px"><button class="icon-btn" style="width:36px;height:36px" onclick="z=Math.max(.8,z-.15);document.body.style.setProperty('--z',z)">A−</button><button class="icon-btn" style="width:36px;height:36px" onclick="z=Math.min(1.8,z+.15);document.body.style.setProperty('--z',z)">A+</button></span></div>
+      ${has ? "" : `<p class="lbl" style="color:var(--warn)">Sem letra em ${L[lang]} · mostrando PT</p>`}
+      ${sl?.section ? `<span class="lbl lyr-sec">${sl.section}</span>` : ""}<div class="lyr">${sl?.text || ""}</div>`);
+    UI.qs("#lyrics").style.display = "";
+  } else UI.qs("#lyrics").style.display = "none";
+
+  UI.qs("#start").textContent = idle ? "10:00" : LIVE.wall(s.runStart);
+  UI.qs("#end").textContent = LIVE.wall(T.projectedEnd);
+  UI.qs("#left").textContent = done ? "0" : `${Math.max(0, Math.round((T.projectedEnd - LIVE.now()) / 60000))} min`;
+
+  const key = `${s.index}|${s.status}|${Math.floor(LIVE.now() / 20000)}`;
+  if (key !== last) {
+    last = key;
+    UI.set("#tl", items.map((x, i) => ({ x, i })).filter(({ x }) => x.public).map(({ x, i }) => {
+      const cls = !idle && !done && i === s.index ? "now" : !idle && (i < s.index || done) ? "done" : "";
+      return `<div class="ti ${cls}"><span class="t">${LIVE.wall(T.starts[i])}</span><span class="what"><h3>${x.title}</h3><span class="meta">${XL.types[x.type].name} · ${UI.person(x.owner).name}</span></span><span class="dur">${UI.min(x.planned)}</span></div>`;
+    }).join(""));
+  }
+});
+</script>
+</body>
+</html>

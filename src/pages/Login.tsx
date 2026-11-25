@@ -5,7 +5,7 @@ import { PinPad } from "@/components/pin-pad";
 import { FontSizeControl, LanguageMenu, ThemeToggle } from "@/components/prefs-controls";
 import { unlock } from "@/lib/auth";
 import { usePrefs } from "@/lib/prefs";
-import { signInWithGoogle, supabase, supabaseEnabled } from "@/lib/supabase";
+import { signInWithEmail, signInWithGoogle, supabase, supabaseEnabled } from "@/lib/supabase";
 
 export default function Login() {
   const { t } = usePrefs();
@@ -14,11 +14,15 @@ export default function Login() {
   const from = (loc.state as { from?: string } | null)?.from ?? new URLSearchParams(loc.search).get("from") ?? "/";
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
   // Volta do Google: o supabase-js troca o código pela sessão; com sessão, segue para onde a pessoa ia.
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => data.session && navigate(from, { replace: true }));
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => session && navigate(from, { replace: true }));
+    // o XLIDE v2 (/v2/…) é HTML à parte, fora do roteador
+    const go = () => (from.startsWith("/v2") ? location.replace(from) : navigate(from, { replace: true }));
+    supabase.auth.getSession().then(({ data }) => data.session && go());
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => session && go());
     return () => data.subscription.unsubscribe();
   }, [from, navigate]);
 
@@ -72,6 +76,18 @@ export default function Login() {
                 {busy ? t("login.googleBusy") : t("login.google")}
               </button>
               <p className="text-xs text-muted-foreground">{t("login.googleHint")}</p>
+              <span className="label-xs text-muted-foreground">{t("login.or")}</span>
+              {sent ? (
+                <p className="text-xs" role="status">{t("login.emailSent")}</p>
+              ) : (
+                <form
+                  className="grid gap-2"
+                  onSubmit={(e) => { e.preventDefault(); if (!email.includes("@")) return; setBusy(true); setErr(""); signInWithEmail(email.trim(), from).then(() => setSent(true)).catch((x) => setErr(String(x?.message ?? x))).finally(() => setBusy(false)); }}
+                >
+                  <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("login.email")} autoComplete="email" className="h-11 border border-border bg-background px-3 text-sm outline-none focus:border-foreground" />
+                  <button type="submit" disabled={busy} className="h-11 border border-foreground px-4 text-sm font-semibold disabled:opacity-60">{t("login.emailSend")}</button>
+                </form>
+              )}
               {err && <p className="text-xs text-destructive" role="alert">{err}</p>}
             </div>
           ) : (

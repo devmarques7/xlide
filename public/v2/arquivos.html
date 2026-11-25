@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Meus arquivos</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script><script src="assets/files.js"></script>
+<style>
+  .f-head { display: grid; gap: var(--s4); padding: var(--s5) 0 var(--s4); }
+  @media (min-width: 900px) { .f-head { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
+  .f-who { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s3); }
+  .f-who .avatar { width: 40px; height: 40px; font-size: 14px; }
+  .f-who b { display: block; font-weight: 600; } .f-who small { color: var(--fg-2); font-size: var(--t-sm); }
+  .f-tools { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
+  .f-tools .search { width: min(320px, 100%); }
+  .view-t { display: inline-grid; grid-auto-flow: column; border: 1px solid var(--line); }
+  .view-t button { width: 40px; height: 40px; display: grid; place-items: center; color: var(--fg-2); }
+  .view-t button.on { background: var(--fg); color: var(--bg); }
+  .view-t svg { width: 18px; height: 18px; }
+
+  /* área: lista | prévia */
+  .f-area { display: grid; gap: var(--s4); margin-top: var(--s4); }
+  @media (min-width: 1200px) { .f-area { grid-template-columns: minmax(0, 1fr) 380px; align-items: start; } }
+  .f-bar { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; padding-bottom: var(--s3); border-bottom: 1px solid var(--line); margin-bottom: var(--s3); }
+  .f-bar h2 { font-size: var(--t-xl); font-weight: 600; letter-spacing: -0.02em; }
+  .f-bar .grow { flex: 1; }
+  .f-bar select { height: 36px; padding: 0 8px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); font: inherit; font-size: var(--t-sm); }
+  .f-note { font-size: var(--t-sm); color: var(--fg-2); margin: calc(-1 * var(--s2)) 0 var(--s3); }
+
+  .fls { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .fls.list { grid-template-columns: 1fr; gap: 0; }
+  .fls.list .fl { grid-template-columns: 28px 120px minmax(0, 1fr) auto 28px; grid-template-rows: auto; align-items: center; padding: var(--s2) var(--s3); border-width: 0 0 1px; }
+  .fls.list .fl-top { display: contents; }
+  .fls.list .fl-top .lbl { display: none; }
+  .fls.list .fl-star { grid-column: 1; } .fls.list .fl-pv { grid-column: 2; } .fls.list h3 { grid-column: 3; } .fls.list .fl-foot { grid-column: 4; border: 0; padding: 0; } .fls.list .fl-more { grid-column: 5; grid-row: 1; }
+  .empty { padding: var(--s6) var(--s4); border: 1px dashed var(--line); text-align: center; color: var(--fg-2); }
+  .empty b { display: block; color: var(--fg); font-size: var(--t-lg); margin-bottom: var(--s2); }
+
+  /* prévia (painel à direita; no celular abre como folha) */
+  .pvw { display: none; }
+  @media (min-width: 1200px) { .pvw { display: block; position: sticky; top: calc(var(--mk-h, 0px) + var(--s4)); max-height: calc(100vh - var(--mk-h, 0px) - var(--s5)); overflow-y: auto; border: 1px solid var(--line); background: var(--surface); } }
+  .pv-in { display: grid; gap: var(--s4); padding: var(--s4); }
+  .pv-in .slide { width: 100%; display: block; }
+  .pv-h { display: flex; align-items: center; gap: var(--s2); font: 400 var(--t-xs) var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--fg-2); }
+  .pv-h svg { width: 16px; height: 16px; }
+  .pv-in h3 { font-size: var(--t-lg); font-weight: 600; line-height: 1.2; }
+  .pv-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .pv-meta div { background: var(--surface); padding: var(--s2) var(--s3); display: grid; gap: 2px; }
+  .pv-meta b { font-weight: 500; font-size: var(--t-sm); }
+  .pv-desc { font-size: var(--t-sm); color: var(--fg-2); }
+  .pv-ppl { display: grid; gap: var(--s2); }
+  .pv-ppl div { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-sm); }
+  .pv-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .pv-acts button, .pv-acts label { display: grid; justify-items: center; gap: 6px; padding: var(--s3) var(--s2); background: var(--surface); font-size: var(--t-xs); text-align: center; cursor: pointer; }
+  .pv-acts button:hover { background: var(--sunken); }
+  .pv-acts svg { width: 20px; height: 20px; }
+  .pv-acts .danger { color: var(--late); }
+  .pv-acts .confirm { background: var(--late); color: #fff; }
+  .pv-move select { width: 100%; height: 40px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); padding: 0 8px; font: inherit; }
+  .pv-empty { padding: var(--s6) var(--s4); text-align: center; color: var(--fg-2); font-size: var(--t-sm); }
+
+  .menu-pop { position: fixed; z-index: 80; min-width: 200px; padding: 4px; background: var(--surface); border: 1px solid var(--fg); box-shadow: 0 12px 30px rgb(0 0 0 / .3); }
+  .menu-pop button { display: flex; align-items: center; gap: var(--s2); width: 100%; padding: 9px 10px; text-align: left; font-size: var(--t-sm); }
+  .menu-pop button:hover { background: var(--sunken); }
+  .menu-pop svg { width: 16px; height: 16px; }
+  .menu-pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+  .menu-pop .danger { color: var(--late); }
+  .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + 16px); z-index: 90; display: flex; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); background: var(--invert-bg); color: var(--invert-fg); font-size: var(--t-sm); opacity: 0; transform: translate(-50%, 12px); transition: opacity .2s, transform .2s; pointer-events: none; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast button { text-decoration: underline; font-weight: 600; }
+  @media (min-width: 900px) { .toast { bottom: 24px; left: calc(50% + var(--side-w) / 2); } }
+</style>
+</head>
+<body data-tab="arquivos">
+<main class="app">
+  <header class="f-head">
+    <div>
+      <h1 class="disp">Meus arquivos</h1>
+      <div class="f-who" id="who"></div>
+    </div>
+    <div class="f-tools">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="q" placeholder="Buscar nos meus arquivos" aria-label="Buscar nos meus arquivos"></div>
+      <div class="view-t" role="group" aria-label="Ver como"><button data-v="grid" class="on" aria-label="Grade"></button><button data-v="list" aria-label="Lista"></button></div>
+      <button class="btn primary" id="new"></button>
+    </div>
+  </header>
+
+  <nav aria-label="Pastas" id="fds"></nav>
+
+  <div class="f-area">
+    <section>
+      <div class="f-bar"><h2 id="t"></h2><span class="lbl" id="n"></span><span class="grow"></span><select id="sort" aria-label="Ordenar"><option value="recent">Recentes</option><option value="name">Nome</option><option value="star">Favoritos primeiro</option></select><span id="bulk"></span></div>
+      <p class="f-note" id="note"></p>
+      <div class="fls" id="list"></div>
+    </section>
+    <aside class="pvw" id="pvw" aria-label="Prévia do arquivo"></aside>
+  </div>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script>
+const { esc } = FILEUI;
+const q0 = new URLSearchParams(location.search);
+let pasta = q0.get("pasta") || "tudo", q = "", sort = "recent", view = "grid", selId = null, confirmId = null;
+const ORDER = ["hoje", "ontem", "terça", "22/11", "20/11", "18/11", "15/11", "12/11", "10/11", "08/11", "02/11", "out", "set"];
+const age = (f) => { const i = ORDER.indexOf(f.updated); return i < 0 ? 99 : i; };
+const isMobile = () => !matchMedia("(min-width: 1200px)").matches;
+
+UI.qs("#new").innerHTML = UI.I.plus + "Novo";
+UI.qs("#new").onclick = UI.createSheet;
+UI.qsa(".view-t button")[0].innerHTML = UI.I.board; UI.qsa(".view-t button")[1].innerHTML = UI.I.list;
+
+function title() {
+  if (pasta === "tudo") return ["Tudo", "Todos os arquivos ativos, de todas as pastas."];
+  const F = FILES.FOLDERS.find((x) => x[0] === pasta); if (F) return [F[1], F[2] + "."];
+  const S = FILES.STATUS.find((x) => x[0] === pasta); return [S[1], S[2] + "."];
+}
+function visible() {
+  let L = FILES.mine().filter((f) => pasta === "tudo" ? f.status === "ativo" : FILES.STATUS.some((s) => s[0] === pasta) ? f.status === pasta : f.status === "ativo" && f.folder === pasta);
+  if (q) L = L.filter((f) => (f.name + " " + (f.title || "") + " " + (f.text || "")).toLowerCase().includes(q));
+  return L.sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : sort === "star" ? (b.star - a.star) || age(a) - age(b) : age(a) - age(b));
+}
+
+function render() {
+  const p = XL.people[UI.me()];
+  UI.qs("#who").innerHTML = `<span class="avatar">${p.ini}</span><span><b>${esc(p.name)}</b><small>${esc(p.title)} · ${XL.roles[p.role].name}. Seus arquivos e os que dividiram com você.</small></span><button class="chip" onclick="UI.meSheet()">Trocar</button>`;
+  UI.qs("#fds").innerHTML = FILEUI.shortcuts(pasta);
+  const [t, d] = title(), L = visible();
+  UI.qs("#t").textContent = t;
+  UI.qs("#n").textContent = `${L.length} ${L.length === 1 ? "arquivo" : "arquivos"}`;
+  UI.qs("#note").textContent = d + (pasta === "lixeira" ? " Restaure ou exclua para sempre." : pasta === "padrao" ? " Use um modelo para começar um arquivo novo na pasta dele." : " Arraste um arquivo até uma pasta para mover.");
+  UI.qs("#bulk").innerHTML = pasta === "lixeira" && L.length ? `<button class="btn danger" id="empty">${confirmId === "all" ? "Confirmar: esvaziar" : "Esvaziar lixeira"}</button>` : "";
+  UI.qs("#empty") && (UI.qs("#empty").onclick = () => { if (confirmId !== "all") { confirmId = "all"; return render(); } L.forEach((f) => FILES.destroy(f.id)); confirmId = null; selId = null; done("Lixeira esvaziada"); });
+  UI.qs("#list").className = "fls" + (view === "list" ? " list" : "");
+  if (selId && !L.some((f) => f.id === selId)) selId = null;
+  if (!selId && L.length && !isMobile()) selId = L[0].id;
+  UI.qs("#list").innerHTML = L.map((f) => FILEUI.card(f, f.id === selId)).join("") || `<div class="empty"><b>${pasta === "lixeira" ? "Lixeira vazia" : q ? "Nada encontrado" : "Pasta vazia"}</b>${pasta === "lixeira" ? "O que você excluir fica aqui por 30 dias." : q ? `Nenhum arquivo com “${esc(q)}”.` : "Crie um deck novo ou arraste um arquivo para cá."}</div>`;
+  preview();
+}
+
+/* ── prévia e ações ── */
+function previewHTML(f) {
+  if (!f) return `<div class="pv-empty">Escolha um arquivo para ver a prévia.</div>`;
+  const own = XL.people[f.owner];
+  const acts = f.status === "lixeira"
+    ? `<button data-a="restore">${UI.I.back}Restaurar</button><button data-a="destroy" class="danger${confirmId === f.id ? " confirm" : ""}">${UI.I.trash}${confirmId === f.id ? "Confirmar" : "Excluir para sempre"}</button><button data-a="dup">${UI.I.plus}Duplicar</button>`
+    : `<button data-a="edit">${UI.I.slides}Editar</button>${f.status === "padrao" ? `<button data-a="use">${UI.I.plus}Usar modelo</button>` : `<button data-a="dup">${UI.I.plus}Duplicar</button>`}<button data-a="${f.status === "arquivado" ? "unarchive" : "archive"}">${UI.I.archive}${f.status === "arquivado" ? "Desarquivar" : "Arquivar"}</button>
+       <button data-a="star">${UI.I.star}${f.star ? "Tirar estrela" : "Favoritar"}</button><button data-a="pin">${UI.I.pin}${f.status === "padrao" ? "Tirar do padrão" : "Tornar padrão"}</button><button data-a="trash" class="danger">${UI.I.trash}Excluir</button>`;
+  return `<div class="pv-in">
+    <div class="pv-h">${UI.I.doc}<span class="grow">Prévia do arquivo</span>${isMobile() ? `<button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button>` : ""}</div>
+    <div class="slide song animate" data-video>${DRAWER.template({ ...f, seconds: 0 })}</div>
+    <div><h3>${esc(f.name)}</h3><p class="lbl" style="margin-top:4px">${FILEUI.KIND[f.folder] || "Deck"} · ${f.slides} ${f.slides === 1 ? "slide" : "slides"}</p></div>
+    <div class="pv-meta"><div><span class="lbl">Pasta</span><b>${FILEUI.folderName(f.folder)}</b></div><div><span class="lbl">Estado</span><b>${FILEUI.statusName(f) || "Ativo"}</b></div><div><span class="lbl">Atualizado</span><b>${f.status === "lixeira" ? "excluído " + (f.deleted || "agora") : f.updated}</b></div><div><span class="lbl">Dono</span><b>${esc(own?.name.split(" ").slice(0, 2).join(" "))}</b></div></div>
+    ${f.desc ? `<div><span class="lbl">Descrição</span><p class="pv-desc" style="margin-top:4px">${esc(f.desc)}</p></div>` : ""}
+    <div class="pv-ppl"><span class="lbl">Compartilhado com</span>${[f.owner, ...f.shared].map((k) => `<div><span class="avatar" style="width:26px;height:26px;font-size:10px">${XL.people[k].ini}</span>${esc(XL.people[k].name)}${k === UI.me() ? " (você)" : ""}${k === f.owner ? " · dono" : ""}</div>`).join("")}</div>
+    ${f.status !== "lixeira" ? `<label class="field pv-move"><span class="lbl">Mover para a pasta</span><select data-move>${FILES.FOLDERS.map(([k, n]) => `<option value="${k}" ${k === f.folder ? "selected" : ""}>${n}</option>`).join("")}</select></label>` : `<p class="pv-desc">Restaurar devolve o arquivo para ${FILEUI.folderName(f.folder)}.</p>`}
+    <div class="pv-acts">${acts}</div>
+  </div>`;
+}
+function preview(openSheet) {
+  const f = selId && FILES.get(selId);
+  if (isMobile()) { if (openSheet && f) { const sh = UI.sheet(previewHTML(f)); bindPreview(sh, f); XLOOK.hydrate(sh); } return; }
+  UI.qs("#pvw").innerHTML = previewHTML(f);
+  if (f) bindPreview(UI.qs("#pvw"), f);
+  XLOOK.hydrate(UI.qs("#pvw"));
+}
+function bindPreview(root, f) {
+  root.querySelectorAll("[data-a]").forEach((b) => (b.onclick = () => act(b.dataset.a, f)));
+  const mv = root.querySelector("[data-move]");
+  mv && (mv.onchange = () => { FILES.update(f.id, { folder: mv.value }); done(`Movido para ${FILEUI.folderName(mv.value)}`, () => FILES.update(f.id, { folder: f.folder })); });
+}
+function act(a, f) {
+  const undo = (patch) => () => FILES.update(f.id, patch);
+  if (a !== "destroy") confirmId = null;
+  if (a === "edit") return edit(f);
+  if (a === "star") { FILES.update(f.id, { star: !f.star }); return done(f.star ? "Estrela removida" : "Favoritado"); }
+  if (a === "archive") { FILES.update(f.id, { status: "arquivado" }); return done("Arquivado", undo({ status: f.status })); }
+  if (a === "unarchive") { FILES.update(f.id, { status: "ativo" }); return done(`Voltou para ${FILEUI.folderName(f.folder)}`); }
+  if (a === "pin") { FILES.update(f.id, { status: f.status === "padrao" ? "ativo" : "padrao" }); return done(f.status === "padrao" ? "Saiu do padrão" : "Agora é um modelo padrão", undo({ status: f.status })); }
+  if (a === "trash") { FILES.update(f.id, { status: "lixeira", prev: f.status, deleted: "agora" }); return done("Movido para a lixeira", undo({ status: f.status })); }
+  if (a === "restore") { FILES.update(f.id, { status: f.prev && f.prev !== "lixeira" ? f.prev : "ativo" }); return done(`Restaurado em ${FILEUI.folderName(f.folder)}`); }
+  if (a === "destroy") { if (confirmId !== f.id) { confirmId = f.id; return preview(true); } FILES.destroy(f.id); confirmId = null; selId = null; return done("Excluído para sempre"); }
+  if (a === "dup" || a === "use") {
+    const n = FILES.add({ ...f, id: "u" + Date.now().toString(36), name: a === "use" ? f.name.replace(/^Modelo · /, "Novo ") : f.name + " (cópia)", status: "ativo", owner: UI.me(), shared: [], star: false, updated: "hoje", deleted: null });
+    selId = n.id; if (a === "use") pasta = n.folder;
+    return done(a === "use" ? `Criado em ${FILEUI.folderName(n.folder)} a partir do modelo` : "Cópia criada");
+  }
+}
+/* Editar: abre o editor de deck (todos os slides, fundo, trilha); a gaveta fica para a edição rápida. */
+function edit(f) { location.href = "deck.html?f=" + f.id; }
+function quickEdit(f) {
+  DRAWER.open({ editor: () => "deck.html?f=" + f.id, kind: FILEUI.KIND[f.folder] || "Deck", meta: f.name, eyebrow: f.eyebrow, title: f.title, text: f.text, bg: f.bg, font: f.font, ink: f.ink, layout: f.layout, per: f.per,
+    slides: f.slides > 1 ? Array.from({ length: Math.min(f.slides, 6) }, (_, k) => (k ? { eyebrow: String(k + 1).padStart(2, "0"), title: `${f.title} · ${k + 1}`, text: "" } : { eyebrow: f.eyebrow, title: f.title, text: f.text })) : null,
+    onSave: (r) => { FILES.update(f.id, { title: r.title, text: r.text, eyebrow: r.eyebrow ?? f.eyebrow, bg: r.bg, font: r.font, layout: r.layout, per: r.per, ink: r.ink, updated: "hoje" }); done("Arquivo salvo"); } });
+}
+
+let tt;
+function done(msg, undo) {
+  UI.refreshNav(); render();
+  if (isMobile()) UI.closeSheet();
+  const t = UI.qs("#toast");
+  t.innerHTML = `<span>${msg}</span>${undo ? '<button id="undo">Desfazer</button>' : ""}`;
+  t.classList.add("on");
+  undo && (UI.qs("#undo").onclick = () => { undo(); t.classList.remove("on"); UI.refreshNav(); render(); });
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 4000);
+}
+
+/* ── cliques, menu ⋮, arrastar para pasta ── */
+UI.qs("#list").addEventListener("click", (e) => {
+  const st = e.target.closest("[data-star]"); if (st) { const f = FILES.get(st.dataset.star); FILES.update(f.id, { star: !f.star }); UI.refreshNav(); return render(); }
+  const mo = e.target.closest("[data-more]"); if (mo) return menu(mo);
+  const c = e.target.closest(".fl"); if (!c) return;
+  selId = c.dataset.id; confirmId = null;
+  UI.qsa(".fl").forEach((x) => x.classList.toggle("on", x === c));
+  preview(true);
+});
+UI.qs("#list").addEventListener("dblclick", (e) => { const c = e.target.closest(".fl"); if (c && !e.target.closest("button")) edit(FILES.get(c.dataset.id)); });
+UI.qs("#list").addEventListener("keydown", (e) => { const c = e.target.closest(".fl"); if (c && e.key === "Enter") c.click(); });
+function menu(btn) {
+  const f = FILES.get(btn.dataset.more); UI.qs(".menu-pop")?.remove();
+  const m = document.createElement("div"); m.className = "menu-pop"; m.setAttribute("role", "menu");
+  m.innerHTML = f.status === "lixeira" ? `<button data-a="restore">${UI.I.back}Restaurar</button><hr><button data-a="destroy" class="danger">${UI.I.trash}Excluir para sempre</button>`
+    : `<button data-a="edit">${UI.I.slides}Editar no slide</button><button data-a="dup">${UI.I.plus}Duplicar</button><button data-a="star">${UI.I.star}${f.star ? "Tirar estrela" : "Favoritar"}</button><hr>${FILES.FOLDERS.filter(([k]) => k !== f.folder).map(([k, n]) => `<button data-mv="${k}">${UI.I.folder}Mover para ${n}</button>`).join("")}<hr><button data-a="${f.status === "arquivado" ? "unarchive" : "archive"}">${UI.I.archive}${f.status === "arquivado" ? "Desarquivar" : "Arquivar"}</button><button data-a="trash" class="danger">${UI.I.trash}Excluir</button>`;
+  document.body.append(m);
+  const r = btn.getBoundingClientRect();
+  m.style.top = Math.min(r.bottom + 4, innerHeight - m.offsetHeight - 8) + "px"; m.style.left = Math.max(8, r.right - m.offsetWidth) + "px";
+  m.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; m.remove(); selId = f.id; if (b.dataset.mv) { FILES.update(f.id, { folder: b.dataset.mv }); return done(`Movido para ${FILEUI.folderName(b.dataset.mv)}`, () => FILES.update(f.id, { folder: f.folder })); } if (b.dataset.a === "destroy") { confirmId = f.id; return act("destroy", f); } act(b.dataset.a, f); };
+  setTimeout(() => document.addEventListener("pointerdown", (e) => { if (!m.contains(e.target)) m.remove(); }, { once: true }), 0);
+}
+document.addEventListener("dragstart", (e) => { const c = e.target.closest?.(".fl"); if (c) { e.dataTransfer.setData("text/plain", c.dataset.id); e.dataTransfer.effectAllowed = "move"; } });
+document.addEventListener("dragover", (e) => { const d = e.target.closest?.("[data-drop]"); if (d && d.dataset.drop !== "tudo") { e.preventDefault(); d.classList.add("drop"); } });
+document.addEventListener("dragleave", (e) => { e.target.closest?.("[data-drop]")?.classList.remove("drop"); });
+document.addEventListener("drop", (e) => {
+  const d = e.target.closest?.("[data-drop]"); if (!d) return; e.preventDefault(); d.classList.remove("drop");
+  const f = FILES.get(e.dataTransfer.getData("text/plain")), k = d.dataset.drop; if (!f) return;
+  const was = { folder: f.folder, status: f.status };
+  if (k === "lixeira") FILES.update(f.id, { status: "lixeira", prev: f.status, deleted: "agora" });
+  else if (k === "arquivado" || k === "padrao") FILES.update(f.id, { status: k });
+  else FILES.update(f.id, { folder: k, status: "ativo" });
+  done(`${f.name} → ${d.querySelector("b").textContent}`, () => FILES.update(f.id, was));
+});
+
+UI.qs("#q").oninput = (e) => { q = e.target.value.toLowerCase(); render(); };
+UI.qs("#sort").onchange = (e) => { sort = e.target.value; render(); };
+UI.qsa(".view-t button").forEach((b) => (b.onclick = () => { view = b.dataset.v; UI.qsa(".view-t button").forEach((x) => x.classList.toggle("on", x === b)); render(); }));
+addEventListener("resize", () => preview());
+render();
+</script>
+</body>
+</html>

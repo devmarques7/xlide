@@ -29,6 +29,14 @@ export async function signInWithGoogle(from = "/") {
   if (error) throw error;
 }
 
+/** Link mágico por e-mail (alternativa ao Google). */
+export async function signInWithEmail(email: string, from = "/") {
+  if (!supabase) throw new Error("Supabase não configurado");
+  const emailRedirectTo = `${location.origin}/login?from=${encodeURIComponent(from)}`;
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+  if (error) throw error;
+}
+
 export async function signOut() {
   await supabase?.auth.signOut();
 }

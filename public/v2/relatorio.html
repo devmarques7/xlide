@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Relatório</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script>
+<style>
+  .cmp { display: grid; grid-template-columns: 1fr; gap: 2px; margin-top: 6px; }
+  .cmp i { height: 6px; display: block; background: var(--line); }
+  .cmp i.r { background: var(--fg); }
+  .cmp i.r.late { background: var(--late); }
+  .rrow { padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
+  .weeks { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); align-items: end; height: 120px; }
+  .weeks div { display: grid; gap: 3px; align-content: end; height: 100%; }
+  .weeks i { display: block; background: var(--fg); }
+  .weeks i.p { background: var(--line); }
+  .sug { display: grid; grid-template-columns: 1fr auto auto; gap: var(--s2); align-items: center; padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body data-tab="inicio">
+<main class="app">
+  <header class="top"><a class="icon-btn" href="inicio.html" id="back"></a><span class="grow"><span class="lbl" id="src"></span><h2>Relatório do culto</h2></span><button class="btn ghost">PDF</button></header>
+  <div class="split">
+    <div class="stack">
+      <div class="stats">
+        <div class="stat"><span class="lbl">Planejado</span><b id="pl"></b></div>
+        <div class="stat"><span class="lbl">Real</span><b id="rl"></b></div>
+        <div class="stat"><span class="lbl">Diferença</span><b id="df"></b></div>
+      </div>
+      <div><div class="section-h"><h2>Por item · RF-41</h2><span class="lbl">cinza previsto · preto real</span></div><div id="rows"></div></div>
+    </div>
+    <aside class="side stack">
+      <div class="card stack-sm"><span class="lbl">Últimos 4 sábados · RF-42</span><div class="weeks" id="weeks"></div></div>
+      <div class="card stack-sm">
+        <div class="row between"><span class="lbl">Sugestão para o modelo · RF-43 · V3</span></div>
+        <p class="muted" style="font-size:var(--t-sm)">Média dos últimos 4 cultos, arredondada a 30 s. Você aceita item a item.</p>
+        <div id="sug"></div>
+      </div>
+      <label class="field"><span class="lbl">Observações do culto · RF-44</span><textarea class="textarea" style="min-height:100px" placeholder="O que funcionou, o que atrasou…">O louvor 1 estendeu por pedido do pastor. Vídeo travou 20 s no início.</textarea></label>
+    </aside>
+  </div>
+</main>
+<script>
+UI.qs("#back").innerHTML = UI.I.back;
+const items = XL.program.items, s = LIVE.state;
+// usa a execução do console se houver; senão, o último sábado
+const fromRun = s.status === "done" && s.log.length;
+const real = items.map((x, i) => fromRun && s.log[i]?.end ? (s.log[i].end - s.log[i].start) / 1000 : XL.lastRun[i] ?? x.planned);
+UI.qs("#src").textContent = fromRun ? "Execução de agora (console)" : "Sábado, 22 de novembro";
+const P = items.reduce((a, b) => a + b.planned, 0), R = real.reduce((a, b) => a + b, 0);
+UI.qs("#pl").textContent = Math.round(P / 60) + "′";
+UI.qs("#rl").textContent = Math.round(R / 60) + "′";
+UI.qs("#df").textContent = (R >= P ? "+" : "−") + Math.round(Math.abs(R - P) / 60) + "′";
+UI.qs("#df").style.color = R - P > 180 ? "var(--late)" : "";
+const mx = Math.max(...items.map((x, i) => Math.max(x.planned, real[i])));
+UI.qs("#rows").innerHTML = items.map((x, i) => {
+  const d = real[i] - x.planned;
+  return `<div class="rrow"><div class="row between"><span class="grow"><h3>${x.title}</h3><span class="meta muted" style="font-size:var(--t-sm)">${XL.types[x.type].name}${fromRun && s.log[i]?.ext ? ` · estendido ${s.log[i].ext}×` : ""}${fromRun && s.log[i]?.skipped ? " · pulado" : ""}</span></span><span class="num" style="color:${d > 60 ? "var(--late)" : d < -60 ? "var(--ok)" : "inherit"}">${d >= 0 ? "+" : "−"}${LIVE.mmss(Math.abs(d)).replace("+", "")}</span></div>
+    <div class="cmp"><i style="width:${(x.planned / mx) * 100}%"></i><i class="r ${d > 60 ? "late" : ""}" style="width:${(real[i] / mx) * 100}%"></i></div></div>`;
+}).join("");
+const hm = Math.max(...XL.history.map((h) => Math.max(h.planned, h.real)));
+UI.qs("#weeks").innerHTML = XL.history.slice().reverse().map((h) => `<div><span class="lbl center">+${Math.round((h.real - h.planned) / 60)}′</span><i class="p" style="height:${(h.planned / hm) * 70}px"></i><i style="height:${(h.real / hm) * 70}px"></i><span class="lbl center">${h.date}</span></div>`).join("");
+const sug = items.map((x, i) => ({ x, avg: Math.round(((XL.lastRun[i] ?? x.planned) * 0.9 + x.planned * 0.1) / 30) * 30 })).filter((o) => Math.abs(o.avg - o.x.planned) >= 60).slice(0, 4);
+UI.qs("#sug").innerHTML = sug.map((o) => `<div class="sug"><span><h3>${o.x.title}</h3><span class="lbl">${UI.min(o.x.planned)} → ${UI.min(o.avg)}</span></span><button class="chip" onclick="this.parentElement.style.opacity=.4">recusar</button><button class="chip solid" onclick="this.textContent='aceito'">aceitar</button></div>`).join("");
+</script>
+</body>
+</html>

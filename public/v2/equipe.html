@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Equipe</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script>
+<style>
+  .perm { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+</style>
+</head>
+<body data-tab="equipe">
+<main class="app">
+  <header class="top"><h1>Equipe</h1><button class="btn primary" id="inv">Convidar</button></header>
+  <div class="split">
+    <div class="stack">
+      <p class="muted">Pessoas vêm do cadastro que já existe (Supabase · <span class="mono">profiles</span> da Classe). Aqui só se dá um papel no Live Church.</p>
+      <div class="scroll-x" id="filter"></div>
+      <div id="people"></div>
+    </div>
+    <aside class="side stack">
+      <div class="card stack-sm"><span class="lbl">Resumo</span>
+        <p style="font-size:var(--t-sm)"><b>Admin</b> vê e edita tudo. <b>Púlpito</b> cria os slides do sermão. <b>Operador</b> vê os slides e projeta, sem editar. <b>Música</b> cria faixas e importa do YouTube.</p>
+        <a class="link" href="#perm">Ver a tabela completa</a></div>
+      <div class="card stack-sm">
+        <span class="lbl">Parear tablet sem conta</span>
+        <div class="row between"><b class="num" style="font-size:var(--t-2xl);letter-spacing:.2em">4 8 1 7</b><button class="chip">novo código</button></div>
+        <p class="muted" style="font-size:var(--t-sm)">Vale só para a execução de hoje. Substitui o PIN fixo 1423.</p>
+      </div>
+    </aside>
+  </div>
+
+  <header class="sec-x" id="perm"><span class="n">01</span><h2>Quem pode o quê</h2><span class="lbl">live_roles + área</span></header>
+  <div style="overflow-x:auto"><table class="perm" id="perm-t"></table></div>
+  <p class="row" style="gap:var(--s4);flex-wrap:wrap;margin-top:var(--s3);font-size:var(--t-sm)"><span class="row" style="gap:6px"><span class="can edit" style="display:inline-grid;place-items:center;width:22px;height:22px;background:var(--fg);color:var(--bg);font:11px var(--mono)">E</span> cria e edita</span><span class="row" style="gap:6px"><span style="display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--fg);font:11px var(--mono)">V</span> só vê</span><span class="row" style="gap:6px"><span class="muted mono">—</span> não acessa</span></p>
+</main>
+<script>
+UI.qs("#inv").innerHTML = UI.I.plus + " Convidar";
+// convite = o link de entrar; a pessoa entra com o Google ou e-mail e aparece aqui como editor
+if (window.XCLOUD && XCLOUD.on) UI.qs("#inv").onclick = async (e) => { const url = location.origin + "/login?from=" + encodeURIComponent("/v2/inicio.html"); try { await navigator.clipboard.writeText(url); e.currentTarget.textContent = "Link copiado"; } catch { prompt("Envie este link:", url); } };
+let f = "all";
+function render() {
+  UI.qs("#filter").innerHTML = [["all", "Todos"], ...Object.entries(XL.roles).map(([k, r]) => [k, r.name])].map(([k, n]) => `<button class="chip ${k === f ? "solid" : ""}" data-f="${k}">${n}</button>`).join("");
+  UI.qsa("#filter button").forEach((b) => (b.onclick = () => { f = b.dataset.f; render(); }));
+  UI.qs("#people").innerHTML = Object.entries(XL.people).filter(([, p]) => f === "all" || p.role === f).map(([k, p]) => `<button class="li" style="width:100%;text-align:left" data-p="${k}"><span class="avatar">${p.ini}</span><span class="grow"><h3>${p.name}</h3><span class="lbl">${p.title}</span></span><span class="chip ${p.role === "admin" ? "solid" : ""}">${XL.roles[p.role].name}${p.area ? " · " + XL.areas[p.area] : ""}</span></button>`).join("");
+  UI.qsa("[data-p]").forEach((b) => (b.onclick = () => edit(b.dataset.p)));
+}
+function edit(k) {
+  const p = XL.people[k];
+  const sh = UI.sheet(`<div class="stack"><div class="row"><span class="avatar" style="width:48px;height:48px">${p.ini}</span><span class="grow"><h2>${p.name}</h2><span class="lbl">${p.title}</span></span></div>
+    <span class="lbl">Papel no Live Church</span>
+    ${Object.entries(XL.roles).map(([rk, r]) => `<button class="pick" style="display:flex;gap:12px;width:100%;padding:12px;border:1px solid ${rk === p.role ? "var(--fg)" : "var(--line)"};text-align:left" data-r="${rk}"><span class="grow"><h3>${r.name}</h3><span class="muted" style="font-size:var(--t-sm)">${r.can}</span></span></button>`).join("")}
+    <span class="lbl">Área (editor)</span>
+    <div class="seg">${Object.entries(XL.areas).map(([ak, a]) => `<button class="${ak === p.area ? "on" : ""}" data-a="${ak}">${a}</button>`).join("")}</div>
+    <button class="btn primary block" data-close>Salvar</button><button class="btn danger block" data-close>Tirar acesso ao Live</button>
+    <p class="lbl">Grava em live_roles · quem mudou e quando fica no histórico</p></div>`);
+  UI.qsa("[data-r]", sh).forEach((b) => (b.onclick = () => { p.role = b.dataset.r; edit(k); render(); }));
+  UI.qsa("[data-a]", sh).forEach((b) => (b.onclick = () => { p.area = p.area === b.dataset.a ? null : b.dataset.a; edit(k); render(); }));
+  UI.qsa("[data-close]", sh).forEach((b) => (b.onclick = UI.closeSheet));
+  // app real: grava em profiles (só o admin muda papéis; o banco confere)
+  if (window.XCLOUD && XCLOUD.on && XCLOUD.client) {
+    const [save, cut] = UI.qsa("[data-close]", sh);
+    save.onclick = async () => {
+      const { error } = await XCLOUD.client.from("profiles").update({ role: p.role, area: p.area || null }).eq("id", k);
+      if (error) { alertBox(error.message.includes("admin") ? "Só o admin muda papéis." : "Não salvou: " + error.message); return; }
+      UI.closeSheet(); render();
+    };
+    cut.onclick = async () => {
+      const { error } = await XCLOUD.client.from("profiles").update({ role: "reader", area: null }).eq("id", k);
+      if (error) { alertBox("Só o admin muda papéis."); return; }
+      p.role = "reader"; p.area = null; UI.closeSheet(); render();
+    };
+    function alertBox(t) { let n = sh.querySelector(".xc-err"); if (!n) { n = document.createElement("p"); n.className = "xc-err"; n.style.color = "var(--late)"; sh.querySelector(".stack").append(n); } n.textContent = t; }
+  }
+}
+render();
+
+/* Permissões: Admin · Púlpito · Música · Comunicação · Operador · Leitor */
+const COLS = ["Admin", "Púlpito", "Música", "Comunicação", "Operador", "Leitor"];
+const PERM = [
+  ["Slides e decks"],
+  ["Ver slides e decks", "VVVVVV"],
+  ["Criar e editar slides do sermão", "EE----"],
+  ["Criar e editar avisos", "E--E--"],
+  ["Músicas"],
+  ["Ver músicas e letras", "EVEVVV"],
+  ["Criar faixa e importar do YouTube", "E-E---"],
+  ["Mudar fundo e fonte no estúdio", "E-E---"],
+  ["Boards"],
+  ["Ver boards", "EVVVV-"],
+  ["Criar moodboard e mapa mental", "EE-E--"],
+  ["Programa"],
+  ["Ver programa", "VVVVVV"],
+  ["Preencher a sua área", "EEEE--"],
+  ["Mudar a ordem e os horários", "E-----"],
+  ["Marcar como pronto", "E-----"],
+  ["Ao vivo"],
+  ["Projetar e operar o console", "E---E-"],
+  ["Ver pendências e pós-culto", "EVVVE-"],
+  ["Equipe"],
+  ["Dar e tirar papéis", "E-----"],
+];
+const cell = (c) => c === "E" ? '<span class="can edit" title="Cria e edita">E</span>' : c === "V" ? '<span class="can view" title="Só vê">V</span>' : '<span class="can no" title="Não acessa">—</span>';
+UI.qs("#perm-t").innerHTML = `<thead><tr><th></th>${COLS.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+  PERM.map(([t, v]) => v ? `<tr><td>${t}</td>${[...v].map(cell).join("")}</tr>` : `<tr class="grp"><td colspan="7">${t}</td></tr>`).join("") + "</tbody>";
+</script>
+</body>
+</html>
