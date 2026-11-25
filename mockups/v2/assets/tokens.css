@@ -1,0 +1,47 @@
+/* XLIDE v2 · tokens (primitivo → semântico). Mesma identidade do app:
+   monocromático, sem raio, BDO Grotesk + Fragment Mono. */
+@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Fragment+Mono&display=swap");
+
+:root {
+  /* primitivos */
+  --paper-0: #f7f6f3; --paper-1: #f1f0ec; --paper-2: #e6e5e0; --paper-3: #d6d5cf;
+  --ink-0: #161615; --ink-1: #3a3a38; --ink-2: #6f6e69;
+  --night-0: #121211; --night-1: #1a1a19; --night-2: #232322; --night-3: #2e2e2c;
+  --cobalt: #1f4bd8; --forest: #1e7a4c; --brick: #8a2a22; --amber: #b87a12;
+
+  /* semânticos */
+  --bg: var(--paper-1); --surface: var(--paper-0); --sunken: var(--paper-2);
+  --line: var(--paper-3); --fg: var(--ink-0); --fg-2: var(--ink-2);
+  --invert-bg: var(--ink-0); --invert-fg: var(--paper-1);
+  --live: var(--cobalt); --ok: var(--forest); --late: var(--brick); --warn: var(--amber);
+
+  /* tipo */
+  --font: "BDO Grotesk", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --t-xs: 11px; --t-sm: 13px; --t-md: 16px; --t-lg: 20px; --t-xl: 28px; --t-2xl: 40px; --t-3xl: 64px;
+
+  /* espaço e alvo de toque */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --touch: 48px; --touch-big: 72px;
+  --radius: 0;
+  --gutter: 16px;
+  --tabbar-h: 64px;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: var(--night-0); --surface: var(--night-1); --sunken: var(--night-2);
+  --line: var(--night-3); --fg: #ecebe6; --fg-2: #8f8e89;
+  --invert-bg: #ecebe6; --invert-fg: var(--night-0);
+  --live: #5b7cf0; --ok: #3fae74; --late: #d1695f; --warn: #e0a83a;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--night-0); --surface: var(--night-1); --sunken: var(--night-2);
+    --line: var(--night-3); --fg: #ecebe6; --fg-2: #8f8e89;
+    --invert-bg: #ecebe6; --invert-fg: var(--night-0);
+    --live: #5b7cf0; --ok: #3fae74; --late: #d1695f; --warn: #e0a83a;
+    color-scheme: dark;
+  }
+}

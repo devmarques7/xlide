@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Equipe</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/shell.js"></script>
+<style>
+  .perm { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+  .perm td, .perm th { padding: 10px 6px; border-bottom: 1px solid var(--line); text-align: center; }
+  .perm td:first-child, .perm th:first-child { text-align: left; }
+  .perm th { font: 400 10px var(--mono); text-transform: uppercase; color: var(--fg-2); }
+</style>
+</head>
+<body data-tab="equipe">
+<main class="app">
+  <header class="top"><h1>Equipe</h1><button class="btn primary" id="inv">Convidar</button></header>
+  <div class="split">
+    <div class="stack">
+      <p class="muted">Pessoas vêm do cadastro que já existe (Supabase · <span class="mono">profiles</span> da Classe). Aqui só se dá um papel no Live Church.</p>
+      <div class="scroll-x" id="filter"></div>
+      <div id="people"></div>
+    </div>
+    <aside class="side stack">
+      <div class="card stack-sm">
+        <span class="lbl">Quem pode o quê · seção 3</span>
+        <table class="perm">
+          <tr><th></th><th>Admin</th><th>Oper.</th><th>Editor</th><th>Leitor</th></tr>
+          <tr><td>Criar modelos</td><td>●</td><td></td><td></td><td></td></tr>
+          <tr><td>Editar programa</td><td>●</td><td>ao vivo</td><td>sua área</td><td></td></tr>
+          <tr><td>Marcar pronto</td><td>●</td><td></td><td></td><td></td></tr>
+          <tr><td>Executar</td><td>●</td><td>●</td><td></td><td></td></tr>
+          <tr><td>Relatórios</td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
+          <tr><td>Gerir papéis</td><td>●</td><td></td><td></td><td></td></tr>
+        </table>
+        <p class="lbl" style="line-height:1.6">Gerente e admin da Classe = admin do Live automaticamente.</p>
+      </div>
+      <div class="card stack-sm">
+        <span class="lbl">Parear tablet sem conta</span>
+        <div class="row between"><b class="num" style="font-size:var(--t-2xl);letter-spacing:.2em">4 8 1 7</b><button class="chip">novo código</button></div>
+        <p class="muted" style="font-size:var(--t-sm)">Vale só para a execução de hoje. Substitui o PIN fixo 1423.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<script>
+UI.qs("#inv").innerHTML = UI.I.plus + " Convidar";
+let f = "all";
+function render() {
+  UI.qs("#filter").innerHTML = [["all", "Todos"], ...Object.entries(XL.roles).map(([k, r]) => [k, r.name])].map(([k, n]) => `<button class="chip ${k === f ? "solid" : ""}" data-f="${k}">${n}</button>`).join("");
+  UI.qsa("#filter button").forEach((b) => (b.onclick = () => { f = b.dataset.f; render(); }));
+  UI.qs("#people").innerHTML = Object.entries(XL.people).filter(([, p]) => f === "all" || p.role === f).map(([k, p]) => `<button class="li" style="width:100%;text-align:left" data-p="${k}"><span class="avatar">${p.ini}</span><span class="grow"><h3>${p.name}</h3><span class="lbl">${p.title}</span></span><span class="chip ${p.role === "admin" ? "solid" : ""}">${XL.roles[p.role].name}${p.area ? " · " + XL.areas[p.area] : ""}</span></button>`).join("");
+  UI.qsa("[data-p]").forEach((b) => (b.onclick = () => edit(b.dataset.p)));
+}
+function edit(k) {
+  const p = XL.people[k];
+  const sh = UI.sheet(`<div class="stack"><div class="row"><span class="avatar" style="width:48px;height:48px">${p.ini}</span><span class="grow"><h2>${p.name}</h2><span class="lbl">${p.title}</span></span></div>
+    <span class="lbl">Papel no Live Church</span>
+    ${Object.entries(XL.roles).map(([rk, r]) => `<button class="pick" style="display:flex;gap:12px;width:100%;padding:12px;border:1px solid ${rk === p.role ? "var(--fg)" : "var(--line)"};text-align:left" data-r="${rk}"><span class="grow"><h3>${r.name}</h3><span class="muted" style="font-size:var(--t-sm)">${r.can}</span></span></button>`).join("")}
+    <span class="lbl">Área (editor)</span>
+    <div class="seg">${Object.entries(XL.areas).map(([ak, a]) => `<button class="${ak === p.area ? "on" : ""}" data-a="${ak}">${a}</button>`).join("")}</div>
+    <button class="btn primary block" data-close>Salvar</button><button class="btn danger block" data-close>Tirar acesso ao Live</button>
+    <p class="lbl">Grava em live_roles · quem mudou e quando fica no histórico</p></div>`);
+  UI.qsa("[data-r]", sh).forEach((b) => (b.onclick = () => { p.role = b.dataset.r; edit(k); render(); }));
+  UI.qsa("[data-a]", sh).forEach((b) => (b.onclick = () => { p.area = b.dataset.a; edit(k); render(); }));
+  UI.qsa("[data-close]", sh).forEach((b) => (b.onclick = UI.closeSheet));
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Programa</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script>
+<style>
+  .ti { grid-template-columns: 24px 48px 1fr auto; cursor: pointer; }
+  .ti:hover { background: var(--sunken); }
+  .ti.dragging { opacity: .3; }
+  .ti.drop { box-shadow: inset 0 2px 0 var(--fg); }
+  .locked .grip { visibility: hidden; }
+  .ti.ro { cursor: default; } .ti.ro h3 { color: var(--fg-2); }
+  .stepper { display: grid; grid-template-columns: var(--touch) 1fr var(--touch); border: 1px solid var(--line); }
+  .stepper b { display: grid; place-items: center; font: 400 var(--t-lg) var(--mono); }
+  .stepper button { font-size: 22px; }
+  .pick { display: flex; gap: var(--s3); align-items: center; width: 100%; padding: var(--s3); border: 1px solid var(--line); text-align: left; }
+  .pick.on { border-color: var(--fg); box-shadow: inset 3px 0 0 var(--fg); }
+  .mini-slides { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .mini-slides .slide { padding: 4cqw; }
+  .mini-slides .s-lines { font-size: 8cqw; }
+  .summary { position: sticky; top: 30px; z-index: 5; background: var(--bg); padding: var(--s2) 0; }
+</style>
+</head>
+<body data-tab="programa">
+<main class="app">
+  <header class="top">
+    <a class="icon-btn" href="inicio.html"></a>
+    <span class="grow"><span class="lbl">Sábado, 29 de novembro</span><h2>Culto principal</h2></span>
+    <a class="icon-btn" href="console.html" title="Ir ao console" id="go-live"></a>
+  </header>
+
+  <div class="split">
+    <div>
+      <div class="summary stack-sm">
+        <div class="stats">
+          <div class="stat"><span class="lbl">Início</span><b>10:00</b></div>
+          <div class="stat"><span class="lbl">Término</span><b id="end"></b></div>
+          <div class="stat"><span class="lbl">Total / alvo</span><b id="tot"></b></div>
+        </div>
+        <div id="over"></div>
+        <div class="scroll-x" id="areas"></div>
+      </div>
+      <div class="timeline" id="tl"></div>
+      <div class="grid grid-2" style="margin-top:var(--s4)">
+        <button class="btn block" id="add">+ Adicionar item</button>
+        <button class="btn ghost block">Copiar de 22/11</button>
+      </div>
+    </div>
+
+    <aside class="side stack">
+      <div class="card stack-sm">
+        <span class="lbl">Estado do programa</span>
+        <div class="seg" id="state"><button data-s="draft">Rascunho</button><button data-s="ready">Pronto</button></div>
+        <p class="muted" id="state-note" style="font-size:var(--t-sm)"></p>
+      </div>
+      <div class="card stack-sm">
+        <span class="lbl">Modelo</span>
+        <div class="row between"><h3>Culto principal</h3><span class="chip">13 itens · 95 min</span></div>
+        <p class="muted" style="font-size:var(--t-sm)">Criado do modelo em 18/11. Mudanças de estrutura aqui não alteram o modelo.</p>
+      </div>
+      <div class="card stack-sm">
+        <span class="lbl">Contingência</span>
+        <button class="btn ghost block">⇩ Roteiro em PDF</button>
+        <button class="btn ghost block">⇩ Slides offline (.zip)</button>
+      </div>
+    </aside>
+  </div>
+</main>
+<script>
+const P = XL.program, items = P.items;
+const params = new URLSearchParams(location.search);
+let area = params.get("area") || "all";
+let state = P.state;
+const myArea = area === "all" ? null : area;
+UI.qs("#go-live").innerHTML = UI.I.live;
+UI.qs(".top .icon-btn").innerHTML = UI.I.back;
+UI.qs("#add").innerHTML = UI.I.plus + " Adicionar item";
+
+function render() {
+  const T = LIVE.timing();
+  const total = items.reduce((a, b) => a + b.planned, 0);
+  const target = P.targetMin * 60;
+  UI.qs("#end").textContent = LIVE.wall(T.plannedEnd);
+  UI.qs("#tot").textContent = `${Math.round(total / 60)}/${P.targetMin}`;
+  UI.qs("#over").innerHTML = total > target ? `<div class="banner" style="color:var(--late)">${UI.I.alert.replace("<svg", '<svg width="16" height="16"')} ${Math.round((total - target) / 60)} min acima do alvo · RF-06</div>` : "";
+  UI.qs("#areas").innerHTML = [["all", "Todas"], ...Object.entries(XL.areas)].map(([k, n]) => `<button class="chip ${k === area ? "solid" : ""}" data-a="${k}">${n}</button>`).join("");
+  UI.qsa("#areas button").forEach((b) => (b.onclick = () => { area = b.dataset.a; render(); }));
+
+  const locked = state === "ready";
+  document.body.classList.toggle("locked", locked);
+  UI.qs("#tl").innerHTML = items.map((it, i) => {
+    const ro = area !== "all" && it.area !== area;
+    const warn = (it.type === "video") || (it.type === "song" && XL.songs[it.song].langs.length < 2);
+    return `<div class="ti ${ro ? "ro" : ""} ${warn ? "warn-row" : ""}" id="i${i}" data-i="${i}" draggable="${!locked && !ro}">
+      <span class="grip">${UI.I.grip}</span>
+      <span class="t">${LIVE.wall(T.starts[i])}</span>
+      <span class="what"><h3>${it.title}</h3><span class="meta">${UI.ty(it.type)} · ${UI.who(it.owner)}${it.advance === "auto" ? ' · <span class="lbl">auto</span>' : ""}${it.public ? "" : ' · <span class="lbl">interno</span>'}</span></span>
+      <span class="dur">${UI.min(it.planned)}</span></div>`;
+  }).join("");
+  UI.qsa("#state button").forEach((b) => { b.classList.toggle("on", b.dataset.s === state); b.onclick = () => { state = b.dataset.s; render(); }; });
+  UI.qs("#state-note").textContent = locked ? "Pronto: estrutura travada (ordem, itens). Editores ainda ajustam conteúdo. Visível na página pública." : "Rascunho: cada diretor preenche a sua área. Só o administrador marca como pronto.";
+  UI.qs("#add").disabled = locked;
+  bindRows();
+}
+
+let dragFrom = null;
+function bindRows() {
+  UI.qsa("#tl .ti").forEach((row) => {
+    const i = +row.dataset.i;
+    row.onclick = () => !row.classList.contains("ro") && edit(i);
+    row.ondragstart = () => { dragFrom = i; row.classList.add("dragging"); };
+    row.ondragend = () => row.classList.remove("dragging");
+    row.ondragover = (e) => { e.preventDefault(); row.classList.add("drop"); };
+    row.ondragleave = () => row.classList.remove("drop");
+    row.ondrop = (e) => { e.preventDefault(); const [m] = items.splice(dragFrom, 1); items.splice(i, 0, m); render(); };
+  });
+}
+
+function edit(i) {
+  const it = items[i];
+  const locked = state === "ready";
+  const content = it.type === "song"
+    ? `<span class="lbl">Música da biblioteca</span>${Object.entries(XL.songs).map(([k, s]) => `<button class="pick ${k === it.song ? "on" : ""}" data-song="${k}"><span class="grow"><h3>${s.title}</h3><span class="lbl">${s.author} · ${s.key} · ${s.langs.join(" ").toUpperCase()}</span></span></button>`).join("")}
+       <span class="lbl">Slides gerados (${XL.songSlides(it.song).length})</span>
+       <div class="mini-slides">${XL.songSlides(it.song).slice(0, 6).map((s) => `<div class="slide"><div class="s-lines">${s.text}</div></div>`).join("")}</div>
+       <a class="btn ghost block" href="musica.html?id=${it.song}">Abrir música</a>`
+    : it.deck || it.type === "notice" || it.type === "sermon"
+    ? `<span class="lbl">Deck do XLIDE</span>${Object.entries(XL.decks).map(([k, d]) => `<button class="pick ${k === it.deck ? "on" : ""}"><span class="thumb" style="width:44px;height:44px;background:var(--invert-bg);color:var(--invert-fg);display:grid;place-items:center;font:10px var(--mono)">${d.slides}</span><span class="grow"><h3>${d.title}</h3><span class="lbl">${d.layout} · ${d.updated}</span></span></button>`).join("")}
+       <label class="field"><span class="lbl">Texto do slide</span><textarea class="textarea" style="min-height:90px">${it.text || ""}</textarea></label>`
+    : it.type === "video" ? `<label class="field"><span class="lbl">Vídeo (arquivo ou link)</span><input class="input" placeholder="https:// ou arraste o .mp4"></label><div class="banner off">${UI.I.alert.replace("<svg", '<svg width="14" height="14"')} Sem arquivo ainda</div>`
+    : `<label class="field"><span class="lbl">Texto de apoio</span><textarea class="textarea" style="min-height:90px">${it.text || ""}</textarea></label>`;
+
+  const sh = UI.sheet(`<div class="stack">
+    <div class="row between"><span class="lbl">Item ${i + 1} de ${items.length}</span><button class="icon-btn" data-x>${UI.I.x}</button></div>
+    <label class="field"><span class="lbl">Título</span><input class="input" value="${it.title}" data-f="title"></label>
+    <div class="field"><span class="lbl">Tipo</span><div class="scroll-x">${Object.entries(XL.types).map(([k, t]) => `<button class="chip ${k === it.type ? "solid" : ""}" ${locked ? "disabled" : ""} data-type="${k}">${t.name}</button>`).join("")}</div><span class="muted" style="font-size:var(--t-sm)">${XL.types[it.type].note}</span></div>
+    <div class="field"><span class="lbl">Duração prevista</span><div class="stepper"><button data-d="-30">−</button><b data-dur>${LIVE.mmss(it.planned)}</b><button data-d="30">+</button></div></div>
+    <label class="field"><span class="lbl">Responsável</span><select class="select" data-f="owner">${Object.entries(XL.people).map(([k, p]) => `<option value="${k}" ${k === it.owner ? "selected" : ""}>${p.name} · ${p.title}</option>`).join("")}</select></label>
+    <div class="row between"><span><h3>Avançar sozinho</h3><span class="muted" style="font-size:var(--t-sm)">Ao zerar o tempo</span></span><button class="toggle ${it.advance === "auto" ? "on" : ""}" data-t="advance"></button></div>
+    <div class="row between"><span><h3>Público</h3><span class="muted" style="font-size:var(--t-sm)">Aparece na página ao vivo</span></span><button class="toggle ${it.public ? "on" : ""}" data-t="public"></button></div>
+    <hr class="hr">
+    ${content}
+    <label class="field"><span class="lbl">Observações internas</span><input class="input" placeholder="Só a equipe vê"></label>
+    <div class="grid grid-2"><button class="btn primary block" data-x>Salvar</button><button class="btn danger block" ${locked ? "disabled" : ""} data-del>Remover</button></div>
+    <p class="lbl">Salvo por ${XL.people[XL.me].name} · histórico RF-46</p>
+  </div>`);
+  UI.qsa("[data-x]", sh).forEach((b) => (b.onclick = () => { it.title = UI.qs('[data-f="title"]', sh).value; it.owner = UI.qs('[data-f="owner"]', sh).value; UI.closeSheet(); render(); }));
+  UI.qsa("[data-d]", sh).forEach((b) => (b.onclick = () => { it.planned = Math.max(30, it.planned + +b.dataset.d); UI.qs("[data-dur]", sh).textContent = LIVE.mmss(it.planned); render(); }));
+  UI.qsa("[data-t]", sh).forEach((b) => (b.onclick = () => { b.classList.toggle("on"); const k = b.dataset.t; it[k] = k === "advance" ? (b.classList.contains("on") ? "auto" : "manual") : b.classList.contains("on"); render(); }));
+  UI.qsa("[data-type]", sh).forEach((b) => (b.onclick = () => { it.type = b.dataset.type; if (it.type === "song" && !it.song) it.song = "s1"; it.advance = XL.types[it.type].advance; edit(i); render(); }));
+  UI.qsa("[data-song]", sh).forEach((b) => (b.onclick = () => { it.song = b.dataset.song; it.title = XL.songs[it.song].title; edit(i); render(); }));
+  UI.qs("[data-del]", sh).onclick = () => { items.splice(i, 1); UI.closeSheet(); render(); };
+}
+
+UI.qs("#add").onclick = () => {
+  const sh = UI.sheet(`<div class="stack"><h2>Novo item</h2>${Object.entries(XL.types).map(([k, t]) => `<button class="pick" data-new="${k}"><span class="grow"><h3>${t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note}</span></span>${UI.I.plus.replace("<svg", '<svg width="18" height="18"')}</button>`).join("")}</div>`);
+  UI.qsa("[data-new]", sh).forEach((b) => (b.onclick = () => {
+    const k = b.dataset.new;
+    items.splice(items.length - 1, 0, { type: k, title: XL.types[k].name, planned: 180, owner: XL.me, area: "sound", advance: XL.types[k].advance, public: true, song: k === "song" ? "s1" : undefined });
+    render(); edit(items.length - 2);
+  }));
+};
+render();
+if (location.hash) setTimeout(() => { const el = UI.qs(location.hash); el && el.scrollIntoView({ block: "center" }); }, 50);
+</script>
+</body>
+</html>

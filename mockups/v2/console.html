@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Console</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/render.js"></script>
+<style>
+  body { padding-bottom: 0; }
+  .app { padding-bottom: calc(var(--tabbar-h) + 196px); }
+  .now-card { padding: var(--s4); }
+  .now-card .clock { font-size: clamp(56px, 18vw, 96px); margin: var(--s3) 0 var(--s2); }
+  .slide-nav { display: grid; grid-template-columns: var(--touch-big) 1fr var(--touch-big); gap: var(--s2); align-items: center; }
+  .slide-nav .btn { min-height: 56px; }
+  .ext { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
+  .dock { position: fixed; left: 0; right: 0; bottom: var(--tabbar-h); z-index: 30; background: var(--bg); border-top: 1px solid var(--line); padding: var(--s3) var(--gutter); display: grid; gap: var(--s2); }
+  .dock .main { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: var(--s2); }
+  .dock .btn.big { min-height: 84px; }
+  .dock .btn.big svg { width: 26px; height: 26px; }
+  .ti { cursor: pointer; }
+  .ti.next-row { box-shadow: inset 3px 0 0 var(--live); padding-left: var(--s3); }
+  .dots { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+  .dots i { width: 18px; height: 4px; background: color-mix(in srgb, var(--invert-fg) 25%, transparent); }
+  .dots i.on { background: var(--invert-fg); }
+  @media (min-width: 900px) {
+    .app { padding-bottom: var(--s7); }
+    .dock { position: static; border: 0; padding: 0; background: none; margin-top: var(--s4); }
+  }
+  kbd { font: 400 10px var(--mono); border: 1px solid var(--line); padding: 1px 5px; }
+</style>
+</head>
+<body data-tab="console">
+<main class="app">
+  <header class="top">
+    <span class="grow"><span class="lbl">Console · Culto principal · 29/11</span><div class="row" style="gap:6px;margin-top:4px" id="chips"></div></span>
+    <button class="icon-btn" id="net" title="Simular queda de internet"></button>
+    <a class="icon-btn" href="tela.html" target="xlide-tela" title="Abrir tela" id="scr"></a>
+  </header>
+  <div id="offline"></div>
+
+  <div class="split">
+    <div class="stack">
+      <section class="card invert now-card" id="now">
+        <div class="row between"><span class="lbl" id="pos"></span><span class="lbl" id="adv"></span></div>
+        <h1 id="ttl" style="margin-top:var(--s2)"></h1>
+        <p class="muted" id="who"></p>
+        <div class="clock" id="clk"></div>
+        <div class="bar" id="bar"><i></i></div>
+        <div class="row between" style="margin-top:var(--s2)"><span class="lbl" id="el"></span><span class="lbl" id="bud"></span></div>
+        <div id="slnav" style="margin-top:var(--s4)"></div>
+      </section>
+
+      <div class="ext" id="ext"><button class="btn" data-e="60">+1 min</button><button class="btn" data-e="120">+2 min</button><button class="btn" data-e="300">+5 min</button></div>
+
+      <div class="stats">
+        <div class="stat"><span class="lbl">Agora</span><b id="wall"></b></div>
+        <div class="stat"><span class="lbl">Término previsto</span><b id="end"></b></div>
+        <div class="stat"><span class="lbl">Atraso</span><b id="delay"></b></div>
+      </div>
+
+      <div class="dock">
+        <div class="main">
+          <button class="btn big" id="prev"></button>
+          <button class="btn big live" id="play"></button>
+          <button class="btn big primary" id="next"></button>
+        </div>
+      </div>
+      <p class="lbl hide-sm">Teclado: <kbd>espaço</kbd> play/pausa · <kbd>←</kbd><kbd>→</kbd> slides · <kbd>N</kbd> próximo item · <kbd>B</kbd> voltar · <kbd>1</kbd><kbd>2</kbd><kbd>5</kbd> estender</p>
+    </div>
+
+    <aside class="side stack">
+      <div class="hide-lg"><div class="section-h" style="margin-top:0"><h2>Na tela agora</h2><span class="chip" id="sync"></span></div></div>
+      <div class="hide-sm row between"><h2>Na tela agora</h2><span class="chip" id="sync2"></span></div>
+      <div class="slide" id="pv"></div>
+      <div class="section-h"><h2>Programa</h2><button class="lbl" id="finish">encerrar culto</button></div>
+      <div class="timeline" id="tl"></div>
+    </aside>
+  </div>
+</main>
+<script>
+const items = XL.program.items;
+const { I } = UI;
+UI.qs("#scr").innerHTML = I.screen;
+UI.qs("#net").innerHTML = I.wifi;
+UI.qs("#prev").innerHTML = I.prev + "<small>Voltar</small>";
+UI.qs("#next").innerHTML = I.next + "<small>Próximo</small>";
+LIVE.drive(); // este aparelho dispara o avanço automático
+
+const C = LIVE.cmd;
+UI.qs("#play").onclick = () => C.toggle();
+UI.qs("#next").onclick = () => C.next();
+UI.qs("#prev").onclick = () => C.prev();
+UI.qs("#finish").onclick = () => C.finish();
+UI.qs("#net").onclick = () => C.offline(!LIVE.state.offline);
+UI.qsa("#ext button").forEach((b) => (b.onclick = () => C.extend(+b.dataset.e)));
+addEventListener("keydown", (e) => {
+  if (e.target.matches("input,textarea")) return;
+  const k = e.key;
+  if (k === " ") { e.preventDefault(); C.toggle(); }
+  else if (k === "ArrowRight") C.slide(1);
+  else if (k === "ArrowLeft") C.slide(-1);
+  else if (k === "n" || k === "PageDown") C.next();
+  else if (k === "b" || k === "PageUp") C.prev();
+  else if (k === "1") C.extend(60); else if (k === "2") C.extend(120); else if (k === "5") C.extend(300);
+});
+
+let lastList = "";
+LIVE.loop((s, T) => {
+  const it = T.it, idle = s.status === "idle", done = s.status === "done";
+  const label = { idle: ["Pronto", ""], live: ["Ao vivo", "live"], paused: ["Pausado", "warn"], done: ["Encerrado", "solid"] }[s.status];
+  UI.set("#chips", `<span class="chip ${label[1]}">${s.status === "live" ? '<span class="dot pulse"></span>' : ""}${label[0]}</span>${s.clock.speed > 1 ? `<span class="chip">×${s.clock.speed}</span>` : ""}`);
+  UI.set("#offline", s.offline ? `<div class="banner off" style="margin-bottom:var(--s3)">${I.wifi.replace("<svg", '<svg width="14" height="14"')} Sem internet · rodando local · 3 comandos na fila</div>` : "");
+  UI.qs("#net").style.color = s.offline ? "var(--warn)" : "";
+
+  UI.qs("#pos").textContent = idle ? "Antes do culto" : `Item ${s.index + 1} de ${items.length} · ${XL.types[it.type].name}`;
+  UI.qs("#adv").textContent = it.advance === "auto" ? "avança sozinho" : "manual";
+  UI.qs("#ttl").textContent = idle ? "Dê play para começar" : done ? "Culto encerrado" : it.title;
+  UI.qs("#who").textContent = idle ? `Primeiro: ${it.title}` : done ? "Tempos reais gravados · ver relatório" : XL.people[it.owner].name;
+  const showRem = !idle && !done;
+  UI.qs("#clk").textContent = showRem ? (T.over ? LIVE.mmss(T.remaining) : LIVE.mmss(T.remaining)) : idle ? LIVE.mmss(T.total) : "—";
+  UI.qs("#clk").classList.toggle("over", showRem && T.over);
+  UI.qs("#bar").classList.toggle("over", T.over);
+  UI.qs("#bar i").style.width = (showRem ? T.progress * 100 : 0) + "%";
+  UI.qs("#el").textContent = showRem ? `decorrido ${LIVE.mmss(T.elapsed)}` : idle ? "duração total" : "";
+  UI.qs("#bud").textContent = showRem ? `previsto ${LIVE.mmss(it.planned)}${s.ext ? ` + ${Math.round(s.ext / 60)} min` : ""}` : "";
+
+  // navegação de slides dentro do item
+  const n = LIVE.slidesOf(it).length;
+  const slKey = `${s.index}|${s.slide}|${n}|${s.status}`;
+  if (UI.qs("#slnav")._k !== slKey) {
+    UI.qs("#slnav")._k = slKey;
+    UI.qs("#slnav").innerHTML = showRem && n > 1 ? `<div class="slide-nav"><button class="btn" style="border-color:currentColor" onclick="LIVE.cmd.slide(-1)">${I.back}</button><div class="stack-sm center"><span class="lbl">${it.type === "song" ? "estrofe" : "slide"} ${s.slide + 1}/${n}</span><div class="dots">${Array.from({ length: n }, (_, i) => `<i class="${i === s.slide ? "on" : ""}"></i>`).join("")}</div></div><button class="btn" style="background:var(--invert-fg);color:var(--invert-bg);border-color:var(--invert-fg)" onclick="LIVE.cmd.slide(1)">${I.chev}</button></div>` : "";
+  }
+
+  UI.set("#play", (s.status === "live" ? I.pause + "<small>Pausar</small>" : I.play + `<small>${idle || done ? "Play" : "Retomar"}</small>`));
+  UI.qs("#prev").disabled = idle || s.index === 0;
+  UI.qs("#next").disabled = done;
+  UI.qsa("#ext button").forEach((b) => (b.disabled = idle || done));
+  UI.qs("#wall").textContent = LIVE.wall(LIVE.now());
+  UI.qs("#end").textContent = LIVE.wall(T.projectedEnd);
+  UI.qs("#delay").textContent = idle ? "—" : (Math.abs(T.delay) < 30 ? "0" : (T.delay > 0 ? "+" : "−") + Math.round(Math.abs(T.delay) / 60)) ;
+  UI.qs("#delay").style.color = T.delay > 120 ? "var(--late)" : T.delay < -120 ? "var(--ok)" : "";
+  const sync = s.offline ? "local" : "sincronizado";
+  UI.qs("#sync").textContent = sync; UI.qs("#sync2").textContent = sync;
+
+  paintSlide(UI.qs("#pv"), it, s.slide, T, "pt", s.status);
+
+  // lista (re-render só quando muda)
+  const key = `${s.index}|${s.status}|${Math.floor(LIVE.now() / 15000)}`;
+  if (key !== lastList) {
+    lastList = key;
+    UI.qs("#tl").innerHTML = items.map((x, i) => {
+      const cls = !idle && i === s.index && !done ? "now" : !idle && (i < s.index || done) ? "done" : !idle && i === s.index + 1 ? "next-row" : "";
+      const real = s.log[i]?.end && s.log[i]?.start ? (s.log[i].end - s.log[i].start) / 1000 : null;
+      return `<div class="ti ${cls}" data-go="${i}"><span class="t">${LIVE.wall(T.starts[i])}</span><span class="what"><h3>${x.title}</h3><span class="meta">${UI.ty(x.type)} · ${UI.person(x.owner).name.split(" ")[0]}${s.log[i]?.skipped ? " · pulado" : ""}</span></span><span class="dur">${real != null ? LIVE.mmss(real) : UI.min(x.planned)}</span></div>`;
+    }).join("");
+    UI.qsa("#tl [data-go]").forEach((r) => (r.onclick = () => C.goto(+r.dataset.go)));
+  }
+});
+</script>
+</body>
+</html>

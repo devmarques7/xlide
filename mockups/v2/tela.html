@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Tela</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/render.js"></script>
+<style>
+  html, body { background: #000; height: 100%; overflow: hidden; }
+  .stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  .stage .slide { width: min(100vw, 177.78vh); transition: opacity .25s; }
+  .hud { position: fixed; right: 12px; bottom: 12px; display: flex; gap: 8px; opacity: 0; transition: opacity .3s; }
+  body:hover .hud { opacity: 1; }
+  .hud .chip { background: #000; color: #f1f0ec; border-color: #333; }
+  .mk { position: fixed; left: 0; right: 0; opacity: 0; transition: opacity .3s; }
+  .mk:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="slide" id="s"></div></div>
+<div class="hud"><span class="chip" id="info"></span><button class="chip" onclick="document.documentElement.requestFullscreen?.()">tela cheia (F)</button></div>
+<script>
+addEventListener("keydown", (e) => { if (e.key === "f") document.documentElement.requestFullscreen?.(); });
+LIVE.loop((s, T) => {
+  paintSlide(document.getElementById("s"), T.it, s.slide, T, "pt", s.status);
+  document.getElementById("info").textContent = `${s.status} · item ${s.index + 1} · ${s.offline ? "local" : "realtime"}`;
+});
+</script>
+</body>
+</html>

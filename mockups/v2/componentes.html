@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Componentes</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/render.js"></script>
+<style>
+  .spec { padding: var(--s5) 0; border-bottom: 1px solid var(--line); }
+  .spec > .lbl { display: block; margin-bottom: var(--s3); }
+  .sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--s2); }
+  .sw div { border: 1px solid var(--line); }
+  .sw i { display: block; height: 56px; }
+  .sw span { display: block; padding: 6px 8px; font: 400 10px var(--mono); }
+  .slides { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .slides figure { margin: 0; } .slides figcaption { margin-top: 4px; }
+  .phone { width: 390px; max-width: 100%; border: 1px solid var(--line); padding: var(--s4); }
+</style>
+</head>
+<body>
+<main class="app" style="padding-bottom:var(--s7)">
+  <header class="stack-sm" style="padding:var(--s5) 0"><span class="lbl">XLIDE v2 · assets/ui.css · vira src/components/live/</span><h1>Componentes</h1><p class="muted">Tudo o que as telas usam. Sem raio, monocromático; o azul só significa "ao vivo", vermelho "atrasado", âmbar "pendente/offline".</p></header>
+
+  <section class="spec"><span class="lbl">Cores semânticas</span><div class="sw" id="sw"></div></section>
+
+  <section class="spec"><span class="lbl">Tipografia</span>
+    <div class="stack-sm"><h1>Título 28 · BDO Grotesk 700</h1><h2>Seção 20 · 600</h2><h3>Item 16 · 600</h3><p>Texto 16 · 400 — corpo de leitura.</p><span class="lbl">Rótulo · Fragment Mono 11 caixa-alta</span><div class="clock">12:34</div></div>
+  </section>
+
+  <section class="spec"><span class="lbl">Botões · alvo mínimo 48 px, grandes 72 px</span>
+    <div class="stack-sm">
+      <div class="row" style="flex-wrap:wrap"><button class="btn primary">Primário</button><button class="btn">Secundário</button><button class="btn ghost">Fantasma</button><button class="btn live">Ao vivo</button><button class="btn danger">Perigo</button><button class="btn" disabled>Desligado</button></div>
+      <div class="grid" style="grid-template-columns:1fr 1.4fr 1fr;max-width:420px" id="big"></div>
+    </div>
+  </section>
+
+  <section class="spec"><span class="lbl">Chips e estados</span>
+    <div class="chips"><span class="chip">Neutro</span><span class="chip solid">Selecionado</span><span class="chip live"><span class="dot pulse"></span>Ao vivo</span><span class="chip ok">Pronto</span><span class="chip warn">Rascunho</span><span class="chip late">+6 min</span></div>
+    <div class="chips" style="margin-top:var(--s3)" id="types"></div>
+  </section>
+
+  <section class="spec"><span class="lbl">Campos</span>
+    <div class="grid grid-2" style="max-width:760px">
+      <label class="field"><span class="lbl">Texto</span><input class="input" placeholder="Título do item"></label>
+      <label class="field"><span class="lbl">Seleção</span><select class="select"><option>Lucas Prado · Música</option></select></label>
+      <div class="field"><span class="lbl">Segmentado</span><div class="seg"><button class="on">Rascunho</button><button>Pronto</button></div></div>
+      <div class="field"><span class="lbl">Chave</span><div class="row"><button class="toggle on" onclick="this.classList.toggle('on')"></button><span>Avançar sozinho</span></div></div>
+    </div>
+  </section>
+
+  <section class="spec"><span class="lbl">Linha do programa · estados</span>
+    <div class="phone"><div class="timeline" id="rows"></div></div>
+  </section>
+
+  <section class="spec"><span class="lbl">Números, progresso, faixas</span>
+    <div class="stack-sm" style="max-width:420px">
+      <div class="stats"><div class="stat"><span class="lbl">Agora</span><b>10:42</b></div><div class="stat"><span class="lbl">Término</span><b>11:41</b></div><div class="stat"><span class="lbl">Atraso</span><b style="color:var(--late)">+6</b></div></div>
+      <div class="bar"><i style="width:62%"></i></div><div class="bar over"><i style="width:100%"></i></div>
+      <div class="banner off">Sem internet · rodando local</div><div class="banner live">Sincronizado</div>
+      <button class="btn block" onclick="UI.sheet('<div class=stack><h2>Folha inferior</h2><p class=muted>No celular sobe de baixo; no desktop vira painel à direita.</p><button class=\'btn primary block\' onclick=UI.closeSheet()>Fechar</button></div>')">Abrir folha</button>
+    </div>
+  </section>
+
+  <section class="spec"><span class="lbl">Slide por tipo de item (tela de projeção)</span><div class="slides" id="slides"></div></section>
+</main>
+<script>
+UI.qs("#sw").innerHTML = ["bg", "surface", "sunken", "line", "fg", "fg-2", "live", "ok", "warn", "late"].map((t) => `<div><i style="background:var(--${t})"></i><span>--${t}</span></div>`).join("");
+UI.qs("#big").innerHTML = `<button class="btn big">${UI.I.prev}<small>Voltar</small></button><button class="btn big live">${UI.I.play}<small>Play</small></button><button class="btn big primary">${UI.I.next}<small>Próximo</small></button>`;
+UI.qs("#types").innerHTML = Object.keys(XL.types).map((k) => `<span class="chip">${UI.ty(k)}</span>`).join("");
+const it = XL.program.items;
+UI.qs("#rows").innerHTML = [["done", 1, "feito"], ["now", 2, "agora"], ["", 3, "a seguir"], ["warn-row", 5, "pendência"]].map(([c, i, n]) => `<div class="ti ${c}"><span class="t">10:0${i}</span><span class="what"><h3>${it[i].title}</h3><span class="meta">${UI.ty(it[i].type)} · ${n}</span></span><span class="dur">${UI.min(it[i].planned)}</span></div>`).join("");
+const T = { remaining: 252, progress: .3 };
+const pick = ["wait", "song", "notice", "sermon", "prayer", "video", "pause"].map((k) => it.find((x) => x.type === k));
+UI.qs("#slides").innerHTML = pick.map((x, i) => `<figure><div class="slide" id="sl${i}"></div><figcaption class="lbl">${XL.types[x.type].name}</figcaption></figure>`).join("");
+pick.forEach((x, i) => paintSlide(UI.qs("#sl" + i), x, 0, T, "pt", "live"));
+</script>
+</body>
+</html>

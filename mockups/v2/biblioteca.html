@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Biblioteca</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/shell.js"></script>
+<style>
+  .pane { display: none; } .pane.on { display: block; }
+  @media (min-width: 900px) { .lib-grid { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: var(--s5); } }
+  .src { display: flex; gap: var(--s3); align-items: center; width: 100%; padding: var(--s4) var(--s3); border: 1px solid var(--line); text-align: left; }
+  .src svg { width: 22px; height: 22px; flex: none; }
+</style>
+</head>
+<body data-tab="biblioteca">
+<main class="app">
+  <header class="top"><h1>Biblioteca</h1><button class="btn primary" id="new">Nova</button></header>
+  <div class="stack">
+    <div class="search" id="sr"><input class="input" placeholder="Buscar título, autor, trecho da letra…" id="q"></div>
+    <div class="seg" id="tabs"><button class="on" data-p="songs">Músicas</button><button data-p="decks">Decks</button><button data-p="tpl">Modelos</button></div>
+    <section class="pane on" id="songs"><div class="lib-grid" id="song-list"></div></section>
+    <section class="pane" id="decks"><div class="lib-grid" id="deck-list"></div></section>
+    <section class="pane" id="tpl"><div class="lib-grid" id="tpl-list"></div><p class="muted" style="margin-top:var(--s3);font-size:var(--t-sm)">Modelo = sequência padrão por tipo de culto (RF-01). Duplicar cria outro tipo.</p></section>
+  </div>
+</main>
+<script>
+UI.qs("#sr").insertAdjacentHTML("afterbegin", UI.I.search);
+UI.qs("#new").innerHTML = UI.I.plus + " Nova";
+const songRow = ([k, s]) => `<a class="li" href="musica.html?id=${k}"><span class="thumb">${s.key}</span><span class="grow"><h3>${s.title}</h3><span class="lbl">${s.author} · ${s.langs.join(" ").toUpperCase()}</span></span><span class="center"><b class="num">${s.uses}×</b><br><span class="lbl">${s.last}</span></span></a>`;
+function list(q = "") {
+  q = q.toLowerCase();
+  UI.qs("#song-list").innerHTML = Object.entries(XL.songs).filter(([, s]) => !q || (s.title + s.author + Object.values(s.lyrics).join(" ")).toLowerCase().includes(q)).map(songRow).join("") || `<p class="muted">Nada encontrado.</p>`;
+  UI.qs("#deck-list").innerHTML = Object.entries(XL.decks).filter(([, d]) => !q || d.title.toLowerCase().includes(q)).map(([k, d]) => `<a class="li" href="#"><span class="thumb">${d.slides}</span><span class="grow"><h3>${d.title}</h3><span class="lbl">${d.layout} · ${d.updated}</span></span>${UI.I.chev.replace("<svg", '<svg width="18" height="18"')}</a>`).join("");
+  UI.qs("#tpl-list").innerHTML = XL.templates.map((t) => `<div class="li"><span class="thumb">${t.items}</span><span class="grow"><h3>${t.name}</h3><span class="lbl">${t.minutes} min · usado ${t.uses}×</span></span><button class="chip">Duplicar</button></div>`).join("");
+}
+UI.qs("#q").oninput = (e) => list(e.target.value);
+UI.qsa("#tabs button").forEach((b) => (b.onclick = () => { UI.qsa("#tabs button").forEach((x) => x.classList.toggle("on", x === b)); UI.qsa(".pane").forEach((p) => p.classList.toggle("on", p.id === b.dataset.p)); }));
+UI.qs("#new").onclick = () => UI.sheet(`<div class="stack"><h2>Nova música</h2>
+  <button class="src">${UI.I.live}<span class="grow"><h3>Link do YouTube</h3><span class="muted" style="font-size:var(--t-sm)">Letra das legendas, com tempo de cada linha (XLIDE Music)</span></span></button>
+  <button class="src">${UI.I.doc}<span class="grow"><h3>Colar letra</h3><span class="muted" style="font-size:var(--t-sm)">Linha em branco separa os slides; [Refrão] marca seções</span></span></button>
+  <button class="src">${UI.I.clock}<span class="grow"><h3>Arquivo LRC / SRT</h3><span class="muted" style="font-size:var(--t-sm)">Letra já sincronizada</span></span></button>
+  <hr class="hr"><h2>Novo deck</h2>
+  <button class="src">${UI.I.screen}<span class="grow"><h3>Deck em branco</h3><span class="muted" style="font-size:var(--t-sm)">Abre o editor do XLIDE (desktop)</span></span></button>
+  <p class="lbl">Licença: confira a licença de uso da igreja antes de importar acervo grande.</p></div>`);
+list();
+</script>
+</body>
+</html>

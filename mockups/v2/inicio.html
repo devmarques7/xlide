@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Início</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script>
+</head>
+<body data-tab="inicio">
+<main class="app">
+  <header class="top">
+    <span class="brand"><span class="mark">X</span>XLIDE</span>
+    <span class="row" style="gap:8px"><span class="lbl hide-sm">Nova Semente Rotterdam</span><span class="avatar" id="me-av"></span></span>
+  </header>
+
+  <div class="stack">
+    <div><span class="lbl">Ver como</span><div class="seg" id="as" style="margin-top:6px"></div></div>
+    <h1 id="hello"></h1>
+
+    <a href="programa.html" class="card invert stack-sm" style="display:block">
+      <div class="row between"><span class="lbl">Próximo culto</span><span class="chip" id="state-chip" style="color:inherit;border-color:currentColor"></span></div>
+      <h2 style="font-size:var(--t-xl)">Culto principal</h2>
+      <p class="muted" id="date"></p>
+      <div class="stats" style="border-color:rgb(255 255 255 / .15);margin-top:var(--s3)">
+        <div class="stat"><span class="lbl">Início</span><b>10:00</b></div>
+        <div class="stat" style="border-color:rgb(255 255 255 / .15)"><span class="lbl">Término</span><b id="end"></b></div>
+        <div class="stat" style="border-color:rgb(255 255 255 / .15)"><span class="lbl">Itens</span><b id="count"></b></div>
+      </div>
+    </a>
+    <div class="grid grid-2" id="cta"></div>
+
+    <div class="split">
+      <div>
+        <div class="section-h"><h2 id="mine-h">Minha parte</h2><span class="lbl" id="mine-n"></span></div>
+        <div class="timeline" id="mine"></div>
+
+        <div class="section-h"><h2>Pendências</h2><span class="lbl">RF-10</span></div>
+        <div class="stack-sm" id="todo"></div>
+      </div>
+      <aside class="side">
+        <div class="section-h"><h2>Próximos</h2><a class="lbl" href="#">calendário →</a></div>
+        <div id="next"></div>
+      </aside>
+    </div>
+  </div>
+</main>
+<script>
+const { program, people, areas, types } = XL;
+const views = { bia: "Operador", lucas: "Música", ana: "Admin", pr: "Púlpito" };
+let me = new URLSearchParams(location.search).get("as") || "bia";
+const total = program.items.reduce((a, b) => a + b.planned, 0);
+const endH = () => { const m = 600 + total / 60; return `${Math.floor(m / 60)}:${String(Math.round(m % 60)).padStart(2, "0")}`; };
+
+function render() {
+  const p = people[me];
+  UI.qs("#as").innerHTML = Object.entries(views).map(([k, n]) => `<button class="${k === me ? "on" : ""}" data-k="${k}">${n}</button>`).join("");
+  UI.qsa("#as button").forEach((b) => (b.onclick = () => { me = b.dataset.k; render(); }));
+  UI.qs("#me-av").textContent = p.ini;
+  UI.qs("#hello").textContent = `Bom dia, ${p.name.replace("Pr. ", "").split(" ")[0]}.`;
+  UI.qs("#date").textContent = `${program.date} · faltam 4 dias`;
+  UI.qs("#state-chip").textContent = "Pronto";
+  UI.qs("#end").textContent = endH();
+  UI.qs("#count").textContent = program.items.length;
+
+  const cta = {
+    bia: `<a class="btn live big" href="console.html">${UI.I.live}Abrir console<small>Você opera este culto</small></a><a class="btn big" href="tela.html">${UI.I.screen}Abrir tela<small>No computador do projetor</small></a>`,
+    lucas: `<a class="btn primary big" href="programa.html?area=music">${UI.I.music}Preencher músicas<small>4 itens · prazo quinta</small></a><a class="btn big" href="biblioteca.html">${UI.I.lib}Biblioteca<small>Nova música</small></a>`,
+    ana: `<a class="btn primary big" href="programa.html">${UI.I.check}Revisar e marcar pronto<small>RF-08</small></a><a class="btn big" href="relatorio.html">${UI.I.clock}Último relatório<small>22/11 · +9 min</small></a>`,
+    pr: `<a class="btn primary big" href="programa.html?area=pulpit">${UI.I.doc}Meu sermão<small>Casa de muitos · 40 min</small></a><a class="btn big" href="ao-vivo.html">${UI.I.qr}Página pública<small>O que os membros veem</small></a>`,
+  };
+  UI.qs("#cta").innerHTML = cta[me];
+
+  const mine = program.items.map((it, i) => ({ it, i })).filter(({ it }) => me === "ana" || (people[me].area ? it.area === people[me].area : it.owner === me) || it.owner === me);
+  UI.qs("#mine-h").textContent = me === "ana" ? "Programa" : `Minha parte · ${areas[people[me].area] || ""}`;
+  UI.qs("#mine-n").textContent = `${mine.length} itens`;
+  const st = LIVE.timing().starts;
+  UI.qs("#mine").innerHTML = mine.map(({ it, i }) => `
+    <a class="ti" href="programa.html#i${i}"><span class="t">${LIVE.wall(st[i])}</span>
+      <span class="what"><h3>${it.title}</h3><span class="meta">${UI.ty(it.type)} · ${UI.who(it.owner)}</span></span>
+      <span class="dur">${UI.min(it.planned)}</span></a>`).join("");
+
+  const todo = [
+    ["warn", "Vídeo: missão Rotterdam", "Sem arquivo de vídeo", "comms"],
+    ["warn", "Caminho aberto", "Letra só em português", "music"],
+    ["ok", "Casa de muitos", "Slides de apoio enviados", "pulpit"],
+    ["late", "Culto jovem · 06/12", "3 itens sem responsável", null],
+  ].filter((t) => me === "ana" || me === "bia" || t[3] === people[me].area);
+  UI.qs("#todo").innerHTML = todo.length ? todo.map(([k, t, d]) => `<div class="card row"><span class="chip ${k}"><span class="dot"></span></span><span class="grow"><h3>${t}</h3><span class="muted" style="font-size:var(--t-sm)">${d}</span></span>${UI.I.chev.replace("<svg", '<svg width="18" height="18"')}</div>`).join("") : `<p class="muted">Nada pendente. 🙌</p>`;
+
+  UI.qs("#next").innerHTML = [
+    ["29/11", "Culto principal", "Pronto", "ok", "13/13"],
+    ["06/12", "Culto jovem", "Rascunho", "warn", "6/9"],
+    ["06/12", "Culto principal", "Rascunho", "warn", "9/13"],
+    ["13/12", "Culto principal · Batismo", "Rascunho", "", "2/14"],
+  ].map(([d, n, s, k, f]) => `<div class="li"><span class="thumb">${d}</span><span class="grow"><h3>${n}</h3><span class="lbl">${f} preenchidos</span></span><span class="chip ${k}">${s}</span></div>`).join("");
+}
+render();
+</script>
+</body>
+</html>

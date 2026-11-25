@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE v2 · Entrar</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/data.js"></script><script src="assets/shell.js"></script>
+<style>
+  .wrap { min-height: calc(100dvh - 30px); display: grid; align-content: space-between; max-width: 420px; margin: 0 auto; padding: var(--s6) var(--gutter); gap: var(--s6); }
+  .logo { font: 800 56px/0.9 var(--font); letter-spacing: -0.04em; }
+  .step { display: none; } .step.on { display: block; }
+  .church { display: flex; align-items: center; gap: var(--s3); padding: var(--s3); border: 1px solid var(--line); width: 100%; text-align: left; min-height: 64px; }
+  .church.on { border-color: var(--fg); box-shadow: inset 3px 0 0 var(--fg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stack-sm">
+    <div class="logo">XLIDE</div>
+    <span class="lbl">Live Church · Nova Semente Rotterdam</span>
+  </div>
+
+  <section class="step on" id="s1">
+    <div class="stack">
+      <h1>Entrar</h1>
+      <p class="muted">Use a mesma conta da Classe. Um login para tudo.</p>
+      <button class="btn primary block" onclick="go(2)">Continuar com Google</button>
+      <div class="row"><hr class="hr grow"><span class="lbl">ou</span><hr class="hr grow"></div>
+      <label class="field"><span class="lbl">E-mail</span><input class="input" type="email" placeholder="voce@email.com"></label>
+      <button class="btn block" onclick="go('mail')">Receber link de acesso</button>
+      <p class="lbl" style="line-height:1.6">Supabase Auth · sessão guardada no aparelho · sem PIN</p>
+    </div>
+  </section>
+
+  <section class="step" id="smail">
+    <div class="stack">
+      <h1>Confira seu e-mail</h1>
+      <p class="muted">Mandamos um link. Abra no mesmo aparelho e você entra direto.</p>
+      <button class="btn block" onclick="go(2)">Já abri o link</button>
+      <button class="btn ghost block" onclick="go(1)">Voltar</button>
+    </div>
+  </section>
+
+  <section class="step" id="s2">
+    <div class="stack">
+      <h1>Oi, Bia.</h1>
+      <p class="muted">Você faz parte de duas igrejas. Em qual vamos trabalhar?</p>
+      <button class="church on"><span class="avatar">NS</span><span class="grow"><h3>Nova Semente Rotterdam</h3><span class="lbl">Operador · Sonoplastia</span></span></button>
+      <button class="church"><span class="avatar">IR</span><span class="grow"><h3>IASD Rotterdam Centro</h3><span class="lbl">Leitor</span></span></button>
+      <a class="btn primary block" href="inicio.html">Entrar</a>
+    </div>
+  </section>
+
+  <section class="step" id="s3">
+    <div class="stack">
+      <h1>Sem acesso ao Live</h1>
+      <p class="muted">Sua conta existe, mas ainda não tem papel no Live Church desta igreja. Peça ao administrador.</p>
+      <div class="card row"><span class="avatar">AR</span><span class="grow"><h3>Ana Ribeiro</h3><span class="lbl">Administradora</span></span></div>
+      <button class="btn block">Pedir acesso</button>
+      <a class="btn ghost block" href="ao-vivo.html">Ver o programa público</a>
+    </div>
+  </section>
+
+  <div class="chips"><button class="chip" onclick="go(1)">estado: entrar</button><button class="chip" onclick="go(2)">escolher igreja</button><button class="chip" onclick="go(3)">sem papel (critério de aceite)</button></div>
+</div>
+<script>
+function go(n) { document.querySelectorAll(".step").forEach((s) => s.classList.toggle("on", s.id === "s" + n)); }
+</script>
+</body>
+</html>
