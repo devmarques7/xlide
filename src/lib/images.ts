@@ -1,4 +1,5 @@
 import type { Slide } from "./types";
+import { apiFetch } from "./supabase";
 
 const MAX_SIDE = 1920;
 
@@ -27,7 +28,7 @@ export interface UploadResult {
 export async function uploadImage(file: File): Promise<UploadResult> {
   const { data, type } = await compress(file);
   try {
-    const res = await fetch("/api/images", {
+    const res = await apiFetch("/api/images", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data, type }),

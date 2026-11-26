@@ -1,11 +1,20 @@
 // Supabase no servidor (funções da Vercel e servidor local), pela API REST (PostgREST + Storage).
 // Ligado quando SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY existem; sem elas tudo segue no Redis / arquivo local.
 // A chave de serviço só vive no servidor: nunca vai para o navegador.
+import { AsyncLocalStorage } from "node:async_hooks";
 const URL_ = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export const hasSupabase = !!(URL_ && KEY);
 
-const headers = (extra = {}) => ({ apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", ...extra });
+// Quem fez a chamada (dono da chave do MCP): vai no cabeçalho x-xlide-user e a auditoria grava no nome da pessoa.
+const actorStore = new AsyncLocalStorage();
+export const currentActorId = () => actorStore.getStore()?.id || null;
+export const runAs = (actor, fn) => actorStore.run(actor || {}, fn);
+
+const headers = (extra = {}) => {
+  const who = currentActorId();
+  return { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", ...(who ? { "x-xlide-user": who } : {}), ...extra };
+};
 
 async function rest(path, init = {}) {
   const res = await fetch(`${URL_}/rest/v1/${path}`, { ...init, headers: headers(init.headers) });

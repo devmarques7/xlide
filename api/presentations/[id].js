@@ -1,7 +1,9 @@
 import { needRedis, noStore, redis } from "../_redis.js";
 import { deckStore, hasSupabase } from "../_supabase.js";
+import { guard } from "../_auth.js";
 
 // Decks: no Supabase quando configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY), senão no Redis.
+// Abrir um deck pelo id continua público (Viewer, Remote, /fill); gravar e apagar só quem edita.
 export default async function handler(req, res) {
   noStore(res);
   if (needRedis(res, { supabaseOk: true })) return;
@@ -12,6 +14,7 @@ export default async function handler(req, res) {
     const [v] = await redis(["GET", key]);
     return v ? res.json(JSON.parse(v)) : res.status(404).json({ error: "not_found" });
   }
+  if ((req.method === "PUT" || req.method === "DELETE") && !(await guard(req, res, "edit"))) return;
   if (req.method === "PUT") {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     if (!body || body.id !== id) return res.status(400).json({ error: "invalid" });

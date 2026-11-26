@@ -14,11 +14,17 @@
   <header class="top"><h1>Equipe</h1><button class="btn primary" id="inv">Convidar</button></header>
   <div class="split">
     <div class="stack">
-      <p class="muted">Pessoas vêm do cadastro que já existe (Supabase · <span class="mono">profiles</span> da Classe). Aqui só se dá um papel no Live Church.</p>
+      <p class="muted">O XLIDE é fechado: só entra quem recebe um convite. O convite vale uma vez, para um e-mail, e já leva o papel.</p>
       <div class="scroll-x" id="filter"></div>
       <div id="people"></div>
     </div>
     <aside class="side stack">
+      <div class="card stack-sm" id="mcp-card" hidden><span class="lbl">Minha chave do MCP</span>
+        <p class="muted" style="font-size:var(--t-sm)">Para ligar o Claude (ou outra IA) ao XLIDE. O que a IA mudar fica no seu nome. Não compartilhe.</p>
+        <code class="mono" id="mcp-url" style="display:block;word-break:break-all;font-size:var(--t-xs, 12px);padding:8px;border:1px solid var(--line)">…</code>
+        <div class="row" style="gap:8px"><button class="chip solid" id="mcp-copy">Copiar</button><button class="chip" id="mcp-rot">Gerar nova</button></div>
+      </div>
+      <div class="card stack-sm" id="inv-card" hidden><span class="lbl">Convites pendentes</span><div id="invites"></div></div>
       <div class="card stack-sm"><span class="lbl">Resumo</span>
         <p style="font-size:var(--t-sm)"><b>Admin</b> vê e edita tudo. <b>Púlpito</b> cria os slides do sermão. <b>Operador</b> vê os slides e projeta, sem editar. <b>Música</b> cria faixas e importa do YouTube.</p>
         <a class="link" href="#perm">Ver a tabela completa</a></div>
@@ -36,8 +42,72 @@
 </main>
 <script>
 UI.qs("#inv").innerHTML = UI.I.plus + " Convidar";
-// convite = o link de entrar; a pessoa entra com o Google ou e-mail e aparece aqui como editor
-if (window.XCLOUD && XCLOUD.on) UI.qs("#inv").onclick = async (e) => { const url = location.origin + "/login?from=" + encodeURIComponent("/v2/inicio.html"); try { await navigator.clipboard.writeText(url); e.currentTarget.textContent = "Link copiado"; } catch { prompt("Envie este link:", url); } };
+/* ---------- convites (só o admin) e chave do MCP (cada pessoa) ---------- */
+const CLOUD = window.XCLOUD && XCLOUD.on && XCLOUD.client ? XCLOUD.client : null;
+const esc = (t) => String(t == null ? "" : t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inviteUrl = (tok) => location.origin + "/login?convite=" + tok + "&from=" + encodeURIComponent("/v2/inicio.html");
+async function copyText(t, btn, label) { try { await navigator.clipboard.writeText(t); if (btn) { const o = btn.textContent; btn.textContent = label || "Copiado"; setTimeout(() => (btn.textContent = o), 1600); } } catch { prompt("Copie:", t); } }
+function shareSheet(inv) {
+  const url = inviteUrl(inv.token);
+  const msg = `Você foi convidado para o XLIDE. Entre com ${inv.email} por este link (vale uma vez, até ${new Date(inv.expires_at).toLocaleDateString("pt-BR")}): ${url}`;
+  const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Convite criado</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
+    <p class="muted" style="font-size:var(--t-sm)">Para <b>${esc(inv.email)}</b> como <b>${esc((XL.roles[inv.role] || {}).name || inv.role)}</b>. O link vale uma vez e só para este e-mail.</p>
+    <code class="mono" style="display:block;word-break:break-all;padding:8px;border:1px solid var(--line)">${esc(url)}</code>
+    <button class="btn primary block" data-copy>Copiar link</button>
+    <a class="btn block" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">Enviar pelo WhatsApp</a>
+    <a class="btn block" href="mailto:${encodeURIComponent(inv.email)}?subject=${encodeURIComponent("Convite para o XLIDE")}&body=${encodeURIComponent(msg)}">Enviar por e-mail</a></div>`);
+  UI.qs("[data-copy]", sh).onclick = (e) => copyText(url, e.currentTarget, "Link copiado");
+}
+function inviteForm() {
+  const sh = UI.sheet(`<form class="stack" id="inv-f"><div class="row between"><h2>Convidar para a equipe</h2><button type="button" class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
+    <label class="field"><span class="lbl">E-mail (o mesmo que a pessoa usa para entrar)</span><input class="input" type="email" name="email" required autocomplete="off" placeholder="nome@exemplo.com"></label>
+    <label class="field"><span class="lbl">Nome</span><input class="input" name="name" placeholder="Opcional"></label>
+    <span class="lbl">Papel</span>
+    <div class="seg" id="inv-role">${Object.entries(XL.roles).map(([k, r]) => `<button type="button" data-r="${k}" class="${k === "editor" ? "on" : ""}">${r.name}</button>`).join("")}</div>
+    <span class="lbl">Área (opcional)</span>
+    <div class="seg" id="inv-area">${Object.entries(XL.areas).map(([k, a]) => `<button type="button" data-a="${k}">${a}</button>`).join("")}</div>
+    <p class="xc-err" style="color:var(--late)" hidden></p>
+    <button class="btn primary block" type="submit">Criar convite</button>
+    <p class="lbl">Vale 14 dias. Um convite novo para o mesmo e-mail cancela o anterior.</p></form>`);
+  let role = "editor", area = null;
+  UI.qsa("[data-r]", sh).forEach((b) => (b.onclick = () => { role = b.dataset.r; UI.qsa("[data-r]", sh).forEach((x) => x.classList.toggle("on", x === b)); }));
+  UI.qsa("[data-a]", sh).forEach((b) => (b.onclick = () => { area = area === b.dataset.a ? null : b.dataset.a; UI.qsa("[data-a]", sh).forEach((x) => x.classList.toggle("on", x.dataset.a === area)); }));
+  UI.qs("#inv-f", sh).onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget, err = UI.qs(".xc-err", sh), btn = UI.qs("[type=submit]", sh);
+    btn.disabled = true; err.hidden = true;
+    const { data, error } = await CLOUD.rpc("xlide_invite_create", { mail: f.email.value, p_role: role, p_area: area, p_name: f.name.value || null });
+    btn.disabled = false;
+    if (error) { err.textContent = /admin/.test(error.message) ? "Só o admin convida." : error.message; err.hidden = false; return; }
+    UI.closeSheet(); shareSheet(data); loadInvites();
+  };
+}
+async function loadInvites() {
+  if (!CLOUD || XCLOUD.role !== "admin") return;
+  const { data } = await CLOUD.from("xlide_invites").select("*").is("used_at", null).is("revoked_at", null).order("created_at", { ascending: false });
+  const list = (data || []).filter((i) => new Date(i.expires_at) > new Date());
+  UI.qs("#inv-card").hidden = false;
+  UI.qs("#invites").innerHTML = list.length ? list.map((i) => `<div class="row between" style="gap:8px;padding:6px 0;border-top:1px solid var(--line)"><span class="grow" style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(i.name || i.email)}</b><span class="lbl">${esc((XL.roles[i.role] || {}).name || i.role)} · até ${new Date(i.expires_at).toLocaleDateString("pt-BR")}</span></span><button class="chip" data-share="${i.id}">Link</button><button class="chip" data-rev="${i.id}">Cancelar</button></div>`).join("") : `<p class="muted" style="font-size:var(--t-sm)">Nenhum convite esperando.</p>`;
+  UI.qsa("[data-share]").forEach((b) => (b.onclick = () => shareSheet(list.find((i) => i.id === b.dataset.share))));
+  UI.qsa("[data-rev]").forEach((b) => (b.onclick = async () => { await CLOUD.rpc("xlide_invite_revoke", { invite: b.dataset.rev }); loadInvites(); }));
+}
+async function loadKey() {
+  if (!CLOUD) return;
+  const { data } = await CLOUD.from("xlide_tokens").select("token").maybeSingle();
+  UI.qs("#mcp-card").hidden = false;
+  const show = (tok) => { const u = tok ? location.origin + "/api/mcp?key=" + tok : "Sem chave ainda: toque em Gerar nova."; UI.qs("#mcp-url").textContent = u; UI.qs("#mcp-copy").onclick = (e) => tok && copyText(u, e.currentTarget); };
+  show(data && data.token);
+  UI.qs("#mcp-rot").onclick = async (e) => {
+    if (!confirm("Gerar uma chave nova? A atual para de funcionar na hora (as IAs ligadas a ela precisam da nova).")) return;
+    const r = await CLOUD.rpc("xlide_rotate_token"); if (!r.error) { show(r.data); e.currentTarget.textContent = "Nova chave criada"; }
+  };
+}
+if (CLOUD) {
+  UI.qs("#inv").onclick = () => (XCLOUD.role === "admin" ? inviteForm() : alert("Só o admin convida. Peça a um admin da equipe."));
+  // XCLOUD.role chega depois que o banco responde
+  let tries = 0; const wait = setInterval(() => { if (XCLOUD.role || ++tries > 40) { clearInterval(wait); loadInvites(); } }, 250);
+  loadKey();
+}
 let f = "all";
 function render() {
   UI.qs("#filter").innerHTML = [["all", "Todos"], ...Object.entries(XL.roles).map(([k, r]) => [k, r.name])].map(([k, n]) => `<button class="chip ${k === f ? "solid" : ""}" data-f="${k}">${n}</button>`).join("");
@@ -65,10 +135,13 @@ function edit(k) {
       if (error) { alertBox(error.message.includes("admin") ? "Só o admin muda papéis." : "Não salvou: " + error.message); return; }
       UI.closeSheet(); render();
     };
+    cut.textContent = "Tirar da equipe";
     cut.onclick = async () => {
-      const { error } = await XCLOUD.client.from("profiles").update({ role: "reader", area: null }).eq("id", k);
-      if (error) { alertBox("Só o admin muda papéis."); return; }
-      p.role = "reader"; p.area = null; UI.closeSheet(); render();
+      if (k === XCLOUD.uid) { alertBox("Você não pode tirar a si mesmo. Peça a outro admin."); return; }
+      if (!confirm("Tirar " + p.name + " da equipe? A pessoa perde o acesso e a chave do MCP dela para de funcionar. Para voltar, precisa de um convite novo.")) return;
+      const { data, error } = await XCLOUD.client.from("profiles").delete().eq("id", k).select("id");
+      if (error || !data || !data.length) { alertBox("Só o admin tira pessoas da equipe."); return; }
+      delete XL.people[k]; UI.closeSheet(); render();
     };
     function alertBox(t) { let n = sh.querySelector(".xc-err"); if (!n) { n = document.createElement("p"); n.className = "xc-err"; n.style.color = "var(--late)"; sh.querySelector(".stack").append(n); } n.textContent = t; }
   }

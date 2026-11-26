@@ -344,7 +344,8 @@
 
   /* ---------- Realtime ---------- */
   function subscribe() {
-    channel = sb.channel("xlide-live", { config: { broadcast: { self: false } } });
+    // canal privado: todos ouvem (a tela pública também), só quem opera o culto fala (políticas em realtime.messages)
+    channel = sb.channel("xlide-live", { config: { private: true, broadcast: { self: false } } });
     channel.on("broadcast", { event: "run" }, ({ payload }) => payload && takeRun(payload.state));
     if (!PUBLIC) {
       channel.on("postgres_changes", { event: "*", schema: "public", table: "xlide_runs" }, ({ new: r }) => r && r.state && takeRun(r.state));
@@ -373,6 +374,14 @@
       if (!PUBLIC) {
         const { data } = await sb.auth.getSession();
         if (!data.session) { location.replace("/login?from=" + encodeURIComponent(location.pathname + location.search)); return; }
+        // sistema fechado: logado sem perfil (sem convite aceito) volta para o login, que explica
+        const me = await sb.from("profiles").select("id,role").eq("id", data.session.user.id).maybeSingle();
+        if (!me.error && !me.data) {
+          let tok = null; try { tok = sessionStorage.getItem("xlide.invite"); } catch {}
+          const j = await sb.rpc("xlide_join", { tok });
+          if (!j.data) { ["xlide.v2.cloud", "xlide.v2.me"].forEach((k) => rawRemove.call(LS, k)); location.replace("/login?from=" + encodeURIComponent(location.pathname + location.search)); return; }
+        }
+        if (me.data) window.XCLOUD.role = me.data.role;
         const t0 = Date.now(); const { data: st } = await sb.rpc("xlide_server_time");
         if (st) { skew = st - (t0 + Date.now()) / 2; sessionStorage.setItem("xlide.v2.skew", String(skew)); }
         for (const k of [...dirty]) await flush(k);

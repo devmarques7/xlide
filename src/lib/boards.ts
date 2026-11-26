@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { layoutBoard, newId, normalizeBoard, type Board } from "../../shared/board.js";
+import { apiFetch } from "./supabase";
 
 export type { Board, BoardEdge, BoardNode, MoodItem, NodeKind } from "../../shared/board.js";
 
@@ -78,7 +79,7 @@ function merge(remote: Board) {
 
 export async function pullBoard(id: string) {
   try {
-    const res = await fetch(`/api/boards/${id}`, { cache: "no-store" });
+    const res = await apiFetch(`/api/boards/${id}`, { cache: "no-store" });
     if (res.ok && res.headers.get("content-type")?.includes("json")) merge(await res.json());
   } catch {
     /* offline */
@@ -87,7 +88,7 @@ export async function pullBoard(id: string) {
 
 export async function syncBoards() {
   try {
-    const res = await fetch("/api/boards", { cache: "no-store" });
+    const res = await apiFetch("/api/boards", { cache: "no-store" });
     if (!res.ok || !res.headers.get("content-type")?.includes("json")) return;
     const remote: Board[] = await res.json();
     for (const r of remote) merge(r);
@@ -108,7 +109,7 @@ function push(b: Board) {
     setTimeout(async () => {
       const stamp = b.updatedAt;
       try {
-        await fetch(`/api/boards/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+        await apiFetch(`/api/boards/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
       } catch {
         /* offline: stays local */
       }
@@ -132,7 +133,7 @@ export function updateBoard(id: string, fn: (b: Board) => Board) {
 
 export function deleteBoard(id: string) {
   write(cache.filter((b) => b.id !== id));
-  fetch(`/api/boards/${id}`, { method: "DELETE" }).catch(() => {});
+  apiFetch(`/api/boards/${id}`, { method: "DELETE" }).catch(() => {});
 }
 
 export function createBoard(title: string, idea = "") {

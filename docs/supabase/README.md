@@ -56,9 +56,30 @@ As telas dos mockups v2 agora rodam dentro do app, ligadas ao Supabase (projeto 
 
 De onde vem cada coisa: pessoas = `profiles`; músicas e decks = `xlide_decks` (os mesmos do editor clássico e do MCP); boards = `xlide_boards` (abrem no editor de boards); programas = `xlide_programs` (o mesmo formato do MCP); arquivos = `xlide_files`; culto = `xlide_runs` + broadcast `xlide-live`. No fim do culto o tempo real de cada item vai para o programa (`runLog`) e o Relatório/Início usam isso.
 
+## Sistema fechado: convites e chave do MCP · 26/11
+
+Migrações `20261126130000_xlide_invites.sql` e `20261126140000_xlide_grants.sql`.
+
+| Parte | Como funciona |
+| --- | --- |
+| Convite | O admin abre **Equipe → Convidar** (e-mail, nome, papel, área). Sai um link `/login?convite=<token>` para copiar, mandar pelo WhatsApp ou por e-mail. Vale **uma vez**, só para **aquele e-mail**, por 14 dias. Um convite novo para o mesmo e-mail cancela o anterior. Pendentes aparecem em Equipe e podem ser cancelados. |
+| Cadastro | A pessoa abre o link e entra com o Google ou com o link por e-mail. Sem convite pendente para o e-mail, o banco **nem cria a conta** (gatilho `xlide_gate_signup` em `auth.users`). Com convite, o perfil nasce com o papel do convite e o convite fica usado. |
+| Membro | Membro = quem tem perfil. Todas as tabelas, o bucket `xlide-media` e o canal ao vivo exigem membro. Escrever: decks, boards e arquivos = admin e editor; programa, execução e listas do v2 = admin, editor e operador; leitor só vê. |
+| Tirar da equipe | Equipe → pessoa → **Tirar da equipe** apaga o perfil: a pessoa perde o acesso e a chave do MCP cai junto. Para voltar, convite novo. |
+| Chave do MCP | Cada membro ganha a sua ao entrar (`xl_…`, tabela `xlide_tokens`). Aparece em **Equipe → Minha chave do MCP** e no **Conectar IA** dos boards, com **Gerar nova** (a antiga para na hora). O MCP exige admin ou editor e o que ele muda entra na auditoria **no nome do dono da chave**. |
+| APIs | Com o Supabase ligado, `/api/presentations` e `/api/boards` (lista, gravar, apagar), `/api/images` (enviar), `/api/audit` e `/api/images/gc` (admin) pedem a sessão do app ou a chave da pessoa. Abrir um deck ou board pelo id continua público (Viewer, Remote, /fill, link do board). |
+| `XLIDE_MCP_KEY` | Opcional. Se definida, vale como chave de serviço (admin). Sem Supabase, o comportamento antigo (1423) segue igual. |
+
+Primeiro admin: rode no SQL Editor (troque o e-mail se precisar) e abra o link `/login?convite=<token>` que ele devolve:
+
+```sql
+insert into public.xlide_invites (email, name, role, expires_at)
+values ('SEU-EMAIL', 'Seu nome', 'admin', now() + interval '30 days') returning token;
+```
+
 ## O que ainda falta (precisa do Daniel)
 
 - **Google**: ativar o provedor Google no Supabase (passo 3 acima). Até lá, a tela de login também aceita **link por e-mail**.
 - **URL Configuration** no Supabase: Site URL e Redirect URLs (`http://localhost:5173/**` e o domínio da Vercel).
 - **`SUPABASE_SERVICE_ROLE_KEY`** e **`REDIS_URL`** no `.env.local` (e na Vercel, escopo Preview) para o MCP, os eventos e para copiar os decks e boards atuais: `node scripts/migrate-redis-to-supabase.mjs`. Sem isso o v2 abre vazio (sem músicas/decks) e o editor clássico continua lendo o Redis.
-- Permissões por papel nas telas (hoje o banco só trava a mudança de papéis; todo logado edita o resto).
+- Permissões por papel: o banco já trava (ver acima); as telas ainda mostram os botões de editar para o operador e o leitor (a gravação é recusada).

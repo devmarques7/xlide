@@ -10,13 +10,14 @@ import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { WebSocketServer } from "ws";
 import { getLyrics, searchBackgrounds, translateLines } from "../api/_music.js";
-import { handleMcpBody, mcpAuthorized } from "../shared/board.js";
+import { handleMcpBody } from "../shared/board.js";
 import { igGraphConfigured, instagramAuthor, instagramProfile } from "../api/_instagram.js";
 import { renderPreview } from "../api/_preview.js";
 import { boardStoreSb, deckStore, hasSupabase } from "../api/_supabase.js";
 import eventsHandler from "../api/_events.js";
 import { callLiveTool, LIVE_INSTRUCTIONS, LIVE_TOOLS } from "../api/_live.js";
 import auditHandler from "../api/_audit.js";
+import { guard, requireActor, runAs } from "../api/_auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.env.NODE_ENV === "production";
@@ -52,14 +53,14 @@ app.get("/api/info", (_req, res) => {
 // Com SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY no .env, decks e boards vêm do Supabase (teste local da develop).
 if (hasSupabase) {
   const wrap = (fn) => (req, res, next) => fn(req, res, next).catch((e) => res.status(502).json({ error: "supabase", detail: String(e.message || e) }));
-  app.get("/api/presentations", wrap(async (_req, res) => res.json(await deckStore.list())));
+  app.get("/api/presentations", wrap(async (req, res) => { if (!(await guard(req, res))) return; res.json(await deckStore.list()); }));
   app.get("/api/presentations/:id", wrap(async (req, res) => { const d = await deckStore.get(req.params.id); d ? res.json(d) : res.status(404).json({ error: "not_found" }); }));
-  app.put("/api/presentations/:id", wrap(async (req, res) => { if (req.body?.id !== req.params.id) return res.status(400).json({ error: "invalid" }); await deckStore.put(req.body, { kind: req.body.music ? "song" : "deck" }); res.json({ ok: true }); }));
-  app.delete("/api/presentations/:id", wrap(async (req, res) => { await deckStore.del(req.params.id); res.json({ ok: true }); }));
-  app.get("/api/boards", wrap(async (_req, res) => res.json(await boardStoreSb.list())));
+  app.put("/api/presentations/:id", wrap(async (req, res) => { if (!(await guard(req, res, "edit"))) return; if (req.body?.id !== req.params.id) return res.status(400).json({ error: "invalid" }); await deckStore.put(req.body, { kind: req.body.music ? "song" : "deck" }); res.json({ ok: true }); }));
+  app.delete("/api/presentations/:id", wrap(async (req, res) => { if (!(await guard(req, res, "edit"))) return; await deckStore.del(req.params.id); res.json({ ok: true }); }));
+  app.get("/api/boards", wrap(async (req, res) => { if (!(await guard(req, res))) return; res.json(await boardStoreSb.list()); }));
   app.get("/api/boards/:id", wrap(async (req, res, next) => { if (req.query.preview) return next(); const b = await boardStoreSb.get(req.params.id); b ? res.json(b) : res.status(404).json({ error: "not_found" }); }));
-  app.put("/api/boards/:id", wrap(async (req, res) => { const b = req.body; if (!b || b.id !== req.params.id || !Array.isArray(b.nodes)) return res.status(400).json({ error: "invalid" }); await boardStoreSb.put(b); res.json({ ok: true }); }));
-  app.delete("/api/boards/:id", wrap(async (req, res) => { await boardStoreSb.del(req.params.id); res.json({ ok: true }); }));
+  app.put("/api/boards/:id", wrap(async (req, res) => { if (!(await guard(req, res, "edit"))) return; const b = req.body; if (!b || b.id !== req.params.id || !Array.isArray(b.nodes)) return res.status(400).json({ error: "invalid" }); await boardStoreSb.put(b); res.json({ ok: true }); }));
+  app.delete("/api/boards/:id", wrap(async (req, res) => { if (!(await guard(req, res, "edit"))) return; await boardStoreSb.del(req.params.id); res.json({ ok: true }); }));
   console.log("Dados: Supabase", process.env.SUPABASE_URL);
 }
 app.post("/api/events", (req, res) => eventsHandler(req, res).catch(() => res.status(204).end()));
@@ -131,11 +132,11 @@ app.delete("/api/boards/:id", (req, res) => {
   boardStore.del(req.params.id);
   res.json({ ok: true });
 });
-const MCP_KEY = process.env.XLIDE_MCP_KEY || "1423";
 app.post("/api/mcp", async (req, res) => {
-  if (!mcpAuthorized(req.headers, req.query, MCP_KEY)) return res.status(401).json({ error: "unauthorized" });
+  const actor = await requireActor(req, res, "edit");
+  if (!actor) return;
   const origin = `${req.protocol}://${req.headers["x-forwarded-host"] || req.headers.host}`;
-  const { status, body } = await handleMcpBody(req.body, hasSupabase ? boardStoreSb : boardStore, origin, { renderPreview, extraTools: LIVE_TOOLS, extraCall: callLiveTool, extraInstructions: LIVE_INSTRUCTIONS });
+  const { status, body } = await runAs(actor, () => handleMcpBody(req.body, hasSupabase ? boardStoreSb : boardStore, origin, { renderPreview, extraTools: LIVE_TOOLS, extraCall: callLiveTool, extraInstructions: LIVE_INSTRUCTIONS }));
   if (!body) return res.status(status).end();
   res.status(status).json(body);
 });

@@ -4,6 +4,7 @@ import { SHIPPED_DECKS } from "./decks";
 import { brandDeck, pitchDeck } from "./templates";
 import type { Presentation } from "./types";
 import { uid } from "./utils";
+import { apiFetch } from "./supabase";
 
 const KEY = "xlide.presentations";
 type Listener = () => void;
@@ -122,7 +123,7 @@ function pushToServer(p: Presentation) {
   pushTimers.set(
     p.id,
     setTimeout(() => {
-      fetch(`/api/presentations/${p.id}`, {
+      apiFetch(`/api/presentations/${p.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(p),
@@ -133,7 +134,7 @@ function pushToServer(p: Presentation) {
 
 export async function syncFromServer() {
   try {
-    const res = await fetch("/api/presentations");
+    const res = await apiFetch("/api/presentations");
     if (!res.ok) return;
     const remote: Presentation[] = await res.json();
     const byId = new Map(cache.map((p) => [p.id, p]));
@@ -157,7 +158,7 @@ export async function syncFromServer() {
 
 export async function fetchPresentation(id: string): Promise<Presentation | undefined> {
   try {
-    const res = await fetch(`/api/presentations/${id}`);
+    const res = await apiFetch(`/api/presentations/${id}`);
     if (res.ok) return await res.json();
   } catch {
     /* fall through */
@@ -189,7 +190,7 @@ export function deletePresentation(id: string) {
     }
   }
   write(cache.filter((p) => p.id !== id));
-  fetch(`/api/presentations/${id}`, { method: "DELETE" }).catch(() => {});
+  apiFetch(`/api/presentations/${id}`, { method: "DELETE" }).catch(() => {});
 }
 
 export function duplicatePresentation(id: string) {

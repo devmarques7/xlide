@@ -1,8 +1,7 @@
 // Image clean-up (Redis). Images are kept only while a board or a presentation points to them.
-// GET  /api/images/gc?key=<XLIDE_MCP_KEY>               -> dry run: what would be deleted + memory
-// POST /api/images/gc?key=<XLIDE_MCP_KEY> {confirm:true} -> deletes only images no board/presentation uses
-import { MCP_KEY } from "../_boards.js";
-import { mcpAuthorized } from "../../shared/board.js";
+// GET  /api/images/gc?key=<chave de admin>               -> dry run: what would be deleted + memory
+// POST /api/images/gc?key=<chave de admin> {confirm:true} -> deletes only images no board/presentation uses
+import { requireActor } from "../_auth.js";
 import { needRedis, noStore, redis } from "../_redis.js";
 
 async function scan(match) {
@@ -19,7 +18,7 @@ async function scan(match) {
 export default async function handler(req, res) {
   noStore(res);
   if (needRedis(res)) return;
-  if (!mcpAuthorized(req.headers, req.query, MCP_KEY)) return res.status(401).json({ error: "unauthorized" });
+  if (!(await requireActor(req, res, "admin"))) return;
   const used = new Set();
   for (const k of [...(await scan("xlide:b:*")), ...(await scan("xlide:p:*"))]) {
     const [v] = await redis(["GET", k]);

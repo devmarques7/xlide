@@ -14,6 +14,7 @@ import { LogoGlyph } from "@/components/logo";
 import { CONTENT_LANGS, isContentLang, storedLang, storeLang, useTranslatedBoard, type ContentLang } from "@/lib/board-i18n";
 import { saveBoard, updateBoard, useBoard, type Board, type BoardNode, type NodeKind } from "@/lib/boards";
 import { usePrefs } from "@/lib/prefs";
+import { myMcpToken, rotateMcpToken, supabaseEnabled } from "@/lib/supabase";
 import { useSync, type SyncMessage } from "@/lib/sync";
 import { LOCALES, type Locale } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -1399,7 +1400,12 @@ function MoodItem({ node: n, accent, onPlay, onSelect }: { node: BoardNode; acce
 
 function ConnectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t } = usePrefs();
-  const url = `${location.origin}/api/mcp?key=1423`;
+  // Com o Supabase cada pessoa tem a sua chave (criada ao entrar pelo convite); sem ele, o código de antes.
+  const [key, setKey] = useState(supabaseEnabled ? "…" : "1423");
+  useEffect(() => {
+    if (open && supabaseEnabled) void myMcpToken().then((k) => setKey(k ?? "…"));
+  }, [open]);
+  const url = `${location.origin}/api/mcp?key=${key}`;
   const copy = (s: string) => navigator.clipboard?.writeText(s).then(() => toast(t("board.copied")), () => {});
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1415,7 +1421,16 @@ function ConnectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
               {t("board.copy")}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">{t("board.connectKey")}</p>
+          {supabaseEnabled ? (
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs text-muted-foreground">{t("board.connectMine")}</p>
+              <Button variant="outline" size="sm" onClick={() => rotateMcpToken().then((k) => { if (k) { setKey(k); toast(t("board.connectRotated")); } }, (e) => toast(String(e?.message ?? e)))}>
+                {t("board.connectRotate")}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("board.connectKey")}</p>
+          )}
           <div>
             <p className="label-xs text-muted-foreground">{t("board.promptExample")}</p>
             <button type="button" onClick={() => copy(t("board.promptText"))} className="mt-2 w-full bg-muted p-3 text-left text-sm hover:bg-accent">

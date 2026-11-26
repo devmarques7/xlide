@@ -1,7 +1,9 @@
 // MCP server (Streamable HTTP, stateless) for XLIDE boards.
-// Connect a client to https://<host>/api/mcp?key=<XLIDE_MCP_KEY> (or send it as a Bearer token).
-import { handleMcpBody, mcpAuthorized } from "../shared/board.js";
-import { boardStore, MCP_KEY, originOf } from "./_boards.js";
+// Connect a client to https://<host>/api/mcp?key=<sua chave xl_…> (or send it as a Bearer token).
+// Com o Supabase, cada membro usa a própria chave (Equipe → Minha chave do MCP); sem ele, XLIDE_MCP_KEY ou 1423.
+import { handleMcpBody } from "../shared/board.js";
+import { boardStore, originOf } from "./_boards.js";
+import { requireActor, runAs } from "./_auth.js";
 import { needRedis, noStore } from "./_redis.js";
 import { renderPreview } from "./_preview.js";
 import { callLiveTool, LIVE_INSTRUCTIONS, LIVE_TOOLS } from "./_live.js";
@@ -13,9 +15,10 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).setHeader("Allow", "POST").end();
-  if (!mcpAuthorized(req.headers, req.query, MCP_KEY)) return res.status(401).json({ error: "unauthorized" });
+  const actor = await requireActor(req, res, "edit");
+  if (!actor) return;
   if (needRedis(res, { supabaseOk: true })) return;
-  const { status, body } = await handleMcpBody(req.body, boardStore, originOf(req), { renderPreview, extraTools: LIVE_TOOLS, extraCall: callLiveTool, extraInstructions: LIVE_INSTRUCTIONS });
+  const { status, body } = await runAs(actor, () => handleMcpBody(req.body, boardStore, originOf(req), { renderPreview, extraTools: LIVE_TOOLS, extraCall: callLiveTool, extraInstructions: LIVE_INSTRUCTIONS }));
   if (!body) return res.status(status).end();
   res.status(status).json(body);
 }

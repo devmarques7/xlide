@@ -25,8 +25,6 @@ const redisBoards = {
 };
 export const boardStore = hasSupabase ? boardStoreSb : redisBoards;
 
-/** Key for the MCP endpoint: XLIDE_MCP_KEY, or the app passcode when unset. */
-export const MCP_KEY = process.env.XLIDE_MCP_KEY || "1423";
 
 export function originOf(req) {
   const host = req.headers["x-forwarded-host"] || req.headers.host;

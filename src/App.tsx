@@ -1,7 +1,8 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { isUnlocked } from "@/lib/auth";
+import { ensureMember, supabaseEnabled } from "@/lib/supabase";
 import { PrefsProvider } from "@/lib/prefs";
 import { syncBoards } from "@/lib/boards";
 import { syncFromServer } from "@/lib/store";
@@ -32,9 +33,17 @@ function PageTracker() {
   return null;
 }
 
+/** Com o Supabase, a sessão sozinha não basta: a pessoa precisa estar na equipe (perfil criado pelo convite). */
+let memberCheck: Promise<boolean> | null = null;
 function RequireCode({ children }: { children: ReactNode }) {
   const loc = useLocation();
-  if (!isUnlocked()) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
+  const [member, setMember] = useState(true);
+  useEffect(() => {
+    if (!supabaseEnabled || !isUnlocked()) return;
+    memberCheck ??= ensureMember().catch(() => true); // sem rede: deixa abrir com a cópia local
+    void memberCheck.then(setMember);
+  }, []);
+  if (!isUnlocked() || !member) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
   return children;
 }
 
