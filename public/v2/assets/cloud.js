@@ -102,7 +102,8 @@
   function deck(d) {
     const doc = d.doc || {}, s = doc.slides || [], l = (doc.languages || ["pt"])[0];
     const img = (s.find((x) => x.image) || {}).image;
-    return { title: tx(doc.title, l) || d.title || "Sem título", kind: "deck", slides: s.length, layout: (s[0] && s[0].layout) || "cover", updated: rel(d.updated_at), cover: img || null, real: true };
+    const pdf = s.length && s.every((x) => x.variant === "page" && x.image);
+    return { title: tx(doc.title, l) || d.title || "Sem título", kind: "deck", slides: s.length, layout: (s[0] && s[0].layout) || "cover", updated: rel(d.updated_at), cover: img || null, pages: pdf ? s.map((x) => x.image) : undefined, real: true };
   }
   function board(b) {
     const items = (b.doc && b.doc.mood && b.doc.mood.items) || [];
@@ -128,7 +129,7 @@
   }
   function fileRow(f) {
     const { id, name, folder, status, star, owner, shared, updated, deleted, ...rest } = f;
-    return { id, name: name || f.title || "Sem nome", folder: FOLDERS.includes(folder) ? folder : "avisos", status: FSTATUS.includes(status) ? status : "ativo", starred: !!star, doc: rest, owner_id: isUuid(owner) ? owner : UID, shared_with: (shared || []).filter(isUuid), deleted_at: status === "lixeira" ? new Date().toISOString() : null };
+    return { id, name: name || f.title || "Sem nome", folder: FOLDERS.includes(folder) ? folder : "avisos", status: FSTATUS.includes(status) ? status : "ativo", starred: !!star, deck_id: /^pdf_/.test(rest.deck || "") ? rest.deck : null, doc: rest, owner_id: isUuid(owner) ? owner : UID, shared_with: (shared || []).filter(isUuid), deleted_at: status === "lixeira" ? new Date().toISOString() : null };
   }
 
   /* ---------- imagens: data: viram arquivos no bucket xlide-media ---------- */

@@ -329,6 +329,8 @@ function Contact({ s, T }: LayoutProps) {
 }
 
 function ImageLayout({ s, T }: LayoutProps) {
+  // Página de PDF importado: a página inteira, sem sombra nem texto por cima.
+  if (s.variant === "page") return <div className="xs-pdf-page">{s.image && <img src={s.image} alt="" draggable={false} />}</div>;
   return (
     <div className="xs-image">
       <SlideImage src={s.image} className="xs-image-bg" />

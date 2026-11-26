@@ -39,6 +39,10 @@
 
   function slidesOf(it) {
     if (it.type === "song") return XL.songSlides(it.song);
+    // PDF importado: uma página por slide; slides do editor de deck: um por slide
+    if (it.pages && it.pages.length) return it.pages.map((src, i) => ({ section: "", text: `${it.title} · ${i + 1}`, image: src }));
+    if (it.slides && it.slides.length) return it.slides.map((x) => ({ section: "", text: x.title || it.title, image: x.image }));
+    if (it.deck && XL.decks[it.deck] && XL.decks[it.deck].pages) return XL.decks[it.deck].pages.map((src, i) => ({ section: "", text: `${it.title} · ${i + 1}`, image: src }));
     if (it.deck) return Array.from({ length: Math.max(1, Math.min(XL.decks[it.deck].slides || 1, 6)) }, (_, i) => ({ section: "", text: i ? `${it.title} · ${i + 1}` : it.title }));
     return [{ section: "", text: it.title }];
   }

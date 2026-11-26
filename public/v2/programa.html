@@ -374,7 +374,7 @@ function edit(i) {
   const mf = sh.querySelector('[data-f="media"]');
   mf && (mf.oninput = () => { const v = mf.value.trim(); sh.querySelector("[data-media-lbl]").textContent = v ? MEDIA.label(v) : "Cole o link."; if (!v || MEDIA.parse(v)) { it.media = v || undefined; render(); } });
   UI.qsa("[data-t]", sh).forEach((b) => (b.onclick = () => { b.classList.toggle("on"); const k = b.dataset.t; it[k] = k === "advance" ? (b.classList.contains("on") ? "auto" : "manual") : b.classList.contains("on"); render(); }));
-  UI.qsa("[data-type]", sh).forEach((b) => (b.onclick = () => { it.type = b.dataset.type; if (it.type === "song" && !it.song) it.song = "s1"; it.advance = XL.types[it.type].advance; render(); edit(i); }));
+  UI.qsa("[data-type]", sh).forEach((b) => (b.onclick = () => { it.type = b.dataset.type; if (it.type === "song" && !it.song) it.song = Object.keys(XL.songs)[0] || "s1"; it.advance = XL.types[it.type].advance; render(); edit(i); }));
   UI.qs("[data-del]", sh).onclick = () => { UI.closeSheet(); rowAct("trash", i); };
 }
 
@@ -387,6 +387,9 @@ UI.qs("#add").onclick = () => {
       <div class="grid grid-2"><label class="field"><span class="lbl">Título</span><input class="input" id="imp-t" placeholder="Ex.: Vídeo da missão"></label><label class="field"><span class="lbl">Duração (min:seg)</span><input class="input" id="imp-d" placeholder="3:20"></label></div>
       <label class="field"><span class="lbl">Posição</span><select class="select" id="imp-pos"><option value="0">no começo</option>${pos}</select></label>
       <button class="btn primary block" id="imp-ok">Importar para o programa</button></div>
+    <div class="imp"><span class="lbl">Importar PDF (slides do pastor)</span>
+      <span class="muted" style="font-size:var(--t-sm)">Cada página vira um slide. Entra como Sermão na posição escolhida acima e fica também em Arquivos → Pregação.</span>
+      <button class="btn block" id="pdf-ok">Escolher PDF…</button></div>
     <span class="lbl">Ou um item vazio</span>${Object.entries(XL.types).filter(([k]) => k !== "media").map(([k, t]) => `<button class="pick" data-new="${k}"><span class="grow"><h3>${t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note}</span></span>${UI.I.plus.replace("<svg", '<svg width="18" height="18"')}</button>`).join("")}</div>`);
   sh.querySelector("#imp-url").oninput = (e) => { const m = MEDIA.parse(e.target.value); sh.querySelector("#imp-lbl").textContent = e.target.value.trim() ? (m ? MEDIA.label(m) + " · reconhecido" : "Link não reconhecido. Use YouTube, Vimeo, Spotify ou um arquivo .mp4/.mp3.") : "Entra do jeito que é: sem fonte, sem estilo."; };
   sh.querySelector("#imp-ok").onclick = () => {
@@ -398,9 +401,18 @@ UI.qs("#add").onclick = () => {
     items.splice(at, 0, { id: "n" + Date.now(), type: "media", media: url, title: sh.querySelector("#imp-t").value.trim() || MEDIA.label(m), planned: sec, owner: XL.me, area: "comms", advance: "auto", public: true });
     UI.closeSheet(); render(); toastMsg(`${MEDIA.label(m)} importado na posição ${at + 1}, ${Math.round(sec / 60)} min. Os horários seguintes se ajustaram.`);
   };
+  sh.querySelector("#pdf-ok").onclick = () => {
+    if (state === "ready") return toastMsg("Programa salvo como pronto: volte para Rascunho para adicionar.");
+    const at = +sh.querySelector("#imp-pos").value;
+    PDFIMPORT.pick((r) => {
+      PDFIMPORT.toFile(r, "pregacao");
+      items.splice(at, 0, { ...PDFIMPORT.toItem(r, "sermon"), owner: XL.me, area: "pulpit" });
+      UI.closeSheet(); render(); toastMsg(`PDF "${r.name}" importado: ${r.pages.length} páginas na posição ${at + 1}.`);
+    });
+  };
   UI.qsa("[data-new]", sh).forEach((b) => (b.onclick = () => {
     const k = b.dataset.new;
-    items.splice(items.length - 1, 0, { id: "n" + Date.now(), type: k, title: XL.types[k].name, planned: 180, owner: XL.me, area: "sound", advance: XL.types[k].advance, public: true, song: k === "song" ? "s1" : undefined });
+    items.splice(items.length - 1, 0, { id: "n" + Date.now(), type: k, title: XL.types[k].name, planned: 180, owner: XL.me, area: "sound", advance: XL.types[k].advance, public: true, song: k === "song" ? Object.keys(XL.songs)[0] || "s1" : undefined });
     render(); edit(items.length - 2);
   }));
 };

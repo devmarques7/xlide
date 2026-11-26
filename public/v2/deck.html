@@ -291,7 +291,7 @@ function openPanel(k, keep) {
       <span class="lbl">Cor do texto do deck</span><div class="inks"><button class="sw auto${doc.ink ? "" : " on"}" data-ink="">Auto</button>${XLOOK.INKS.map((c) => `<button class="sw${doc.ink === c ? " on" : ""}" data-ink="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div>
       <p class="muted" style="font-size:var(--t-xs)">Clique num texto no slide para trocar a fonte e a cor só dele.</p>`;
   } else if (k === "img") {
-    h = `<h3>Imagem no slide</h3><button class="up" data-addimg>${IC.img}Inserir imagem no slide</button><p class="muted" style="font-size:var(--t-xs)">Vira um bloco que se move e muda de tamanho. Para imagem de fundo, use Fundo → Imagens.</p>${s.layout.img?.src ? `<button class="btn ghost block" data-rmimg>Tirar a imagem deste slide</button>` : ""}`;
+    h = `<h3>Imagem no slide</h3><button class="up" data-addimg>${IC.img}Inserir imagem no slide</button><p class="muted" style="font-size:var(--t-xs)">Vira um bloco que se move e muda de tamanho. Para imagem de fundo, use Fundo → Imagens.</p><h3>PDF</h3><button class="up" data-addpdf>${IC.img}Importar PDF (uma página por slide)</button><p class="muted" style="font-size:var(--t-xs)">Os slides entram depois deste.</p>${s.layout.img?.src ? `<button class="btn ghost block" data-rmimg>Tirar a imagem deste slide</button>` : ""}`;
   } else if (k === "media") {
     const m = s.media ? MEDIA.parse(s.media) : null;
     h = `<h3>Vídeo ou áudio no slide</h3>
@@ -353,6 +353,7 @@ UI.qs("#panel").addEventListener("click", (e) => {
   if (d.bg) { if (bgScope === "all") { doc.bg = d.bg; doc.slides.forEach((x) => { delete x.bg; delete x.image; }); } else { s.bg = d.bg; delete s.image; } return render(); }
   if (d.vplay != null) { s.vplay = s.vplay === false; return render(); }
   if (d.vloop) { s.vloop = d.vloop === "1"; return render(); }
+  if (d.addpdf != null) return PDFIMPORT.pick((r) => { doc.slides.splice(cur + 1, 0, ...PDFIMPORT.editorSlides(r.pages)); cur = cur + 1; render(); toast(`${r.pages.length} páginas do PDF entraram como slides.`); });
   if (d.import != null || d.addimg != null) { file_mode = d.addimg != null ? "block" : "bg"; return UI.qs("#file").click(); }
   if (d.img) { const src = doc.images[+d.img]; if (bgScope === "all") doc.slides.forEach((x) => (x.image = src)); else s.image = src; return render(); }
   if (d.noimg != null) { delete s.image; return render(); }

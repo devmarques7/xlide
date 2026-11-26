@@ -642,3 +642,7 @@
   .xs-ly-lines { font-size: calc(min(9cqw, 40cqh / var(--n, 2)) * var(--k)); }
   .xs-ly-trans { font-size: calc(5cqw * var(--k)); }
 }
+
+/* Página de PDF importado (layout image, variante page) */
+.xs-pdf-page { position: absolute; inset: 0; display: grid; place-items: center; background: #000; }
+.xs-pdf-page img { width: 100%; height: 100%; object-fit: contain; display: block; }

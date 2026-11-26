@@ -81,6 +81,7 @@
     <div class="f-tools">
       <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="q" placeholder="Buscar nos meus arquivos" aria-label="Buscar nos meus arquivos"></div>
       <div class="view-t" role="group" aria-label="Ver como"><button data-v="grid" class="on" aria-label="Grade"></button><button data-v="list" aria-label="Lista"></button></div>
+      <button class="btn" id="pdf">Importar PDF</button>
       <button class="btn primary" id="new"></button>
     </div>
   </header>
@@ -107,6 +108,12 @@ const isMobile = () => !matchMedia("(min-width: 1200px)").matches;
 
 UI.qs("#new").innerHTML = UI.I.plus + "Novo";
 UI.qs("#new").onclick = UI.createSheet;
+// PDF do pastor: vai para a pasta aberta (ou Pregação) e abre no editor de deck
+UI.qs("#pdf").onclick = () => PDFIMPORT.pick((r) => {
+  const pasta = new URLSearchParams(location.search).get("pasta");
+  const f = PDFIMPORT.toFile(r, FILES.FOLDERS.some(([k]) => k === pasta) ? pasta : "pregacao");
+  setTimeout(() => (location.href = "deck.html?f=" + f.id), 700);
+});
 UI.qsa(".view-t button")[0].innerHTML = UI.I.board; UI.qsa(".view-t button")[1].innerHTML = UI.I.list;
 
 function title() {

@@ -3,6 +3,9 @@
 window.renderSlide = function (it, slide, T, lang = "pt", status = "live") {
   if (status === "idle") return { cls: "blank", html: `<div class="s-eyebrow">XLIDE · Nova Semente</div><div class="s-title" style="opacity:.25">●</div>` };
   if (status === "done") return { cls: "blank", html: `<div class="s-eyebrow">Obrigado por estar aqui</div><div class="s-title">Até sábado.</div>` };
+  // páginas de PDF (ou slides com imagem): a página inteira, sem cortar, sobre fundo preto
+  const pg = it.type !== "song" && window.LIVE ? LIVE.slidesOf(it)[slide] : null;
+  if (pg && pg.image) return { cls: "page", html: `<img class="s-page" src="${String(pg.image).replace(/"/g, "&quot;")}" alt="${String(it.title).replace(/"/g, "&quot;")} · ${slide + 1}">` };
   switch (it.type) {
     case "song": {
       const s = XL.songSlides(it.song, lang)[slide] || { text: "" };
