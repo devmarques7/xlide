@@ -3,7 +3,10 @@
 // A chave de serviço só vive no servidor: nunca vai para o navegador.
 import { AsyncLocalStorage } from "node:async_hooks";
 const URL_ = process.env.SUPABASE_URL;
-const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Chave secreta: a nova (sb_secret_…, "Secret key") ou a antiga service_role (JWT). As duas valem.
+const KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+// A chave nova não é um JWT: vai só no cabeçalho apikey (o Supabase troca por um token de serviço).
+const keyAuth = KEY && KEY.startsWith("sb_") ? {} : { Authorization: `Bearer ${KEY}` };
 export const hasSupabase = !!(URL_ && KEY);
 
 // Quem fez a chamada (dono da chave do MCP): vai no cabeçalho x-xlide-user e a auditoria grava no nome da pessoa.
@@ -13,7 +16,7 @@ export const runAs = (actor, fn) => actorStore.run(actor || {}, fn);
 
 const headers = (extra = {}) => {
   const who = currentActorId();
-  return { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", ...(who ? { "x-xlide-user": who } : {}), ...extra };
+  return { apikey: KEY, ...keyAuth, "Content-Type": "application/json", ...(who ? { "x-xlide-user": who } : {}), ...extra };
 };
 
 async function rest(path, init = {}) {
@@ -43,7 +46,7 @@ export async function logMigration(kind, ref, ok, note) {
 
 /** Envia um arquivo para o bucket xlide-media e devolve a URL pública. */
 export async function uploadMedia(path, bytes, type) {
-  const res = await fetch(`${URL_}/storage/v1/object/xlide-media/${path}`, { method: "POST", headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": type, "x-upsert": "true" }, body: bytes });
+  const res = await fetch(`${URL_}/storage/v1/object/xlide-media/${path}`, { method: "POST", headers: { apikey: KEY, ...keyAuth, "Content-Type": type, "x-upsert": "true" }, body: bytes });
   if (!res.ok) throw new Error(`storage ${res.status} ${await res.text().catch(() => "")}`.slice(0, 300));
   return `${URL_}/storage/v1/object/public/xlide-media/${path}`;
 }
