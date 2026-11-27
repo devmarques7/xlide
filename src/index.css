@@ -229,3 +229,10 @@ html.immersive-ios body {
   .print-page { margin: 0; break-after: page; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-page:last-child { break-after: auto; }
 }
+
+/* Menu lateral único (XLIDE + Live Church) no desktop: as páginas com AppHeader abrem espaço para ele. */
+@media (min-width: 1024px) {
+  html.has-sidebar body {
+    padding-left: 15rem;
+  }
+}

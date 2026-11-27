@@ -105,14 +105,51 @@
     const pdf = s.length && s.every((x) => x.variant === "page" && x.image);
     return { title: tx(doc.title, l) || d.title || "Sem título", kind: "deck", slides: s.length, layout: (s[0] && s[0].layout) || "cover", updated: rel(d.updated_at), cover: img || null, pages: pdf ? s.map((x) => x.image) : undefined, real: true };
   }
+  /* boards: além da contagem, guarda uma prévia de verdade (fotos, cores, um recorte do moodboard e o mapa) */
+  const ytId = (u) => { const m = String(u || "").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/); return m && m[1]; };
+  const imgOf = (i) => i.src || i.url || "";
+  const clip = (s, n) => { s = String(s || "").replace(/==/g, "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+  function miniMood(items) {
+    // recorte: os primeiros itens do quadro (a primeira seção), em coordenadas 0..1000
+    const L = items.filter((i) => typeof i.x === "number" && typeof i.y === "number" && i.w > 0 && i.h > 0).slice(0, 60);
+    if (!L.length) return null;
+    const x0 = Math.min(...L.map((i) => i.x)), y0 = Math.min(...L.map((i) => i.y));
+    const W = Math.max(...L.map((i) => i.x + i.w)) - x0, H = Math.max(...L.map((i) => i.y + i.h)) - y0;
+    const k = 1000 / Math.max(W, H, 1);
+    let budget = 90000;
+    const out = L.map((i) => {
+      const o = { x: Math.round((i.x - x0) * k), y: Math.round((i.y - y0) * k), w: Math.max(2, Math.round(i.w * k)), h: Math.max(2, Math.round(i.h * k)), t: i.type };
+      if (i.type === "image") { const s = imgOf(i); if (s && s.length < 20000 && budget > s.length) { o.s = s; budget -= s.length; } }
+      else if (i.type === "video") { const id = ytId(i.video || i.url); if (id) o.s = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`; }
+      else if (i.type === "color" || i.type === "shape") o.c = i.color || i.fill || null;
+      else if (i.type === "text") { o.c = i.color || null; o.tx = clip(i.text, 40); }
+      else if (i.type === "note" || i.type === "todo") o.tx = clip(i.title || i.text, 40);
+      return o;
+    });
+    return { w: Math.round(W * k), h: Math.round(H * k), items: out };
+  }
+  function miniMap(nodes, edges, title) {
+    if (!nodes.length) return null;
+    const c = nodes.find((n) => n.kind === "idea") || nodes[0];
+    const kids = edges.filter((e) => e.from === c.id).map((e) => nodes.find((n) => n.id === e.to)).filter(Boolean);
+    const pool = (kids.length ? kids : nodes.filter((n) => n !== c && n.kind === "stage")).concat(nodes.filter((n) => n !== c));
+    const seen = new Set(), around = [];
+    for (const n of pool) { if (around.length >= 6) break; if (seen.has(n.id)) continue; seen.add(n.id); const t = clip(n.title || n.tag || n.text, 22); if (t) around.push(t); }
+    return { center: clip(c.title || title, 28), around };
+  }
   function board(b) {
-    const items = (b.doc && b.doc.mood && b.doc.mood.items) || [];
-    const nodes = (b.doc && b.doc.nodes) || [];
-    const yt = (u) => { const m = String(u || "").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/); return m && m[1]; };
-    const loops = items.map((i) => yt(i.video || i.url)).filter(Boolean).slice(0, 3);
-    const thumbs = [...loops.map((id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`), ...items.filter((i) => i.type === "image" && i.url).map((i) => i.url)].slice(0, 2);
-    const colors = items.filter((i) => i.type === "color" && i.color).map((i) => i.color).slice(0, 3);
-    return { title: tx(b.doc && b.doc.title, "pt") || b.title || "Board", items: items.length + nodes.length, updated: rel(b.updated_at), by: b.owner_id || UID, when: shortDate((b.updated_at || "").slice(0, 10)), loops, thumbs, colors: colors.length ? colors : ["#e9e4d8", "#161615", "#f7f6f3"], real: true };
+    const doc = b.doc || {};
+    const items = (doc.mood && doc.mood.items) || [];
+    const nodes = doc.nodes || [], edges = doc.edges || [];
+    const title = tx(doc.title, "pt") || b.title || "Board";
+    const loops = items.map((i) => (i.type === "video" ? ytId(i.video || i.url) : null)).filter(Boolean).slice(0, 3);
+    const photos = items.filter((i) => i.type === "image" && imgOf(i) && imgOf(i).length < 20000).map(imgOf);
+    const thumbs = [...photos, ...loops.map((id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`)].slice(0, 3);
+    const colors = items.filter((i) => (i.type === "color" || i.type === "shape") && (i.color || i.fill)).map((i) => i.color || i.fill).filter((v, k, a) => a.indexOf(v) === k).slice(0, 3);
+    return {
+      title, items: items.length + nodes.length, moodN: items.length, nodesN: nodes.length, updated: rel(b.updated_at), at: b.updated_at, by: b.owner_id || UID, when: shortDate((b.updated_at || "").slice(0, 10)),
+      loops, thumbs, colors: colors.length ? colors : ["#e9e4d8", "#161615", "#f7f6f3"], mood: miniMood(items), map: miniMap(nodes, edges, title), archived: /^\[ARQUIVADO\]/i.test(title), real: true,
+    };
   }
   function progFromRow(r) {
     const doc = r.doc || {};

@@ -110,5 +110,40 @@ export async function signInWithEmail(email: string, from = "/") {
 }
 
 export async function signOut() {
+  try {
+    localStorage.removeItem("xlide.role");
+  } catch {
+    /* sem storage */
+  }
   await supabase?.auth.signOut();
+}
+
+/* Papel de quem entrou (profiles.role). Fica em cache para o menu já abrir certo; atualiza em segundo plano. */
+export type Role = "admin" | "editor" | "operator" | "reader";
+const ROLE_KEY = "xlide.role";
+export function cachedRole(): Role | null {
+  try {
+    return (localStorage.getItem(ROLE_KEY) as Role | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+let roleReq: Promise<Role | null> | null = null;
+export function fetchRole(): Promise<Role | null> {
+  if (!supabase) return Promise.resolve(null);
+  roleReq ??= (async () => {
+    const { data } = await supabase.auth.getSession();
+    const id = data.session?.user.id;
+    if (!id) return null;
+    const { data: me } = await supabase.from("profiles").select("role").eq("id", id).maybeSingle();
+    const role = (me?.role as Role | undefined) ?? null;
+    try {
+      if (role) localStorage.setItem(ROLE_KEY, role);
+      else localStorage.removeItem(ROLE_KEY);
+    } catch {
+      /* sem storage */
+    }
+    return role;
+  })().catch(() => cachedRole());
+  return roleReq;
 }

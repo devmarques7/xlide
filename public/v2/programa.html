@@ -91,6 +91,19 @@
   .bin-row small { color: var(--fg-2); display: block; }
   .bin-row .pc-acts { justify-content: flex-end; }
   .imp { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--live); }
+  /* lista de programas (sem ?p=): cada programa é um arquivo */
+  body.plist .split, body.plist #ps-edit { display: none; }
+  body:not(.plist) #ps-head { display: none; }
+  #ps-head { display: grid; gap: var(--s3); }
+  #ps-head h1 { font: 700 clamp(28px, 4vw, 44px)/1.05 var(--font); letter-spacing: -0.03em; }
+  .ps-empty { display: grid; gap: var(--s3); justify-items: start; padding: var(--s5); border: 1px dashed var(--line); }
+  .ps-empty h2 { font-size: var(--t-lg); }
+  .pc h3 a:hover { text-decoration: underline; }
+  .ps-back { display: inline-flex; align-items: center; gap: 4px; font: 400 var(--t-xs) var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .ps-back:hover { color: var(--fg); }
+  .ps-back svg { width: 14px; height: 14px; }
+  .stat input { width: 100%; background: none; border: 0; color: var(--fg); font: inherit; font-size: inherit; padding: 0; }
+  .stat input:focus { outline: 1px dashed var(--line); }
   .summary { position: sticky; top: 30px; z-index: 5; background: var(--bg); padding: var(--s2) 0; }
 </style>
 </head>
@@ -98,11 +111,19 @@
 <main class="app">
   <!-- Programa Estúdio: pastas de programas + o programa aberto -->
   <section class="ps" aria-label="Programa Estúdio">
+    <div id="ps-head">
+      <div class="ps-top"><span class="ps-k"><span class="lbl">Programas do culto</span></span><div class="ps-acts"><button class="btn primary" id="pl-new"></button></div></div>
+      <h1>Programas</h1>
+      <p class="muted">Cada culto é um arquivo. Abra um programa para editar os itens, a ordem e os horários.</p>
+    </div>
+    <div id="ps-edit" class="stack-sm">
+    <a class="ps-back" href="programa.html" id="ps-back"></a>
     <div class="ps-top">
       <span class="ps-k"><span class="lbl">Programa Estúdio</span><span class="ps-save" id="p-dirty"></span></span>
       <div class="ps-acts"><button class="btn" id="p-new"></button><button class="btn ghost" id="p-dup"></button><button class="btn ghost" id="p-draft">Salvar rascunho</button><button class="btn primary" id="p-save">Salvar</button><a class="icon-btn" href="console.html" title="Ir ao ao vivo" id="go-live"></a></div>
     </div>
-    <div class="ps-name"><input class="ps-title" id="p-title" aria-label="Nome do programa"><span class="ps-meta"><input class="ps-date" id="p-date" aria-label="Data"><span id="p-chips"></span></span></div>
+    <div class="ps-name"><input class="ps-title" id="p-title" aria-label="Nome do programa"><span class="ps-meta"><input class="ps-date" id="p-date" type="date" aria-label="Data do culto"><span id="p-chips"></span></span></div>
+    </div>
     <div id="ps-fds"></div>
     <div class="ps-list" id="ps-list" hidden></div>
   </section>
@@ -111,7 +132,7 @@
     <div>
       <div class="summary stack-sm">
         <div class="stats">
-          <div class="stat"><span class="lbl" data-en="Start" data-nl="Begin">Início</span><b>10:00</b></div>
+          <div class="stat"><span class="lbl" data-en="Start" data-nl="Begin">Início</span><b><input type="time" id="p-start" aria-label="Horário de início"></b></div>
           <div class="stat"><span class="lbl">Término</span><b id="end"></b></div>
           <div class="stat"><span class="lbl">Total / alvo</span><b id="tot"></b></div>
         </div>
@@ -134,36 +155,109 @@
         <p class="muted" id="state-note" style="font-size:var(--t-sm)"></p>
       </div>
       <div class="card stack-sm">
-        <span class="lbl">Modelo</span>
-        <div class="row between"><h3>Culto principal</h3><span class="chip">13 itens · 95 min</span></div>
-        <p class="muted" style="font-size:var(--t-sm)">Criado do modelo em 18/11. Mudanças de estrutura aqui não alteram o modelo.</p>
+        <span class="lbl">Modelo e alvo</span>
+        <div class="row between"><h3 id="m-name"></h3><span class="chip" id="m-chip"></span></div>
+        <label class="field"><span class="lbl">Duração alvo (min)</span><input class="input" type="number" min="5" max="600" id="p-target"></label>
+        <p class="muted" style="font-size:var(--t-sm)" id="m-note"></p>
       </div>
       <div class="card stack-sm">
         <span class="lbl">Contingência</span>
-        <button class="btn ghost block">⇩ Roteiro em PDF</button>
-        <button class="btn ghost block">⇩ Slides offline (.zip)</button>
+        <button class="btn ghost block" onclick="print()">⇩ Roteiro em PDF (imprimir)</button>
       </div>
     </aside>
   </div>
 </main>
 <script>
-const P = XL.program, items = P.items;
 const params = new URLSearchParams(location.search);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const stName = (k) => ({ rascunho: "Rascunho", salvo: "Salvo", feito: "Já feito", arquivado: "Arquivado", lixeira: "Na lixeira" })[k] || k;
+const TAGC = { media: "var(--live)", song: "var(--ok)", notice: "var(--warn)", wait: "var(--fg-2)", prayer: "var(--late)", sermon: "var(--live)", video: "var(--fg)", pause: "var(--fg-2)" };
+let tt;
+function toastMsg(m) {
+  let t = UI.qs("#p-toast");
+  if (!t) { t = document.createElement("div"); t.id = "p-toast"; t.className = "toast"; t.setAttribute("role", "status"); document.body.append(t); }
+  t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2600);
+}
+/* próximo sábado: data padrão de um programa novo */
+const nextSat = () => { const d = new Date(); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7)); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+function newProgramSheet() {
+  const T = PROGS.TEMPLATES;
+  const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Novo programa</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
+    <label class="field"><span class="lbl">Nome</span><input class="input" id="np-n" placeholder="Ex.: Culto principal, Santa Ceia"></label>
+    <div class="grid grid-2"><label class="field"><span class="lbl">Data</span><input class="input" type="date" id="np-d" value="${nextSat()}"></label><label class="field"><span class="lbl">Começa às (opcional)</span><input class="input" type="time" id="np-h"></label></div>
+    <span class="lbl">Começar de</span>
+    ${Object.entries(T).map(([k, t]) => `<button class="pick" data-np="${k}"><span class="grow"><h3>${k === "branco" ? t.name : "Modelo: " + t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note} · ${t.starts}</span></span>${UI.I.plus}</button>`).join("")}
+    ${PROGS.all().length ? `<p class="muted" style="font-size:var(--t-sm)">Para partir de um culto que já existe, use Duplicar no cartão dele.</p>` : ""}</div>`);
+  UI.qsa("[data-np]", sh).forEach((b) => (b.onclick = () => {
+    const k = b.dataset.np;
+    const n = PROGS.create({ template: k, title: UI.qs("#np-n", sh).value.trim() || T[k].name, iso: UI.qs("#np-d", sh).value || null, starts: UI.qs("#np-h", sh).value || T[k].starts });
+    location.href = "programa.html?p=" + n.id;
+  }));
+}
+/* cartão de um programa (lista e pastas) */
+function progCard(x, openId) {
+  const mins = Math.round(x.items.reduce((a, b) => a + (b.planned || 0), 0) / 60), isOn = x.id === openId;
+  const who = XL.people[x.by] && XL.people[x.by].name !== "—" ? XL.people[x.by].name.split(" ")[0] + ", " : "";
+  return `<article class="pc${isOn ? " on" : ""}"><div class="pc-top"><span>${esc(x.short || "—")} · ${esc(x.starts || "")}</span><span>${stName(x.status)}${x.id === PROGS.liveId ? " · ao vivo" : ""}</span></div><h3><a href="programa.html?p=${x.id}">${esc(x.title)}</a></h3>
+    <span class="muted" style="font-size:var(--t-sm)">${esc(x.date || "Sem data")}</span>
+    <div class="bar3">${x.items.map((it) => `<i style="flex:${it.planned || 1};background:${TAGC[it.type] || "var(--fg-2)"}" title="${esc(it.title)}"></i>`).join("")}</div>
+    <span class="muted" style="font-size:var(--t-sm)">${x.items.length} itens · ${mins} min${x.real ? ` · terminou ${x.real}` : ""} · ${who}${x.updated || ""}</span>
+    <div class="pc-acts">${isOn ? '<span class="lbl" style="align-self:center">aberto</span>' : `<a class="go" href="programa.html?p=${x.id}">Abrir</a>`}<button data-pdup="${x.id}">Duplicar</button>${x.status === "lixeira" ? `<button data-pst="${x.id}:rascunho">Restaurar</button><button class="danger" data-pkill="${x.id}">Excluir de vez</button>` : `${x.status === "arquivado" ? `<button data-pst="${x.id}:rascunho">Desarquivar</button>` : `<button data-pst="${x.id}:arquivado">Arquivar</button>`}<button class="danger" data-pst="${x.id}:lixeira">Lixeira</button>`}</div></article>`;
+}
+function folderCells(sel) {
+  const counts = {}; PROGS.all().forEach((x) => (counts[x.status] = (counts[x.status] || 0) + 1));
+  const cell = (k, n, dsc, c) => `<button class="fd${sel === k ? " on" : ""}" data-psf="${k}" title="${dsc}">${FILEUI.folderSVG(c, k === "lixeira" ? "lixeira" : k === "arquivado" ? "arquivado" : k === "todos" ? "all" : "")}<b>${n}</b><small>${c} ${c === 1 ? "programa" : "programas"}</small></button>`;
+  return `<div class="fds">${cell("todos", "Todos", "Todos menos lixeira", PROGS.all().filter((x) => x.status !== "lixeira").length)}${PROGS.STATUS.map(([k, n, dsc]) => cell(k, n, dsc, counts[k] || 0)).join("")}</div>`;
+}
+const STN = Object.fromEntries(PROGS.STATUS.map(([k, n]) => [k, n]));
+const OPEN = PROGS.get(params.get("p"));
+
+/* ── sem ?p= (ou um programa que não existe mais): a lista de programas, como arquivos ── */
+if (!OPEN) {
+  document.body.classList.add("plist");
+  let f = params.get("pasta") || "todos";
+  UI.qs("#pl-new").innerHTML = UI.I.plus + "Novo programa";
+  UI.qs("#pl-new").onclick = newProgramSheet;
+  const list = () => {
+    const all = PROGS.all();
+    UI.qs("#ps-list").hidden = false;
+    if (!all.length) {
+      UI.qs("#ps-fds").innerHTML = "";
+      UI.qs("#ps-list").innerHTML = `<div class="ps-empty" style="grid-column:1/-1"><span class="lbl">Programas</span><h2>Ok, você ainda não tem nenhum programa.</h2><p class="muted">Crie o primeiro a partir de um modelo (Culto principal, Culto jovem) ou em branco. Ele aparece aqui como um arquivo; clique para abrir e editar.</p><button class="btn primary" id="pl-new2">${UI.I.plus}Criar o primeiro programa</button></div>`;
+      UI.qs("#pl-new2").onclick = newProgramSheet;
+      return;
+    }
+    UI.qs("#ps-fds").innerHTML = folderCells(f);
+    const L = all.filter((x) => (f === "todos" ? x.status !== "lixeira" : x.status === f)).sort((a, b) => String(b.iso || "").localeCompare(String(a.iso || "")));
+    UI.qs("#ps-list").innerHTML = L.map((x) => progCard(x, null)).join("") || `<p class="muted">Nenhum programa em ${STN[f] || "Todos"}.</p>`;
+  };
+  UI.qs(".ps").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.psf) { f = b.dataset.psf; return list(); }
+    if (b.dataset.pdup) { const n = PROGS.duplicate(b.dataset.pdup); toastMsg(`Cópia criada em Rascunhos: ${n.title}`); return list(); }
+    if (b.dataset.pst) { const [id, st] = b.dataset.pst.split(":"); const x = PROGS.get(id); x.status = st; x.updated = "agora"; PROGS.put(x); toastMsg(`${x.title} (${x.short}) → ${stName(st)}`); return list(); }
+    if (b.dataset.pkill) { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = "Confirmar"; return; } if (b.dataset.pkill === PROGS.liveId) return toastMsg("Este programa está no ao vivo; escolha outro antes."); PROGS.destroy(b.dataset.pkill); list(); }
+  });
+  list();
+}
+
+/* ── ?p=<id>: o editor do programa ── */
+if (OPEN) (function () {
+const P = XL.program, items = P.items;
 let area = params.get("area") || "all";
-/* Qual programa está aberto (?p=); sem p, o que está no ao vivo. */
-let prog = PROGS.get(params.get("p")) || PROGS.get(PROGS.liveId);
-if (prog.id !== P.id) items.splice(0, items.length, ...PROGS.clone(prog.items));
-Object.assign(P, { starts: prog.starts, targetMin: prog.targetMin });
+let prog = OPEN;
+items.splice(0, items.length, ...PROGS.clone(prog.items || []));
+Object.assign(P, { id: prog.id, starts: prog.starts || "10:00", targetMin: prog.targetMin || 60 });
 prog.archived = prog.archived || []; prog.trash = prog.trash || [];
 let state = params.get("estado") || (prog.status === "rascunho" ? "draft" : "ready");
-const snap = () => JSON.stringify({ items, a: prog.archived, t: prog.trash, n: prog.title, d: prog.date, s: prog.status });
+const snap = () => JSON.stringify({ items, a: prog.archived, t: prog.trash, n: prog.title, d: prog.iso, s: prog.status, h: P.starts, g: P.targetMin });
 let savedJSON = snap();
 UI.qs("#go-live").innerHTML = UI.I.live;
 UI.qs("#add").innerHTML = UI.I.plus + " Adicionar item";
 
 const hm = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, "0")}:${String(Math.floor(min % 60)).padStart(2, "0")}`;
-const START = (() => { const [h, m] = P.starts.split(":").map(Number); return h * 60 + m; })();
-const startsMin = () => { let c = START; return items.map((it) => { const s = c; c += it.planned / 60; return s; }); };
+const START_ = () => { const [h, m] = String(P.starts || "10:00").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+const startsMin = () => { let c = START_(); return items.map((it) => { const s = c; c += it.planned / 60; return s; }); };
 let was = {};      // horário anterior de cada item depois de mover (id → "10:00")
 let moved = null;  // id do último item movido
 const DEFAULT_BG = { song: null, wait: "wash:midnight", notice: "wash:amber", prayer: "loop:CQ0keZI1gds", sermon: "wash:gold", video: "solid:#0e0e0d", pause: "solid:#0e0e0d" };
@@ -176,7 +270,14 @@ function render() {
   const st = startsMin();
   const total = items.reduce((a, b) => a + b.planned, 0);
   const target = P.targetMin * 60;
-  UI.qs("#end").textContent = hm(START + total / 60);
+  UI.qs("#end").textContent = hm(START_() + total / 60);
+  if (document.activeElement !== UI.qs("#p-start")) UI.qs("#p-start").value = P.starts;
+  if (document.activeElement !== UI.qs("#p-target")) UI.qs("#p-target").value = P.targetMin;
+  UI.qs("#m-name").textContent = prog.template || "Programa";
+  UI.qs("#m-chip").textContent = `${items.length} itens · ${Math.round(total / 60)} min`;
+  UI.qs("#m-note").textContent = prog.createdAt ? `Criado em ${prog.createdAt.split("-").reverse().join("/")}. Mudanças aqui não alteram o modelo.` : "Mudanças aqui não alteram o modelo.";
+  UI.qs("#tl").hidden = !items.length;
+  UI.qs("#drag-hint").textContent = items.length ? "Arraste pela alça para mudar a ordem. Os horários se ajustam e mostram o horário anterior." : "Este programa ainda não tem itens. Use “Adicionar item” para montar o culto.";
   UI.qs("#tot").textContent = `${Math.round(total / 60)}/${P.targetMin}`;
   UI.qs("#over").innerHTML = total > target ? `<div class="banner" style="color:var(--late)">${UI.I.alert.replace("<svg", '<svg width="16" height="16"')} ${Math.round((total - target) / 60)} min acima do alvo</div>` : "";
   UI.qs("#areas").innerHTML = [["all", "Todas"], ...Object.entries(XL.areas)].map(([k, n]) => `<button class="chip ${k === area ? "solid" : ""}" data-a="${k}">${n}</button>`).join("");
@@ -215,7 +316,6 @@ function render() {
 /* ── tags de tipo (coluna da tabela) e ações da linha ── */
 const P2 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square">${d}</svg>`;
 const IC = { eye: P2('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'), eyeOff: P2('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>') };
-const TAGC = { media: "var(--live)", song: "var(--ok)", notice: "var(--warn)", wait: "var(--fg-2)", prayer: "var(--late)", sermon: "var(--live)", video: "var(--fg)", pause: "var(--fg-2)" };
 const tag = (k) => `<span class="tag-t" style="--tc:${TAGC[k]}"><i></i>${XL.types[k].name}</span>`;
 function rowAct(act, i) {
   const it = items[i];
@@ -239,31 +339,21 @@ UI.qs("#bins").addEventListener("click", (e) => {
 
 /* ── Programa Estúdio: pastas, cartões, novo, duplicar, salvar, rascunho ── */
 let psF = null;
-const STN = Object.fromEntries(PROGS.STATUS.map(([k, n]) => [k, n]));
-const stName = (k) => ({ rascunho: "Rascunho", salvo: "Salvo", feito: "Já feito", arquivado: "Arquivado", lixeira: "Na lixeira" })[k];
 function studio() {
   const dirty = snap() !== savedJSON;
   const d = UI.qs("#p-dirty"); d.textContent = dirty ? "● alterações não salvas" : `salvo ${prog.updated || ""}`; d.classList.toggle("dirty", dirty);
   if (document.activeElement !== UI.qs("#p-title")) UI.qs("#p-title").value = prog.title;
-  if (document.activeElement !== UI.qs("#p-date")) UI.qs("#p-date").value = prog.date;
+  if (document.activeElement !== UI.qs("#p-date")) UI.qs("#p-date").value = prog.iso || "";
   const live = prog.id === PROGS.liveId;
   UI.qs("#p-chips").innerHTML = `<span class="chip ${prog.status === "salvo" ? "ok" : prog.status === "rascunho" ? "warn" : ""}">${stName(prog.status)}</span>${live ? '<span class="chip live">No ao vivo</span>' : `<button class="chip" id="p-live">Usar no ao vivo</button>`}${prog.status === "feito" ? `<a class="chip" href="relatorio.html">Relatório ${prog.real || ""}</a>` : ""}`;
   UI.qs("#p-live") && (UI.qs("#p-live").onclick = () => { save(prog.status === "feito" || prog.status === "arquivado" ? "rascunho" : prog.status, true); PROGS.setLive(prog.id); toastMsg("Agora é este programa que vai para o ao vivo."); studio(); });
-  const counts = {}; PROGS.all().forEach((x) => (counts[x.status] = (counts[x.status] || 0) + 1));
-  const cell = (k, n, dsc, c) => `<button class="fd${psF === k ? " on" : ""}" data-psf="${k}" title="${dsc}">${FILEUI.folderSVG(c, k === "lixeira" ? "lixeira" : k === "arquivado" ? "arquivado" : k === "todos" ? "all" : "")}<b>${n}</b><small>${c} ${c === 1 ? "programa" : "programas"}</small></button>`;
-  UI.qs("#ps-fds").innerHTML = `<div class="fds">${cell("todos", "Todos", "Todos menos lixeira", PROGS.all().filter((x) => x.status !== "lixeira").length)}${PROGS.STATUS.map(([k, n, dsc]) => cell(k, n, dsc, counts[k] || 0)).join("")}</div>`;
+  UI.qs("#ps-fds").innerHTML = folderCells(psF);
   const L = psF ? PROGS.all().filter((x) => (psF === "todos" ? x.status !== "lixeira" : x.status === psF)) : [];
   UI.qs("#ps-list").hidden = !psF;
-  UI.qs("#ps-list").innerHTML = L.map((x) => {
-    const mins = Math.round(x.items.reduce((a, b) => a + b.planned, 0) / 60), isOn = x.id === prog.id;
-    return `<article class="pc${isOn ? " on" : ""}"><div class="pc-top"><span>${x.short} · ${x.starts}</span><span>${stName(x.status)}${x.id === PROGS.liveId ? " · ao vivo" : ""}</span></div><h3>${x.title}</h3>
-      <div class="bar3">${x.items.map((it) => `<i style="flex:${it.planned};background:${TAGC[it.type]}" title="${it.title}"></i>`).join("")}</div>
-      <span class="muted" style="font-size:var(--t-sm)">${x.items.length} itens · ${mins} min${x.real ? ` · terminou ${x.real}` : ""} · ${XL.people[x.by]?.name.split(" ")[0] || ""}, ${x.updated}</span>
-      <div class="pc-acts">${isOn ? '<span class="lbl" style="align-self:center">aberto</span>' : `<a class="go" href="programa.html?p=${x.id}">Abrir</a>`}<button data-pdup="${x.id}">Duplicar</button>${x.status === "lixeira" ? `<button data-pst="${x.id}:rascunho">Restaurar</button><button class="danger" data-pkill="${x.id}">Excluir de vez</button>` : `${x.status === "arquivado" ? `<button data-pst="${x.id}:rascunho">Desarquivar</button>` : `<button data-pst="${x.id}:arquivado">Arquivar</button>`}<button class="danger" data-pst="${x.id}:lixeira">Lixeira</button>`}</div></article>`;
-  }).join("") || (psF ? `<p class="muted">Nenhum programa em ${STN[psF] || "Todos"}.</p>` : "");
+  UI.qs("#ps-list").innerHTML = L.map((x) => progCard(x, prog.id)).join("") || (psF ? `<p class="muted">Nenhum programa em ${STN[psF] || "Todos"}.</p>` : "");
 }
 function save(status, quiet) {
-  Object.assign(prog, { items: PROGS.clone(items), status, updated: "agora" });
+  Object.assign(prog, { items: PROGS.clone(items).filter((it) => it.id !== "none"), status, starts: P.starts, targetMin: P.targetMin, updated: "agora" });
   PROGS.put(prog); savedJSON = snap();
   state = status === "rascunho" ? "draft" : "ready";
   render();
@@ -274,23 +364,13 @@ UI.qs("#p-dup").innerHTML = "Duplicar";
 UI.qs("#p-draft").onclick = () => save("rascunho");
 UI.qs("#p-save").onclick = () => save("salvo");
 UI.qs("#p-title").oninput = (e) => { prog.title = e.target.value; studio(); };
-UI.qs("#p-date").oninput = (e) => { prog.date = e.target.value; studio(); };
-UI.qs("#p-dup").onclick = () => { const n = PROGS.duplicate(prog.id, { items: PROGS.clone(items), date: "Sem data", short: "—" }); location.href = "programa.html?p=" + n.id; };
-UI.qs("#p-new").onclick = () => {
-  const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Novo programa</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
-    <label class="field"><span class="lbl">Nome</span><input class="input" id="np-n" value="Culto principal"></label>
-    <label class="field"><span class="lbl">Data</span><input class="input" id="np-d" value="Sábado, 20 de dezembro"></label>
-    <span class="lbl">Começar de</span>
-    <button class="pick" data-np="modelo"><span class="grow"><h3>Modelo: Culto principal</h3><span class="muted" style="font-size:var(--t-sm)">13 itens · 95 min, a estrutura de sempre</span></span>${UI.I.plus}</button>
-    <button class="pick" data-np="jovem"><span class="grow"><h3>Modelo: Culto jovem</h3><span class="muted" style="font-size:var(--t-sm)">8 itens · 75 min</span></span>${UI.I.plus}</button>
-    <button class="pick" data-np="branco"><span class="grow"><h3>Em branco</h3><span class="muted" style="font-size:var(--t-sm)">Só a contagem; você monta o resto</span></span>${UI.I.plus}</button>
-    <p class="muted" style="font-size:var(--t-sm)">Para partir de um culto que já aconteceu, abra a pasta Já feitos e use Duplicar.</p></div>`);
-  UI.qsa("[data-np]", sh).forEach((b) => (b.onclick = () => {
-    const src = PROGS.get(b.dataset.np === "jovem" ? "p_0612j" : "p_2911");
-    const n = PROGS.duplicate(src.id, { title: UI.qs("#np-n").value || "Novo programa", date: UI.qs("#np-d").value || "Sem data", short: (UI.qs("#np-d").value.match(/\d+/) || ["—"])[0], items: b.dataset.np === "branco" ? PROGS.clone(src.items.slice(0, 1)) : PROGS.clone(src.items), archived: [], trash: [] });
-    location.href = "programa.html?p=" + n.id;
-  }));
-};
+UI.qs("#p-date").onchange = (e) => { prog.iso = e.target.value || null; Object.assign(prog, PROGS.dateLabel(prog.iso)); studio(); };
+UI.qs("#p-start").onchange = (e) => { if (/^\d{1,2}:\d{2}/.test(e.target.value)) { P.starts = e.target.value.slice(0, 5); prog.starts = P.starts; render(); } };
+UI.qs("#p-target").onchange = (e) => { const v = Math.round(+e.target.value); if (v > 0) { P.targetMin = v; prog.targetMin = v; render(); } };
+UI.qs("#ps-back").innerHTML = UI.I.back + "Todos os programas";
+addEventListener("beforeunload", (e) => { if (snap() !== savedJSON) { e.preventDefault(); e.returnValue = ""; } });
+UI.qs("#p-dup").onclick = () => { const n = PROGS.duplicate(prog.id, { items: PROGS.clone(items), iso: null, date: "Sem data", short: "—" }); savedJSON = snap(); location.href = "programa.html?p=" + n.id; };
+UI.qs("#p-new").onclick = newProgramSheet;
 UI.qs("#copy-from").onclick = () => { psF = "feito"; studio(); UI.qs(".ps").scrollIntoView({ behavior: "smooth" }); };
 UI.qs(".ps").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
@@ -341,13 +421,6 @@ tl.addEventListener("click", (e) => {
   if (row && !row.classList.contains("ro")) edit(+row.dataset.i);
 });
 
-let tt;
-function toastMsg(m) {
-  let t = UI.qs("#p-toast");
-  if (!t) { t = document.createElement("div"); t.id = "p-toast"; t.className = "toast"; t.setAttribute("role", "status"); document.body.append(t); }
-  t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2600);
-}
-
 /* clique no item: gaveta com o template (fundo, texto, timer) + dados do item */
 function edit(i) {
   const it = items[i];
@@ -379,7 +452,7 @@ function edit(i) {
 }
 
 UI.qs("#add").onclick = () => {
-  const pos = items.map((x, k) => `<option value="${k + 1}" ${k === items.length - 2 ? "selected" : ""}>depois de ${k + 1}. ${x.title}</option>`).join("");
+  const pos = items.map((x, k) => `<option value="${k + 1}" ${k === Math.max(0, items.length - 2) ? "selected" : ""}>depois de ${k + 1}. ${x.title}</option>`).join("");
   const sh = UI.sheet(`<div class="stack"><h2>Novo item</h2>
     <div class="imp"><span class="lbl">Importar vídeo ou áudio por link</span>
       <input class="input" id="imp-url" placeholder="YouTube, Vimeo, Spotify ou link de .mp4 / .mp3">
@@ -412,12 +485,17 @@ UI.qs("#add").onclick = () => {
   };
   UI.qsa("[data-new]", sh).forEach((b) => (b.onclick = () => {
     const k = b.dataset.new;
-    items.splice(items.length - 1, 0, { id: "n" + Date.now(), type: k, title: XL.types[k].name, planned: 180, owner: XL.me, area: "sound", advance: XL.types[k].advance, public: true, song: k === "song" ? Object.keys(XL.songs)[0] || "s1" : undefined });
-    render(); edit(items.length - 2);
+    if (state === "ready") return toastMsg("Programa salvo como pronto: volte para Rascunho para adicionar.");
+    // entra no fim (antes do encerramento, se houver)
+    const at = items.length && items[items.length - 1].type === "pause" ? items.length - 1 : items.length;
+    const AREA = { song: "music", notice: "comms", video: "comms", sermon: "pulpit", prayer: "pulpit" };
+    items.splice(at, 0, { id: "n" + Date.now(), type: k, title: XL.types[k].name, planned: 180, owner: XL.me, area: AREA[k] || "sound", advance: XL.types[k].advance, public: true, song: k === "song" ? Object.keys(XL.songs)[0] : undefined });
+    UI.closeSheet(); render(); edit(at);
   }));
 };
 render();
 if (location.hash) setTimeout(() => { const el = UI.qs(location.hash); el && el.scrollIntoView({ block: "center" }); }, 50);
+})();
 </script>
 </body>
 </html>

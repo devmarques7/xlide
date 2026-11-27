@@ -75,6 +75,12 @@
 
   /* Quem está usando (troca em "Ver como" no Início e no cartão do menu). */
   const CLOUD = !!(window.XCLOUD && XCLOUD.on && !XCLOUD.leaving);
+  /* Um sistema só: no app real, o menu do Live Church começa com as abas do XLIDE (decks, boards, identidade, música),
+     as mesmas do menu lateral do app (src/components/app-sidebar.tsx). */
+  if (CLOUD) {
+    NAV.unshift({ g: "XLIDE", d: "Decks, boards e identidade", items: [["painel", "/", "Painel", "slides"], ["xboards", "/boards", "Boards", "board"], ["identidade", "/identity", "Identidade", "palette"], ["xmusic", "/music", "Música", "music"]] });
+    NAV.forEach((G) => G.items.forEach((it) => { if (it[0] === "boards") it[1] = "/boards"; }));
+  }
   const me = () => { if (CLOUD && XCLOUD.uid) return XCLOUD.uid; try { return new URLSearchParams(location.search).get("as") || localStorage.getItem("xlide.v2.me") || "ana"; } catch { return "ana"; } };
   function setMe(k) { try { localStorage.setItem("xlide.v2.me", k); } catch {} }
 
@@ -188,7 +194,7 @@
     const side = document.createElement("nav");
     side.className = "sbar";
     side.setAttribute("aria-label", "Navegação principal");
-    side.innerHTML = `<a class="sb-brand" href="${CLOUD ? "inicio.html" : "index.html"}" aria-label="XLIDE">${mark()}<span><b>XLIDE</b><small>Nova Semente Rotterdam</small></span></a>
+    side.innerHTML = `<a class="sb-brand" href="${CLOUD ? "/" : "index.html"}" aria-label="XLIDE">${mark()}<span><b>XLIDE</b><small>Nova Semente Rotterdam</small></span></a>
       <button class="sb-create" type="button">${I.plus}<span>Criar</span><kbd>N</kbd></button>
       <div class="sb-scroll">${groupsHTML(on)}</div>
       <button class="sb-me" type="button" aria-label="Quem está usando: trocar de pessoa">${who_()}</button>`;
@@ -292,8 +298,10 @@
       cards: [["kit.html", "Fundos e fontes", "23 fundos · 4 fontes", mini({ eyebrow: "Ember", title: "Aa Bb", bg: "wash:ember" })], ["kit.html#testar", "Testar um slide", "Música, deck ou aviso", mini({ eyebrow: "Teste", title: "Tem lugar na mesa", bg: "wash:dusk" })], ["estudio.html", "Editor de música", "Tempo de cada slide", ""]] };
     if (g === "Culto") return { t: "Culto", ins: [`${P.title} · ${P.date.split(",")[1] || P.date}`, pend ? `${pend} pendências antes do culto. ${P.items.length} itens, começa ${P.starts}.` : "Tudo pronto.", "programa.html"],
       cards: [["agenda.html", "Agenda", "Semana do culto", ""], ["programa.html", "Programa", `${P.items.length} itens · rascunho`, mini({ eyebrow: "Programa", title: P.title, bg: "wash:midnight" })], ["console.html", "Ao vivo", "Multiview e trilha", mini({ eyebrow: "Na tela", title: "05:00", bg: "loop:5djr6ofyLLY" })], ["tela.html", "Tela do projetor", "Abrir na outra tela", ""], ["relatorio.html", "Relatório", "Último: +9 min", ""]] };
-    if (g === "Ideias") return { t: "Ideias", ins: ["Boards", `${Object.keys(XL.boards).length} boards. Mais recente: ${XL.boards.b1.title}.`, "boards.html"],
-      cards: Object.entries(XL.boards).map(([id, b]) => [`board.html?id=${id}`, b.title, `${b.items} itens · ${b.updated}`, `<div class="fly-mb"><i style="background-image:url(${yt(b.loops[0])})"></i><i style="background-image:url(${yt(b.loops[1])})"></i></div>`]) };
+    if (g === "XLIDE") return { t: "XLIDE", ins: ["Painel", "Decks, boards, identidade e músicas do XLIDE.", "/"],
+      cards: [["/", "Painel", "Todas as apresentações", ""], ["/boards", "Boards", `${Object.keys(XL.boards).length} boards · mapas e moodboards`, ""], ["/identity", "Identidade", "Cores, fontes e logo", ""], ["/music", "Música", `${Object.keys(XL.songs).length} músicas`, ""]] };
+    if (g === "Ideias") return { t: "Ideias", ins: ["Boards", `${Object.keys(XL.boards).length} boards. Mais recente: ${(Object.values(XL.boards)[0] || {}).title || "nenhum"}.`, CLOUD ? "/boards" : "boards.html"],
+      cards: Object.entries(XL.boards).filter(([, b]) => !b.archived).slice(0, 6).map(([id, b]) => [b.real ? `/b/${id}${b.mood ? "?mode=mood" : ""}` : `board.html?id=${id}`, b.title, `${b.items} itens · ${b.updated}`, window.CARDS ? `<div class="fly-mb">${CARDS.pvBoard(b)}</div>` : ""]) };
     return { t: "Igreja", ins: ["Equipe", `${Object.keys(XL.people).length} pessoas em ${Object.keys(XL.areas).length} áreas.`, "equipe.html"], cards: [["equipe.html", "Equipe e acesso", "Quem edita o quê", ""], ["equipe.html#perm-t", "Permissões", "Admin, púlpito, música, operador", ""]] };
   }
   let flyEl = null, flyOn = null;

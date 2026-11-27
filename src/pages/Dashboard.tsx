@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Highlight } from "@/components/highlight";
 import { ImportPanel } from "@/components/import-panel";
+import { LiveChurchPanel } from "@/components/live-church-panel";
 import { TemplateJson } from "@/components/template-json";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -133,6 +134,9 @@ export default function Dashboard() {
             </Button>
           </div>
         </section>
+
+        {/* Live Church (só administrador) */}
+        <LiveChurchPanel />
 
         {/* Results */}
         <section className="pb-20">

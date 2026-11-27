@@ -159,6 +159,21 @@
     destroy(id) { pstore.list = pstore.list.filter((x) => x.id !== id); this.save(); },
     reset() { pstore = CL ? empty() : seed(); this.save(); },
     clone,
+    /* modelos para criar um programa do zero (não dependem de programas de exemplo) */
+    TEMPLATES: {
+      principal: { name: "Culto principal", starts: "10:00", targetMin: 95, note: "12 itens · 95 min, a estrutura de sempre", rows: [["wait", "Contagem para o início", 300, "sound", { text: "O culto começa em instantes" }], ["prayer", "Boas-vindas e oração", 180, "pulpit"], ["song", "Louvor", 300, "music"], ["song", "Louvor", 270, "music"], ["notice", "Avisos da semana", 240, "comms"], ["prayer", "Momento de oração", 300, "pulpit"], ["song", "Louvor", 240, "music"], ["notice", "Dízimos e ofertas", 240, "comms"], ["sermon", "Sermão", 2400, "pulpit"], ["song", "Louvor final", 240, "music"], ["prayer", "Bênção final", 120, "pulpit"], ["pause", "Encerramento · música ambiente", 300, "sound", { public: false }]] },
+      jovem: { name: "Culto jovem", starts: "16:00", targetMin: 75, note: "8 itens · 75 min", rows: [["wait", "Contagem para o início", 300, "sound", { text: "Começamos em instantes" }], ["prayer", "Boas-vindas", 180, "pulpit"], ["song", "Louvor", 300, "music"], ["song", "Louvor", 270, "music"], ["notice", "Avisos", 180, "comms"], ["sermon", "Mensagem", 1800, "pulpit"], ["song", "Louvor final", 240, "music"], ["prayer", "Oração final", 120, "pulpit"]] },
+      branco: { name: "Em branco", starts: "10:00", targetMin: 60, note: "Só a contagem; você monta o resto", rows: [["wait", "Contagem para o início", 300, "sound", { text: "O culto começa em instantes" }]] },
+    },
+    dateLabel(iso) { if (!iso) return { date: "Sem data", short: "—" }; const d = new Date(iso + "T12:00:00"); const D = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"], M = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]; return { date: `${D[d.getDay()]}, ${d.getDate()} de ${M[d.getMonth()]}`, short: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}` }; },
+    create({ template = "principal", title, iso, starts } = {}) {
+      const T = this.TEMPLATES[template] || this.TEMPLATES.principal, XLx = window.XL || {}, me = XLx.me || "me";
+      const song1 = Object.keys(XLx.songs || {})[0];
+      const t0 = Date.now().toString(36);
+      const items = T.rows.map(([type, ttl, planned, area, extra], k) => ({ id: "i" + k + t0, type, title: ttl, planned, owner: me, area, advance: (XLx.types && XLx.types[type] ? XLx.types[type].advance : "manual"), public: true, ...(type === "song" && song1 ? { song: song1 } : {}), ...(extra || {}) }));
+      const n = { id: "p_" + t0, title: title || T.name, iso: iso || null, ...this.dateLabel(iso), starts: starts || T.starts, targetMin: T.targetMin, status: "rascunho", updated: "agora", by: me, template: T.name, createdAt: new Date().toISOString().slice(0, 10), items, archived: [], trash: [] };
+      return this.put(n);
+    },
   };
 
   const durs = { s1: 262, s2: 214, s3: 198, s4: 236 };

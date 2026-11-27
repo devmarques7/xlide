@@ -83,6 +83,10 @@
   .mm rect { fill: var(--surface); stroke: var(--fg); stroke-width: 1; }
   .mm .c rect { fill: var(--fg); }
   .mm path { stroke: var(--fg-2); stroke-dasharray: 3 3; fill: none; }
+  .mb-real .pv-mood { background: #f7f6f3; outline: 6px solid #f7f6f3; max-height: 300px; }
+  .mb-real { display: grid; place-items: center; overflow: hidden; }
+  .mb-ph { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; height: 44px; }
+  .mb-ph i { background-size: cover; background-position: center; background-color: var(--sunken); }
   .cont { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; background: var(--fg); color: var(--bg); font-size: var(--t-xs); font-weight: 600; white-space: nowrap; }
   .cont svg { width: 14px; height: 14px; }
 
@@ -150,16 +154,20 @@
 const { people, areas } = XL;
 const esc = FILEUI.esc;
 const views = { bia: "Operador", lucas: "Música", ana: "Admin", pr: "Púlpito" };
-let me = views[UI.me()] ? UI.me() : "ana";
+const CLOUD = !!(window.XCLOUD && XCLOUD.on && !XCLOUD.leaving);
+/* no app real, "você" é quem entrou; os atalhos seguem o papel (admin, operador, música, púlpito) */
+let me = CLOUD ? UI.me() : views[UI.me()] ? UI.me() : "ana";
+const roleKey = (k) => { if (!CLOUD) return k; const p = people[k] || {}; return p.role === "admin" ? "ana" : p.role === "operator" ? "bia" : p.area === "music" ? "lucas" : p.area === "pulpit" ? "pr" : "ana"; };
 let durKind = "principal";
 const first = (n) => (n.startsWith("Pr.") ? n.split(" ").slice(0, 2).join(" ") : n.split(" ")[0]);
 const EXP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>`;
 const ARR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m9 6 6 6-6 6"/></svg>`;
 
 /* Semana do mockup: o culto é sábado 29/11 às 10:00; "hoje" é terça 25/11 na hora real do computador. */
-const SVC = new Date(2026, 10, 29, 10, 0);
-const now = () => { const d = new Date(); return new Date(2026, 10, 25, d.getHours(), d.getMinutes(), d.getSeconds()); };
-const P = XL.program, items = P.items;
+const P = XL.program, items = P.items.filter((it) => it.id !== "none");
+const liveProg = CLOUD && P.id ? PROGS.get(P.id) : null;
+const SVC = CLOUD ? (liveProg && liveProg.iso ? new Date(`${liveProg.iso}T${(liveProg.starts || "10:00")}:00`) : null) : new Date(2026, 10, 29, 10, 0);
+const now = () => { const d = new Date(); return CLOUD ? d : new Date(2026, 10, 25, d.getHours(), d.getMinutes(), d.getSeconds()); };
 
 /* ── validação: o que falta antes do culto ── */
 function alerts() {
@@ -169,8 +177,9 @@ function alerts() {
     if (it.type === "song" && XL.songs[it.song].langs.length < 2) L.push(["warn", it.title, "Letra só em português", "music", `musica.html?id=${it.song}`]);
   });
   PROGS.all().filter((x) => x.status === "rascunho" && x.id !== P.id).slice(0, 2).forEach((x) => L.push(["late", `${x.title}, ${x.short}`, "Ainda em rascunho", null, `programa.html?p=${x.id}`]));
-  L.push(["late", "Microfone 3", "Pilha fraca no último ensaio", "sound", "console.html"]);
-  return L.filter((a) => me === "ana" || me === "bia" || !a[3] || a[3] === people[me].area);
+  if (!CLOUD) L.push(["late", "Microfone 3", "Pilha fraca no último ensaio", "sound", "console.html"]);
+  if (CLOUD && !P.id) L.push(["warn", "Nenhum programa no ao vivo", "Abra Programa e use “Usar no ao vivo”", null, "programa.html"]);
+  return L.filter((a) => roleKey(me) === "ana" || roleKey(me) === "bia" || !a[3] || a[3] === people[me].area);
 }
 /* prontidão por área: itens sem pendência / itens da área */
 function readiness() {
@@ -181,6 +190,7 @@ function readiness() {
 function tick() {
   const n = now();
   UI.qs("#clock").textContent = `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+  const el0 = UI.qs("#cd"); if (!SVC || SVC < n) { el0 && (el0.innerHTML = SVC ? "agora" : "—"); return; }
   const ms = SVC - n, dd = Math.floor(ms / 864e5), hh = Math.floor((ms % 864e5) / 36e5);
   const el = UI.qs("#cd"); el && (el.innerHTML = `${dd}<small>d</small> ${hh}<small>h</small>`);
 }
@@ -188,6 +198,7 @@ function tick() {
 function render() {
   const p = people[me], h = now().getHours(), A = alerts(), R = readiness();
   const okAll = R.reduce((a, r) => a + r[1], 0), tot = R.reduce((a, r) => a + r[2], 0);
+  if (CLOUD) UI.qs("#as").closest(".as").hidden = true;
   UI.qs("#as").innerHTML = Object.entries(views).map(([k, n]) => `<button class="${k === me ? "on" : ""}" data-k="${k}">${n}</button>`).join("");
   UI.qsa("#as button").forEach((b) => (b.onclick = () => { me = b.dataset.k; UI.setMe(me); UI.refreshNav(); render(); }));
   UI.qs("#hello").innerHTML = `${h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"},<b>${esc(first(p.name))}.</b>`;
@@ -213,32 +224,42 @@ function render() {
   const lastFile = FILES.mine(me).filter((f) => f.status === "ativo")[0];
   const cont = [
     lastFile && ["deck.html?f=" + lastFile.id, DRAWER.mini({ ...lastFile, seconds: 0 }), lastFile.name, `${FILEUI.folderName(lastFile.folder)} · ${lastFile.updated}`, 70],
-    ["programa.html", DRAWER.mini({ eyebrow: "Programa", title: P.title, bg: "wash:midnight" }), `Programa · ${P.title}`, `${P.date} · ${okAll}/${tot} prontos`, Math.round((okAll / tot) * 100)],
-    ["estudio.html?song=s2", `<div class="slide song">${XLOOK.songSlide("s2", 0, { section: false })}</div>`, "Caminho aberto", "Música · falta a tradução", 55],
+    ["programa.html", DRAWER.mini({ eyebrow: "Programa", title: P.title, bg: "wash:midnight" }), `Programa · ${P.title}`, `${P.date} · ${okAll}/${tot} prontos`, tot ? Math.round((okAll / tot) * 100) : 0],
+    ...(() => { const sid = CLOUD ? Object.keys(XL.songs)[0] : "s2"; if (!sid) return []; const so = XL.songs[sid]; return [["estudio.html?song=" + sid, `<div class="slide song">${XLOOK.songSlide(sid, 0, { section: false })}</div>`, so.title, `Música · ${so.langs.length < 2 ? "falta a tradução" : so.langs.join(" ").toUpperCase()}`, so.langs.length < 2 ? 55 : 100]]; })(),
   ].filter(Boolean);
   UI.qs("#w-cont").innerHTML = `<div class="wg-h"><h2>Continuar editando?</h2><a class="pill" href="arquivos.html">Arquivos</a></div>
     <div class="ce">${cont.map(([f, pv, t, d, pc]) => `<a href="${f}"><span class="pv">${pv}</span><span style="min-width:0"><b>${esc(t)}</b><small>${esc(d)}</small><span class="bar"><i style="width:${pc}%"></i></span></span><em>Continuar ›</em></a>`).join("")}</div>`;
 
   // 4 · atalhos rápidos (o primeiro muda com o papel)
-  const hot = { bia: ["console.html", UI.I.live, "Abrir o ao vivo", "Você opera sábado"], lucas: ["estudio.html", UI.I.music, "Editor de música", "4 músicas no sábado"], ana: ["programa.html", UI.I.check, "Revisar o programa", "Marcar como pronto"], pr: ["kit.html?tipo=deck#testar", UI.I.slides, "Slides do sermão", "Casa de muitos"] }[me];
+  const hot = { bia: ["console.html", UI.I.live, "Abrir o ao vivo", "Você opera sábado"], lucas: ["estudio.html", UI.I.music, "Editor de música", "4 músicas no sábado"], ana: ["programa.html", UI.I.check, "Revisar o programa", "Marcar como pronto"], pr: ["kit.html?tipo=deck#testar", UI.I.slides, "Slides do sermão", "Casa de muitos"] }[roleKey(me)];
   UI.qs("#w-quick").innerHTML = `<div class="wg-h"><h2>Atalhos</h2></div>
     <div class="qk"><a class="hot" href="${hot[0]}">${hot[1]}<span>${hot[2]}<small>${hot[3]}</small></span></a>
       <button type="button" onclick="UI.createSheet()">${UI.I.plus}<span>Criar<small>Deck, música, board</small></span></button>
       <a href="agenda.html">${UI.I.cal}<span>Agenda<small>Semana do culto</small></span></a>
       <a href="arquivos.html">${UI.I.folder}<span>Arquivos<small>${FILES.mine(me).filter((f) => f.status === "ativo").length} ativos</small></span></a></div>`;
 
-  // 5 · moodboard mais recente
-  const b = XL.boards.b1;
-  UI.qs("#w-mood").innerHTML = `<div class="wg-h"><h2>Moodboard recente</h2><span class="lbl">${b.items} itens</span></div>
-    <div style="display:grid;gap:var(--s3)"><div class="mb"><i style="background-image:url(${CARDS.yt(b.loops[0])})"></i><i style="background-image:url(${CARDS.yt(b.loops[1])})"></i><span class="sw">${b.colors.map((c) => `<i style="background:${c}"></i>`).join("")}</span></div>
-    <div class="wg-f"><span><b>${esc(b.title)}</b><small>${b.updated}, ${first(people[b.by].name)}</small></span><a class="cont" href="board.html?id=b1&v=mood">Continuar ${ARR}</a></div></div><a class="wg-x" href="boards.html" aria-label="Abrir boards">${EXP}</a>`;
+  // 5 · moodboard mais recente e 6 · último mapa mental: boards reais (xlide_boards), com fotos e o mapa de verdade
+  const BL = Object.entries(XL.boards).filter(([, x]) => !x.archived);
+  const href = (id, x, mode) => (x.real ? `/b/${id}${mode === "mood" ? "?mode=mood" : ""}` : `board.html?id=${id}&v=${mode}`);
+  const byName = (x) => (people[x.by] && people[x.by].name !== "—" ? `, ${first(people[x.by].name)}` : "");
+  const moodE = BL.find(([, x]) => x.real ? x.moodN > 0 : true);
+  if (moodE) {
+    const [bid, b] = moodE;
+    const pv = b.mood ? CARDS.pvMood(b.mood, "wide") : `<div class="mb"><i style="${CARDS.bg(b.thumbs && b.thumbs[0] || CARDS.yt(b.loops[0]))}"></i><i style="${CARDS.bg(b.thumbs && b.thumbs[1] || CARDS.yt(b.loops[1]))}"></i><span class="sw">${b.colors.map((c) => `<i style="background:${c}"></i>`).join("")}</span></div>`;
+    const ph = (b.thumbs || []).slice(0, 3);
+    UI.qs("#w-mood").innerHTML = `<div class="wg-h"><h2>Moodboard recente</h2><span class="lbl">${b.moodN ?? b.items} itens</span></div>
+    <div style="display:grid;gap:var(--s3)"><div class="mb-real">${pv}</div>${ph.length ? `<div class="mb-ph">${ph.map((u) => `<i style="${CARDS.bg(u)}"></i>`).join("")}${b.colors.map((c) => `<i style="background:${c}"></i>`).join("")}</div>` : ""}
+    <div class="wg-f"><span><b>${esc(b.title)}</b><small>${b.updated}${byName(b)}</small></span><a class="cont" href="${href(bid, b, "mood")}">Continuar ${ARR}</a></div></div><a class="wg-x" href="${b.real ? "/boards" : "boards.html"}" aria-label="Abrir boards">${EXP}</a>`;
+  } else UI.qs("#w-mood").innerHTML = `<div class="wg-h"><h2>Moodboard recente</h2></div><p class="muted">Nenhum moodboard ainda.</p><a class="cont" href="/boards">Criar board ${ARR}</a>`;
 
-  // 6 · último mapa mental
-  const m = XL.boards.b2;
-  const nodes = [["Ideia", 24, 18], ["Slides", 136, 18], ["Músicas", 24, 90], ["Convite", 136, 90]];
-  UI.qs("#w-map").innerHTML = `<div class="wg-h"><h2>Último mapa mental</h2><span class="lbl">${m.items} cartões</span></div>
-    <div style="display:grid;gap:var(--s3)"><svg class="mm" viewBox="0 0 200 125" role="img" aria-label="Mapa: ${esc(m.title)}">${nodes.map(([, x, y]) => `<path d="M100 62 C ${x + 20} 62, ${x + 20} ${y + 8}, ${x + 20} ${y + 8}"/>`).join("")}<g class="c"><rect x="58" y="52" width="84" height="20"/><text x="100" y="65" text-anchor="middle">Casa de muitos</text></g>${nodes.map(([t, x, y]) => `<g><rect x="${x}" y="${y}" width="40" height="16"/><text x="${x + 20}" y="${y + 11}" text-anchor="middle">${t}</text></g>`).join("")}</svg>
-    <div class="wg-f"><span><b>${esc(m.title)}</b><small>${m.updated}, ${first(people[m.by].name)}</small></span><a class="cont" href="board.html?id=b2&v=map">Continuar ${ARR}</a></div></div><a class="wg-x" href="boards.html" aria-label="Abrir boards">${EXP}</a>`;
+  const mapE = BL.find(([, x]) => x.real ? x.nodesN > 1 : true);
+  if (mapE) {
+    const [mid, m] = mapE;
+    const svg = m.map ? CARDS.pvMap(m.map, "mm") : `<svg class="mm" viewBox="0 0 200 125"></svg>`;
+    UI.qs("#w-map").innerHTML = `<div class="wg-h"><h2>Último mapa mental</h2><span class="lbl">${m.nodesN ?? m.items} cartões</span></div>
+    <div style="display:grid;gap:var(--s3)">${svg}
+    <div class="wg-f"><span><b>${esc(m.title)}</b><small>${m.updated}${byName(m)}</small></span><a class="cont" href="${href(mid, m, "map")}">Continuar ${ARR}</a></div></div><a class="wg-x" href="${m.real ? "/boards" : "boards.html"}" aria-label="Abrir boards">${EXP}</a>`;
+  } else UI.qs("#w-map").innerHTML = `<div class="wg-h"><h2>Último mapa mental</h2></div><p class="muted">Nenhum mapa mental ainda.</p><a class="cont" href="/boards">Criar board ${ARR}</a>`;
 
   dur();
   tick();
