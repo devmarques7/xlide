@@ -28,7 +28,7 @@
     prayer: { name: "Oração / leitura", advance: "manual", note: "Aguarda o comando" },
     sermon: { name: "Sermão", advance: "manual", note: "Cronômetro corre, nunca avança sozinho" },
     video: { name: "Vídeo", advance: "auto", note: "Avança ao terminar" },
-    media: { name: "Vídeo / áudio", advance: "auto", note: "Link do YouTube, Vimeo, Spotify ou arquivo; entra sozinho e toca do jeito que é, sem fonte nem estilo" },
+    media: { name: "Vídeo / áudio", advance: "auto", note: "Link do YouTube, Vimeo, Spotify ou arquivo; entra sozinho, sem fonte nem estilo. Vídeo pode tocar sem o áudio original, com a trilha da tela por cima" },
     pause: { name: "Pausa livre", advance: "manual", note: "Tela neutra até o comando" },
   };
 

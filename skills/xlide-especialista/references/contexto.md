@@ -106,7 +106,9 @@ Sistema visual do app: monocromático, sem cantos arredondados, BDO Grotesk + Fr
 
 ## Programa do culto
 
-Item: `type` (`wait`, `prayer`, `song`, `notice`, `video`, `sermon`, `pause`, `media`), `title`, `minutes`, `text`, `owner`, `area`, `deck_id`, `song_id`, `media`, `advance` (`auto`/`manual`), `public`, `track` (trilha de fundo: `off`, `mix1`, `mix2` ou link do YouTube), `track_volume`, `hidden`.
+Item: `type` (`wait`, `prayer`, `song`, `notice`, `video`, `sermon`, `pause`, `media`), `title`, `minutes`, `text`, `owner`, `area`, `deck_id`, `song_id`, `media`, `advance` (`auto`/`manual`), `public`, `track` (trilha de fundo: `off`, `mix1`, `mix2` ou link do YouTube), `track_volume`, `mute` (vídeo sem o áudio original), `hidden`.
+
+**Vídeo sem o áudio original + outra trilha.** No Programa, abra o item de vídeo (Vídeo / áudio com link do YouTube), desligue **Áudio original do vídeo** e escolha a trilha da tela logo abaixo (das mixes ou "Adicionar fonte" com o link da sua faixa). No projetor o vídeo toca mudo; no Ao vivo a trilha da tela toca no computador do console (mesa de som). Pelo MCP: `{ type: "media", media: "<link do vídeo>", mute: true, track: "<link da trilha>", track_volume: 70 }`. A trilha da tela fica gravada no próprio item (`bgm`), então vale em qualquer computador.
 
 Estados: `rascunho` → `salvo` → `feito` · `arquivado` · `lixeira`. Transições: `fade` (padrão), `corte`, `slide`, `sobrepor`. Modelos: Culto principal, Culto jovem, Em branco.
 

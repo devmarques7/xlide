@@ -88,7 +88,10 @@ function cleanItem(raw) {
   const type = ITEM_TYPES.includes(raw.type) ? raw.type : "notice";
   const it = { id: raw.id || rid("i_"), type, title: String(raw.title || type), planned: Math.max(10, Math.round((Number(raw.minutes) || Number(raw.planned) / 60 || 3) * 60)), advance: raw.advance || (["wait", "notice", "video", "media"].includes(type) ? "auto" : "manual"), public: raw.public !== false };
   for (const k of ["text", "owner", "area", "deck", "song", "media", "eyebrow", "bg", "font", "hidden"]) if (raw[k] != null) it[k] = raw[k];
-  if (raw.track != null) it.bgm = trackOf(raw.track, raw.track_volume);
+  // vídeo por link (YouTube…) é um item media: é ele que toca o link no projetor
+  if (type === "video" && raw.media) it.type = "media";
+  if (raw.mute) it.mute = true;
+  if (raw.track != null) it.bgm = trackOf(raw.track, raw.track_volume ?? (raw.mute ? 70 : undefined));
   if (raw.deck_id) it.deck = raw.deck_id;
   if (raw.song_id) it.song = raw.song_id;
   return it;
@@ -111,7 +114,7 @@ const progSummary = (p) => ({ id: p.id, title: p.title, date: p.service_date, st
 
 const S = (props, required = []) => ({ type: "object", properties: props, required });
 const slideProps = { bg: { type: "string", description: "Fundo: wash:<ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold>, loop:<id YouTube>, plain:<papel|tinta|grade|coluna|sabado|brasa>, ou URL de imagem/vídeo" }, font: { type: "string", enum: ["grotesk", "serif", "condensed", "mono"] }, tone: { type: "string", enum: ["dark", "light"] }, section: { type: "string", enum: ["intro", "verse", "prechorus", "chorus", "bridge", "tag", "instrumental", "outro"] }, repeat: { type: "number" }, at: { type: "number", description: "Segundo da música em que o slide entra" }, notes: { type: "string", description: "Notas do apresentador" }, layout: { type: "string", enum: LAYOUTS }, eyebrow: { type: "string" }, title: { type: "string" }, subtitle: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, image: { type: "string", description: "URL https real de imagem" } };
-const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media" }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela: off, mix1, mix2, ou link/id do YouTube" }, track_volume: { type: "number" } };
+const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media (o vídeo toca no projetor)" }, mute: { type: "boolean", description: "Só para vídeo (item media): true = toca SEM o áudio original do vídeo; o som da tela vem de `track` (a trilha que a pessoa escolheu). false volta o áudio do vídeo." }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela (toca no computador do console → mesa de som): off, mix1, mix2, ou link/id do YouTube de uma faixa. Com mute: true, é ela que toca por cima do vídeo sem som." }, track_volume: { type: "number" } };
 
 export const LIVE_TOOLS = [
   { name: "list_decks", description: "Lista os decks e músicas do XLIDE (id, título, línguas, nº de slides). Filtros: texto no título e tipo (deck ou song).", inputSchema: S({ query: { type: "string" }, kind: { type: "string", enum: ["deck", "song"] } }) },
@@ -135,9 +138,9 @@ export const LIVE_TOOLS = [
   { name: "set_program_settings", description: "Ajustes do programa para o ao vivo: transição entre telas (fade padrão, corte, slide, sobrepor) e piloto automático.", inputSchema: S({ program_id: { type: "string" }, transition: { type: "string", enum: TRANSITIONS }, autopilot: { type: "boolean" } }, ["program_id"]) },
   { name: "list_programs", description: "Lista os programas do culto (Programa Estúdio) com estado: rascunho, salvo, feito, arquivado, lixeira.", inputSchema: S({ status: { type: "string", enum: PROG_STATUS } }) },
   { name: "get_program", description: "Lê um programa com todos os itens na ordem (horário de cada um calculado).", inputSchema: S({ program_id: { type: "string" } }, ["program_id"]) },
-  { name: "create_program", description: "Cria um programa inteiro (rascunho) com todos os itens em ordem. Itens podem apontar para decks (deck_id), músicas (song_id) ou links de vídeo/áudio (media).", inputSchema: S({ title: { type: "string" }, date: { type: "string", description: "AAAA-MM-DD" }, starts: { type: "string", description: "HH:MM" }, target_min: { type: "number" }, items: { type: "array", items: S(itemProps, ["type", "title"]) } }, ["title", "items"]) },
+  { name: "create_program", description: "Cria um programa inteiro (rascunho) com todos os itens em ordem. Itens podem apontar para decks (deck_id), músicas (song_id) ou links de vídeo/áudio (media). Vídeo do YouTube sem o áudio original e com outra trilha: type media + media (link do vídeo) + mute: true + track (link da trilha) + track_volume (0–100; com o vídeo mudo use 60–80).", inputSchema: S({ title: { type: "string" }, date: { type: "string", description: "AAAA-MM-DD" }, starts: { type: "string", description: "HH:MM" }, target_min: { type: "number" }, items: { type: "array", items: S(itemProps, ["type", "title"]) } }, ["title", "items"]) },
   { name: "add_program_items", description: "Acrescenta itens a um programa (no fim ou depois da posição `after`).", inputSchema: S({ program_id: { type: "string" }, after: { type: "number" }, items: { type: "array", items: S(itemProps, ["type", "title"]) } }, ["program_id", "items"]) },
-  { name: "update_program_item", description: "Edita um item do programa (id ou posição): título, tipo, minutos, texto, responsável, deck, música, mídia, avanço, público, oculto.", inputSchema: S({ program_id: { type: "string" }, item: { type: ["string", "number"] }, hidden: { type: "boolean" }, ...itemProps }, ["program_id", "item"]) },
+  { name: "update_program_item", description: "Edita um item do programa (id ou posição): título, tipo, minutos, texto, responsável, deck, música, mídia, avanço, público, oculto, mute (tirar/voltar o áudio original do vídeo) e track/track_volume (a trilha que toca nesta tela).", inputSchema: S({ program_id: { type: "string" }, item: { type: ["string", "number"] }, hidden: { type: "boolean" }, ...itemProps }, ["program_id", "item"]) },
   { name: "move_program_item", description: "Muda um item de posição (os horários seguintes se recalculam).", inputSchema: S({ program_id: { type: "string" }, item: { type: ["string", "number"] }, to: { type: "number" } }, ["program_id", "item", "to"]) },
   { name: "remove_program_items", description: "Tira itens do programa: arquivar (padrão) ou mandar para a lixeira do programa.", inputSchema: S({ program_id: { type: "string" }, items: { type: "array", items: { type: ["string", "number"] } }, to: { type: "string", enum: ["arquivo", "lixeira"] } }, ["program_id", "items"]) },
   { name: "set_program_status", description: "Muda o estado (rascunho, salvo, feito, arquivado, lixeira) e/ou põe o programa no ao vivo.", inputSchema: S({ program_id: { type: "string" }, status: { type: "string", enum: PROG_STATUS }, live: { type: "boolean" } }, ["program_id"]) },
@@ -253,7 +256,9 @@ export async function callLiveTool(name, a = {}, origin = "") {
       Object.assign(it, Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)));
       if (minutes != null) it.planned = Math.round(minutes * 60);
       if (deck_id != null) it.deck = deck_id; if (song_id != null) it.song = song_id;
-      if (a.track != null) { it.bgm = trackOf(a.track, a.track_volume); delete it.track; delete it.track_volume; }
+      if (a.mute === false) delete it.mute;
+      if (it.type === "video" && it.media) it.type = "media";
+      if (a.track != null) { it.bgm = trackOf(a.track, a.track_volume ?? (it.mute ? 70 : undefined)); delete it.track; delete it.track_volume; }
       else if (a.track_volume != null && it.bgm) { it.bgm.vol = a.track_volume; delete it.track_volume; }
       await saveProg(p); return { n: i + 1, ...it };
     }

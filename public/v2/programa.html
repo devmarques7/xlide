@@ -312,7 +312,7 @@ function render() {
         <span class="grip" title="${locked ? "Programa pronto: mude para Rascunho para mover" : "Arraste para mudar a ordem"}" aria-label="Mover ${it.title}">${UI.I.grip}</span>
         <span class="t">${t}${prev}</span>
         <span class="thumb-s">${DRAWER.mini(tplOf(it))}</span>
-        <span class="what"><h3>${it.title}</h3><span class="meta">${UI.ty(it.type)}<span class="sep-t"> · </span>${UI.who(it.owner)}${it.advance === "auto" ? ' · <span class="lbl">auto</span>' : ""}${it.public ? "" : ' · <span class="lbl">interno</span>'}${it.hidden ? ' · <span class="lbl">oculto · não vai para a tela</span>' : ""}<span class="sep-t"> · </span>${TRILHA.chip(it)}</span></span>
+        <span class="what"><h3>${it.title}</h3><span class="meta">${UI.ty(it.type)}<span class="sep-t"> · </span>${UI.who(it.owner)}${it.advance === "auto" ? ' · <span class="lbl">auto</span>' : ""}${it.public ? "" : ' · <span class="lbl">interno</span>'}${it.hidden ? ' · <span class="lbl">oculto · não vai para a tela</span>' : ""}${it.mute ? ' · <span class="lbl">vídeo sem áudio</span>' : ""}<span class="sep-t"> · </span>${TRILHA.chip(it)}</span></span>
         <span class="c-type">${tag(it.type)}</span>
         <span class="c-tr">${TRILHA.chip(it)}</span>
         <span class="dur">${UI.min(it.planned)}</span>
@@ -443,6 +443,7 @@ function edit(i) {
     ${it.type === "song" ? `<a class="btn ghost block" href="estudio.html?song=${it.song}">Abrir no estúdio de música</a>` : ""}
     ${it.deck ? `<a class="btn ghost block" href="deck.html?d=${it.deck}">Abrir o deck no editor (todos os slides)</a>` : ""}
     ${it.type === "media" || it.type === "song" ? `<label class="field"><span class="lbl">${it.type === "song" ? "Faixa da música (link do YouTube, Spotify…)" : "Link do vídeo ou áudio"}</span><input class="input" data-f="media" value="${(it.media || "").replace(/"/g, "&quot;")}" placeholder="https://"><span class="muted" style="font-size:var(--t-sm)" data-media-lbl>${it.media ? MEDIA.label(it.media) : it.type === "song" ? "Sem link: a música usa os tempos do editor de música." : "Cole o link."}</span></label>` : ""}
+    ${it.type === "media" && MEDIA.parse(it.media || "")?.kind === "video" ? `<div class="row between"><span><h3>Áudio original do vídeo</h3><span class="muted" style="font-size:var(--t-sm)">Desligado: o vídeo toca sem som no projetor e a trilha escolhida abaixo toca por cima</span></span><button class="toggle ${it.mute ? "" : "on"}" data-mute role="switch" aria-checked="${!it.mute}"></button></div>` : ""}
     ${TRILHA.picker(it)}
     <label class="field"><span class="lbl">Responsável</span><select class="select" data-f="owner">${Object.entries(XL.people).map(([k, p]) => `<option value="${k}" ${k === it.owner ? "selected" : ""}>${p.name}, ${p.title}</option>`).join("")}</select></label>
     <div class="row between"><span><h3>Avançar sozinho</h3><span class="muted" style="font-size:var(--t-sm)">Quando o timer zerar</span></span><button class="toggle ${it.advance === "auto" ? "on" : ""}" data-t="advance" role="switch"></button></div>
@@ -458,6 +459,8 @@ function edit(i) {
   TRILHA.bindPicker(sh, it, (m) => { render(); m && toastMsg(m); });
   const mf = sh.querySelector('[data-f="media"]');
   mf && (mf.oninput = () => { const v = mf.value.trim(); sh.querySelector("[data-media-lbl]").textContent = v ? MEDIA.label(v) : "Cole o link."; if (!v || MEDIA.parse(v)) { it.media = v || undefined; render(); } });
+  const mb = sh.querySelector("[data-mute]");
+  mb && (mb.onclick = () => { it.mute = mb.classList.contains("on") || undefined; render(); edit(i); toastMsg(it.mute ? (TRILHA.resolve(it).on ? "Vídeo sem o áudio original. A trilha desta tela toca por cima." : "Vídeo sem o áudio original. Agora escolha a trilha desta tela.") : "O vídeo volta a tocar com o próprio áudio."); });
   UI.qsa("[data-t]", sh).forEach((b) => (b.onclick = () => { b.classList.toggle("on"); const k = b.dataset.t; it[k] = k === "advance" ? (b.classList.contains("on") ? "auto" : "manual") : b.classList.contains("on"); render(); }));
   UI.qsa("[data-type]", sh).forEach((b) => (b.onclick = () => { it.type = b.dataset.type; if (it.type === "song" && !it.song) it.song = Object.keys(XL.songs)[0] || "s1"; it.advance = XL.types[it.type].advance; render(); edit(i); }));
   UI.qs("[data-del]", sh).onclick = () => { UI.closeSheet(); rowAct("trash", i); };

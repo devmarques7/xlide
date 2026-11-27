@@ -22,7 +22,7 @@ window.renderSlide = function (it, slide, T, lang = "pt", status = "live") {
     case "video":
       return { html: `<div><div class="s-eyebrow">Vídeo</div><div class="s-title">▶</div><div class="s-body">${it.title}</div></div>` };
     case "media":
-      return { cls: "media", html: window.MEDIA ? MEDIA.html(it.media) || `<div class="s-eyebrow">Link não reconhecido</div>` : "" };
+      return { cls: "media", html: window.MEDIA ? MEDIA.html(it.media, { mute: it.mute }) || `<div class="s-eyebrow">Link não reconhecido</div>` : "" };
     case "pause":
       return { cls: "blank", html: `<div class="s-eyebrow" style="opacity:.3">XLIDE</div>` };
     default:

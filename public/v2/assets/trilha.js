@@ -25,16 +25,19 @@
   const keyOf = (it) => it.title;
   /* Modo de uma tela: "inherit" (trilha do culto) | "off" | id de uma fonte. */
   /* Sem trilha do culto inteiro: cada tela começa sem trilha e recebe a sua na gaveta do item. */
-  const modeOf = (it) => conf.items[keyOf(it)]?.mode ?? "off";
+  /* A trilha da tela vai no próprio item (it.bgm, gravado no programa e pelo MCP); o que está
+     neste computador (conf.items) só vale para itens que ainda não têm it.bgm. */
+  const ownOf = (it) => ({ ...(conf.items[keyOf(it)] || {}), ...(it.bgm || {}) });
+  const modeOf = (it) => ownOf(it).mode ?? "off";
   function resolve(it) {
     if (!it) return { on: false, why: "Sem tela" };
-    const m = modeOf(it), own = conf.items[keyOf(it)] || {};
+    const m = modeOf(it), own = ownOf(it);
     if (m === "off") return { on: false, mode: m, why: "Sem trilha" };
-    if (m.startsWith("track:")) { const id = m.slice(6); return { on: true, mode: "track", track: id, src: srcOfTrack(id), vol: own.vol ?? conf.service.vol, why: `Faixa · ${title(id)}` }; }
+    if (m.startsWith("track:")) { const id = m.slice(6); conf.titles[id] || meta(id); return { on: true, mode: "track", track: id, src: srcOfTrack(id), vol: own.vol ?? conf.service.vol, why: `Faixa · ${title(id)}` }; }
     const s = m === "inherit" ? src(conf.service.src) : src(m);
     return { on: true, mode: m, src: s, vol: own.vol ?? conf.service.vol, why: m === "inherit" ? `Trilha do culto · ${s.name}` : `Própria · ${s.name}` };
   }
-  function setItem(it, patch) { conf.items[keyOf(it)] = { ...(conf.items[keyOf(it)] || {}), ...patch }; save(); }
+  function setItem(it, patch) { conf.items[keyOf(it)] = { ...(conf.items[keyOf(it)] || {}), ...patch }; it.bgm = { ...(it.bgm || {}), ...patch }; save(); }
   function setService(patch) { conf.service = { ...conf.service, ...patch }; save(); }
   /* Colar um link do YouTube (vídeo, playlist ou mix) vira uma fonte. */
   function addSource(url, name) {
@@ -87,7 +90,7 @@
 
   /* Campo para a gaveta do item (Programa). */
   function field(it) {
-    const m = modeOf(it), own = conf.items[keyOf(it)] || {};
+    const m = modeOf(it), own = ownOf(it);
     return `<div class="field tr-field" data-tr-field><span class="lbl">Trilha de fundo nesta tela</span>
       <div class="seg tr-modes">${[...sources().map((s) => [s.id, s.name]), ...(m.startsWith("track:") ? [[m, "♪ " + short(title(m.slice(6)))]] : []), ["off", "Sem trilha"]].map(([k, n]) => `<button type="button" data-tr-mode="${k}" class="${m === k ? "on" : ""}">${n}</button>`).join("")}</div>
       <label class="ctl tr-vol" ${m === "off" ? "hidden" : ""}><span>Volume</span><input type="range" min="0" max="100" step="5" data-tr-vol value="${own.vol ?? conf.service.vol}"><output>${own.vol ?? conf.service.vol}%</output></label>
@@ -236,14 +239,14 @@
   function picker(it) {
     if (it.type === "song") return `<div class="trp" data-trp><span class="lbl">Trilha de fundo nesta tela</span><div class="trp-on none"><span class="ok">♪ Bloqueada: esta tela é uma música</span><span style="grid-column:1/-1;font-size:var(--t-xs);color:var(--fg-2)">A música tem a própria faixa (a playlist dela), então a trilha de fundo não toca por cima. No Ao vivo, a música aparece com controles de tocar, pausar e linha do tempo.</span></div></div>`;
     const k = keyOf(it), ps = (pst[k] = pst[k] || { tab: conf.service.src, q: "" });
-    const r = resolve(it), id = r.track, own = conf.items[k] || {};
+    const r = resolve(it), id = r.track;
     const ids = conf.lists[ps.tab];
     const L = (ids || []).filter((x) => !ps.q || (title(x) + " " + author(x)).toLowerCase().includes(ps.q));
     const top = r.on
       ? `<div class="trp-on"><span class="ok">✓ Trilha adicionada para esta tela</span>${id ? `<img src="${thumb(id)}" alt="">` : `<span class="trp-mix">♪</span>`}<span style="min-width:0"><b>${esc(id ? title(id) : `${r.src.name} inteira, em sequência`)}</b><small>${esc(id ? author(id) : "YouTube")} · ${r.vol}%</small></span>
          <span class="acts">${id ? `<button type="button" data-trp-play="${id}">Ouvir</button>` : ""}<button type="button" data-trp-mode="off">Tirar · sem trilha</button></span></div>
          <label class="tr-vol"><span>Volume</span><input type="range" min="0" max="100" step="5" data-trp-vol value="${r.vol}"><output>${r.vol}%</output></label>`
-      : `<div class="trp-on none"><span class="ok">Esta tela está sem trilha</span><span style="grid-column:1/-1;font-size:var(--t-xs);color:var(--fg-2)">${OFF_BY_DEFAULT.includes(it.type) ? "Ela já tem som (música, vídeo ou fala). Só adicione se fizer sentido." : "Escolha uma faixa abaixo para tocar baixinho enquanto esta tela estiver no ar."}</span></div>`;
+      : `<div class="trp-on none"><span class="ok">Esta tela está sem trilha</span><span style="grid-column:1/-1;font-size:var(--t-xs);color:var(--fg-2)">${it.type === "media" && it.mute ? "O vídeo está sem o áudio original: escolha abaixo a trilha que toca por cima dele." : OFF_BY_DEFAULT.includes(it.type) ? "Ela já tem som (música, vídeo ou fala). Só adicione se fizer sentido." : "Escolha uma faixa abaixo para tocar baixinho enquanto esta tela estiver no ar."}</span></div>`;
     const rows = ids ? `<div class="trp-row mix"><span class="trp-mix">♪</span><span style="min-width:0"><b>${src(ps.tab).name} inteira</b><small>${ids.length} faixas em sequência</small></span><span class="ac"><button type="button" class="add" data-trp-mode="${ps.tab}">${r.mode === ps.tab ? "✓" : "+ Adicionar"}</button></span></div>` +
       L.map((x) => `<div class="trp-row${id === x ? " on" : ""}${conf.titles[x]?.bad ? " bad" : ""}"><img src="${thumb(x)}" alt="" loading="lazy"><span style="min-width:0"><b>${esc(title(x))}</b><small>${id === x ? "nesta tela" : esc(author(x))}</small></span><span class="ac"><button type="button" data-trp-play="${x}" aria-label="Ouvir antes">▶</button><button type="button" class="add" data-trp-add="${x}">${id === x ? "✓" : "+ Adicionar"}</button></span></div>`).join("")
       : `<p class="trp-hint">Lendo as faixas da ${src(ps.tab).name}…</p>`;

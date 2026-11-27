@@ -53,7 +53,8 @@ Fluxo:
 3. `create_program` com todos os itens, em ordem, cada um com `minutes`, `owner` (só quem a pessoa disse), `area` (`music`, `sound`, `comms`, `pulpit`), `advance` (`auto` para contagem/vídeo, `manual` para o resto) e `public` (aparece na página do público).
 4. Confira a soma dos minutos com a duração alvo e avise se passar.
 5. Ajustes: `update_program_item`, `move_program_item`, `add_program_items`, `remove_program_items`. Transição e piloto automático: `set_program_settings`.
-6. Repetir um culto: `duplicate_program` com a nova data. Pôr no ar: `set_program_status` com `live: true` **só com confirmação**.
+6. **Vídeo do YouTube sem o áudio original, com outra trilha:** item `type: "media"`, `media` = link do vídeo, `mute: true`, `track` = link do YouTube da trilha que a pessoa tem (ou `mix1`/`mix2`), `track_volume` 60–80 (sem a voz do vídeo, a trilha é o som principal). O vídeo toca mudo no projetor e a trilha sai do computador do console para a mesa de som. Para devolver o som do vídeo: `update_program_item` com `mute: false` e `track: "off"`. Peça o link da trilha; nunca invente.
+7. Repetir um culto: `duplicate_program` com a nova data. Pôr no ar: `set_program_status` com `live: true` **só com confirmação**.
 
 Estrutura típica de culto principal (≈ 75 min): espera com contagem 5 → boas-vindas 3 → louvor 15 (3–4 músicas) → oração 3 → avisos 5 → música especial 4 → leitura 2 → sermão 30 → apelo/música 5 → oração final e bênção 3.
 
