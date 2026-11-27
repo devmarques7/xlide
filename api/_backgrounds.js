@@ -22,7 +22,18 @@ export async function pinterestMedia(url) {
   const mp4s = [...new Set(html.match(/https:\/\/v1\.pinimg\.com\/videos\/[^"'\\\s]+?\.mp4/g) || [])];
   // a maior até 1080 (720w é o padrão dos pins); sem largura no nome, a primeira
   const score = (u) => { const w = +(u.match(/_(\d{3,4})w\.mp4/) || u.match(/\/(\d{3,4})p\//) || [])[1] || 0; return w > 1080 ? -1 : w; };
-  const video = mp4s.sort((a, b) => score(b) - score(a))[0] || null;
+  let video = mp4s.sort((a, b) => score(b) - score(a))[0] || null;
+  // servidores (Vercel) recebem a página sem os links do vídeo, mas com a capa do vídeo
+  // (videos/thumbnails/originals/aa/bb/cc/<id>.0000000.jpg): o MP4 de 720p fica no mesmo caminho
+  if (!video) {
+    const th = html.match(/https:\/\/i\.pinimg\.com\/videos\/thumbnails\/originals\/([0-9a-f]{2}\/[0-9a-f]{2}\/[0-9a-f]{2})\/([0-9a-f]{32})/);
+    if (th) {
+      for (const cand of [`https://v1.pinimg.com/videos/iht/expMp4/${th[1]}/${th[2]}_720w.mp4`, `https://v1.pinimg.com/videos/mc/720p/${th[1]}/${th[2]}.mp4`]) {
+        const h = await fetch(cand, { method: "HEAD", signal: AbortSignal.timeout(8000) }).catch(() => null);
+        if (h && h.ok && /video/.test(h.headers.get("content-type") || "")) { video = cand; break; }
+      }
+    }
+  }
   // capa: o quadro do próprio vídeo; senão a imagem do pin (og:image)
   const vthumb = (html.match(/https:\/\/i\.pinimg\.com\/videos\/thumbnails\/originals\/[^"'\\\s]+?\.(?:jpg|png)/) || [])[0];
   const image = vthumb || unesc(meta(html, "og:image")) || null;
