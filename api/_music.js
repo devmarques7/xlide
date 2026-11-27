@@ -146,7 +146,7 @@ function lrcRows(lrc) {
  * Lyrics of a YouTube video from its captions. Prefers captions written by
  * people over automatic ones, and the language asked for when there is a choice.
  */
-export async function getLyrics(input, lang) {
+export async function getLyrics(input, lang, opts = {}) {
   const id = videoId(input);
   if (!id) return { error: "bad_url" };
   // First client that returns caption tracks wins; keep why the others failed.
@@ -190,6 +190,34 @@ export async function getLyrics(input, lang) {
     if (typeof timelines[i] === "string") timelines[i] = wordTimeline(await trackCues(timelines[i]).catch(() => []));
     return timelines[i];
   };
+
+  // Letra colada por quem usa: só falta o tempo. Alinha as linhas nas palavras do próprio vídeo;
+  // sem legenda no vídeo, usa a letra sincronizada da música (LRCLIB) como relógio.
+  if (Array.isArray(opts.lines) && opts.lines.some((l) => String(l).trim())) {
+    if (!title) {
+      const info = await videoInfo(id).catch(() => null);
+      if (info) ({ title = title, author = author } = info);
+      if (!title) ({ title = "", author = "" } = await oembed(id).catch(() => ({})));
+    }
+    let best = null, source = null;
+    for (let i = 0; i < timelines.length && !(best?.matched >= 0.6); i++) {
+      const tl = await timelineAt(i);
+      if (!tl?.length) continue;
+      const a = alignRows(opts.lines, tl);
+      if (!best || a.matched > best.matched) { best = a; source = "video"; }
+    }
+    if (!(best?.matched >= 0.4) && title) {
+      const synced = await findLyrics(title, author, { synced: true }).catch(() => null);
+      if (synced?.times) {
+        // cada linha da letra sincronizada vira uma "legenda" (início e duração até a próxima)
+        const cues = synced.lines.map((l, i) => ({ start: synced.times[i], dur: (synced.times[i + 1] ?? synced.times[i] + 4) - synced.times[i], text: String(l) })).filter((c) => c.start != null && c.text.trim());
+        const a = cues.length ? alignRows(opts.lines, wordTimeline(cues)) : null;
+        if (a && (!best || a.matched > best.matched)) { best = a; source = "studio"; }
+      }
+    }
+    const ok = best && best.matched >= 0.4;
+    return { id, title, author, lines: opts.lines, times: ok ? best.times : null, matched: best ? round(best.matched) : 0, timing: ok ? source : undefined, cues: cueSource, tracks: trackList };
+  }
 
   // Captions written by people are the words as sung: use them.
   // Otherwise (none, only automatic ones, or YouTube refusing this server) look for real lyrics.
@@ -469,4 +497,12 @@ export async function searchBackgrounds(query, key) {
       return { id: v.id, thumb: v.image, url: hd?.link, duration: v.duration, credit: v.user?.name, page: v.url };
     }).filter((v) => v.url),
   };
+}
+
+/** Letra com tempos em SRT (um bloco por linha; cada uma vai até a próxima, no máximo 8 s). */
+export function toSrt(lines, times) {
+  const rows = [];
+  lines.forEach((l, i) => { if (String(l).trim() && times?.[i] != null) rows.push({ t: times[i], l: String(l).trim() }); });
+  const ts = (s) => { const ms = Math.max(0, Math.round(s * 1000)); const p = (n, w = 2) => String(n).padStart(w, "0"); return `${p(Math.floor(ms / 3600000))}:${p(Math.floor(ms / 60000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`; };
+  return rows.map((r, k) => `${k + 1}\n${ts(r.t)} --> ${ts(Math.min(rows[k + 1] ? rows[k + 1].t - 0.05 : r.t + 5, r.t + 8))}\n${r.l}\n`).join("\n");
 }

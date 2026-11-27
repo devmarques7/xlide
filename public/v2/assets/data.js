@@ -170,7 +170,7 @@
       const T = this.TEMPLATES[template] || this.TEMPLATES.principal, XLx = window.XL || {}, me = XLx.me || "me";
       const song1 = Object.keys(XLx.songs || {})[0];
       const t0 = Date.now().toString(36);
-      const items = T.rows.map(([type, ttl, planned, area, extra], k) => ({ id: "i" + k + t0, type, title: ttl, planned, owner: me, area, advance: (XLx.types && XLx.types[type] ? XLx.types[type].advance : "manual"), public: true, ...(type === "song" && song1 ? { song: song1 } : {}), ...(extra || {}) }));
+      const items = T.rows.map(([type, ttl, planned, area, extra], k) => ({ id: "i" + k + t0, type, title: ttl, planned, owner: me, area, advance: (XLx.types && XLx.types[type] ? XLx.types[type].advance : "manual"), public: true, ...(type === "song" ? { placeholder: true, ...(song1 ? { song: song1 } : {}) } : {}), ...(extra || {}) }));
       const n = { id: "p_" + t0, title: title || T.name, iso: iso || null, ...this.dateLabel(iso), starts: starts || T.starts, targetMin: T.targetMin, status: "rascunho", updated: "agora", by: me, template: T.name, createdAt: new Date().toISOString().slice(0, 10), items, archived: [], trash: [] };
       return this.put(n);
     },

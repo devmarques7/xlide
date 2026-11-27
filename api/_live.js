@@ -278,14 +278,21 @@ export async function callLiveTool(name, a = {}, origin = "") {
       await saveProg(p); return progSummary(p);
     }
     case "create_song": {
-      let lines = [], times = null, title = a.title, artist = a.artist, video = null;
+      let lines = [], times = null, title = a.title, artist = a.artist, video = null, timing = null, matched = null;
       if (a.youtube_url) {
         const r = await getLyrics(a.youtube_url, lang);
         video = r.id || null; title ||= r.title; artist ||= r.author;
-        if (!a.lyrics && r.lines?.length) { lines = r.lines; times = r.times || null; }
+        if (!a.lyrics && r.lines?.length) { lines = r.lines; times = r.times || null; timing = r.timing || null; matched = r.matched ?? null; }
         if (!a.lyrics && !lines.length) throw new Error(`Não achei a letra desse vídeo (${r.error || "sem legenda"}). Cole a letra em lyrics.`);
       }
-      if (a.lyrics) lines = String(a.lyrics).split("\n");
+      if (a.lyrics) {
+        lines = String(a.lyrics).split("\n");
+        // letra colada + vídeo: o tempo de cada linha vem do próprio vídeo (legendas) ou da letra sincronizada
+        if (video) {
+          const t = await getLyrics(a.youtube_url, lang, { lines: lines.map((l) => (/^\s*\[.+\]\s*$/.test(l) ? "" : l)) }).catch(() => null);
+          if (t?.times) { times = t.times; timing = t.timing; matched = t.matched; }
+        }
+      }
       if (!lines.length) throw new Error("Mande youtube_url ou lyrics.");
       // agrupa: seção [Nome] + linha em branco separam; senão N linhas por slide
       const per = Math.max(1, Math.min(6, Number(a.lines_per_slide) || 2)), SEC = { verso: "verse", verse: "verse", refrao: "chorus", "refrão": "chorus", chorus: "chorus", ponte: "bridge", bridge: "bridge", intro: "intro", final: "outro", outro: "outro", "pré-refrão": "prechorus", "pre-refrao": "prechorus", prechorus: "prechorus", tag: "tag" };
@@ -312,7 +319,8 @@ export async function callLiveTool(name, a = {}, origin = "") {
         { id: rid("s_"), layout: "lyrics", tone: "dark", title: "", bg, font }];
       const d = { id: rid("p_"), title: { [lang]: title || "Música" }, languages: langs, defaultLanguage: lang, template: "editorial", slides, music: video ? { video, sections: true } : undefined, createdAt: now, updatedAt: now };
       await saveDeck(d);
-      return { ...deckSummary(d), video, timed: !!times, translated: !!trans, slides: slideOutline(d, lang) };
+      const dur = times ? Math.round((times.filter((x) => x != null).pop() || 0) + 20) : null;
+      return { ...deckSummary(d), video, timed: !!times, timing, matched, seconds: dur, translated: !!trans, slides: slideOutline(d, lang) };
     }
     case "deck_links": {
       const d = await loadDeck(a.deck_id), o = origin || "";

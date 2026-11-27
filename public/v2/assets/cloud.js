@@ -457,6 +457,16 @@
     on: true, public: PUBLIC, uid: UID, client: sb, cache, now, pushRun,
     onRun(f) { runSubs.add(f); return () => runSubs.delete(f); },
     get status() { return status; },
+    /* música recém-criada (POST /api/music/song): entra na cópia local e em XL.songs sem recarregar */
+    async refreshSong(id) {
+      const { data, error } = await sb.from("xlide_decks").select("id,kind,title,doc,updated_at,owner_id").eq("id", id).maybeSingle();
+      if (error || !data) return null;
+      const s = song(data), c = get(CK) || {};
+      c.songs = { ...(c.songs || {}), [id]: s }; put(CK, c);
+      if (window.XL && XL.songs) XL.songs[id] = s;
+      return s;
+    },
+    async token() { const { data } = await sb.auth.getSession(); return data.session && data.session.access_token; },
     async signOut() { await sb.auth.signOut(); ["xlide.v2.cloud", "xlide.v2.me"].forEach((k) => rawRemove.call(LS, k)); location.href = "/login"; },
   };
   boot();

@@ -22,6 +22,13 @@
   .stepper button { font-size: 22px; }
   .pick { display: flex; gap: var(--s3); align-items: center; width: 100%; padding: var(--s3); border: 1px solid var(--line); text-align: left; }
   .pick.on { border-color: var(--fg); box-shadow: inset 3px 0 0 var(--fg); }
+  .pick > svg { width: 18px; height: 18px; flex: none; }
+  .pick .grow { display: grid; gap: 2px; }
+  .pick h3 { font-size: var(--t-md); line-height: 1.2; }
+  .pick:hover { border-color: var(--fg); }
+  .yt-res { display: grid; gap: 4px; font-size: var(--t-sm); }
+  .yt-res div { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: var(--s2); align-items: center; }
+  .yt-res small { color: var(--fg-2); }
   .mini-slides { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .mini-slides .slide { padding: 4cqw; }
   .mini-slides .s-lines { font-size: 8cqw; }
@@ -185,12 +192,15 @@ function newProgramSheet(pre) {
   const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Novo programa</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
     <label class="field"><span class="lbl">Nome</span><input class="input" id="np-n" placeholder="Ex.: Culto principal, Santa Ceia" value="${T[pre] ? T[pre].name : ""}"></label>
     <div class="grid grid-2"><label class="field"><span class="lbl">Data</span><input class="input" type="date" id="np-d" value="${nextSat()}"></label><label class="field"><span class="lbl">Começa às (opcional)</span><input class="input" type="time" id="np-h"></label></div>
+    <label class="field"><span class="lbl">Músicas do YouTube (opcional)</span><textarea class="input" id="np-yt" rows="3" placeholder="Um link por linha. Entram nos lugares de Louvor, com a letra no tempo da música."></textarea></label>
     <span class="lbl">Começar de</span>
     ${Object.entries(T).map(([k, t]) => `<button class="pick${k === pre ? " on" : ""}" data-np="${k}"><span class="grow"><h3>${k === "branco" ? t.name : "Modelo: " + t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note} · ${t.starts}</span></span>${UI.I.plus}</button>`).join("")}
     ${PROGS.all().length ? `<p class="muted" style="font-size:var(--t-sm)">Para partir de um culto que já existe, use Duplicar no cartão dele.</p>` : ""}</div>`);
   UI.qsa("[data-np]", sh).forEach((b) => (b.onclick = () => {
     const k = b.dataset.np;
     const n = PROGS.create({ template: k, title: UI.qs("#np-n", sh).value.trim() || T[k].name, iso: UI.qs("#np-d", sh).value || null, starts: UI.qs("#np-h", sh).value || T[k].starts });
+    const yt = UI.qs("#np-yt", sh).value.trim();
+    if (yt) try { sessionStorage.setItem("xlide.v2.pendingSongs", JSON.stringify({ p: n.id, links: yt })); } catch {}
     location.href = "programa.html?p=" + n.id;
   }));
 }
@@ -217,7 +227,7 @@ if (!OPEN) {
   document.body.classList.add("plist");
   let f = params.get("pasta") || "todos";
   UI.qs("#pl-new").innerHTML = UI.I.plus + "Novo programa";
-  UI.qs("#pl-new").onclick = newProgramSheet;
+  UI.qs("#pl-new").onclick = () => newProgramSheet();
   const list = () => {
     const all = PROGS.all();
     UI.qs("#ps-list").hidden = false;
@@ -453,9 +463,58 @@ function edit(i) {
   UI.qs("[data-del]", sh).onclick = () => { UI.closeSheet(); rowAct("trash", i); };
 }
 
+/* Músicas do YouTube: cria cada música no servidor (letra + tempos) e põe no programa,
+   ocupando os lugares de "Louvor" do modelo na ordem; o resto entra antes do encerramento. */
+async function importSongs(sh) {
+  if (state === "ready") return toastMsg("Programa salvo como pronto: volte para Rascunho para adicionar.");
+  if (!(window.XCLOUD && XCLOUD.on && XCLOUD.token)) return toastMsg("Importar músicas precisa estar conectado (entre com a sua conta).");
+  const links = sh.querySelector("#yt-links").value.split(/\s+/).map((x) => x.trim()).filter((x) => /youtu\.?be|^[\w-]{11}$/.test(x));
+  if (!links.length) { sh.querySelector("#yt-links").focus(); return toastMsg("Cole pelo menos um link do YouTube."); }
+  const lyrics = links.length === 1 ? sh.querySelector("#yt-lyrics").value.trim() : "";
+  const tr = sh.querySelector("#yt-tr").value, per = +sh.querySelector("#yt-per").value || 2;
+  const btn = sh.querySelector("#yt-ok"), out = sh.querySelector("#yt-res");
+  btn.disabled = true;
+  const tok = await XCLOUD.token();
+  const OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="m5 12 5 5 9-10"/></svg>';
+  const row = (i, html) => { let el = out.querySelector(`[data-r="${i}"]`); if (!el) { el = document.createElement("div"); el.dataset.r = i; out.append(el); } el.innerHTML = html; };
+  let added = 0;
+  for (let i = 0; i < links.length; i++) {
+    btn.textContent = `Importando ${i + 1} de ${links.length}…`;
+    row(i, `<span>…</span><span>${esc(links[i])}</span><small>buscando a letra</small>`);
+    try {
+      const r = await fetch("/api/music/song", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ youtube_url: links[i], lyrics: lyrics || undefined, lang: "pt", translate_to: tr || undefined, lines_per_slide: per }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || j.error || r.status);
+      const s = await XCLOUD.refreshSong(j.id);
+      const sec = j.seconds || (s && s.dur) || 300;
+      const slot = items.findIndex((it) => it.type === "song" && it.placeholder);
+      const item = { type: "song", song: j.id, title: j.title, planned: Math.round(sec), area: "music", owner: XL.me, advance: "manual", public: true };
+      if (slot >= 0) items[slot] = { ...items[slot], ...item, placeholder: undefined };
+      else { const at = items.length && items[items.length - 1].type === "pause" ? items.length - 1 : items.length; items.splice(at, 0, { id: "n" + Date.now() + i, ...item }); }
+      added++;
+      const how = j.timing === "video" ? "tempos do vídeo" : j.timing === "studio" ? "tempos da gravação de estúdio (confira a introdução)" : "sem tempos: ajuste no editor de música";
+      row(i, `${OK}<span><b>${esc(j.title)}</b></span><small>${j.slides.length} slides · ${how} · <a href="/api/music/lyrics?url=${encodeURIComponent(links[i])}&format=srt" download>SRT</a></small>`);
+      render();
+    } catch (e) {
+      row(i, `<span style="color:var(--late)">!</span><span>${esc(links[i])}</span><small style="color:var(--late)">${esc(String(e.message || e).slice(0, 120))}</small>`);
+    }
+  }
+  btn.disabled = false; btn.textContent = "Importar músicas";
+  if (added) toastMsg(`${added} ${added === 1 ? "música entrou" : "músicas entraram"} no programa. Salve para guardar.`);
+}
+
 UI.qs("#add").onclick = () => {
   const pos = items.map((x, k) => `<option value="${k + 1}" ${k === Math.max(0, items.length - 2) ? "selected" : ""}>depois de ${k + 1}. ${x.title}</option>`).join("");
-  const sh = UI.sheet(`<div class="stack"><h2>Novo item</h2>
+  const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Novo item</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
+    <div class="imp"><span class="lbl">Músicas do YouTube · letra com o tempo de cada linha</span>
+      <span class="muted" style="font-size:var(--t-sm)">Cole um link por linha. Cada música vira slides de letra que trocam sozinhos no tempo da música (legendas do vídeo ou letra sincronizada). Elas ocupam os lugares de “Louvor” do modelo, na ordem.</span>
+      <textarea class="input" id="yt-links" rows="3" placeholder="https://youtu.be/…&#10;https://www.youtube.com/watch?v=…"></textarea>
+      <details><summary class="lbl" style="cursor:pointer">Opções: letra própria, tradução</summary>
+        <label class="field" style="margin-top:var(--s2)"><span class="lbl">Letra (opcional, só com um link)</span><textarea class="input" id="yt-lyrics" rows="5" placeholder="[Verso]&#10;Primeira linha&#10;Segunda linha&#10;&#10;[Refrão]&#10;…"></textarea><span class="muted" style="font-size:var(--t-sm)">Se colar a letra, o XLIDE usa o tempo do vídeo para cada linha dela.</span></label>
+        <div class="grid grid-2"><label class="field"><span class="lbl">Traduzir para</span><select class="select" id="yt-tr"><option value="">Não traduzir</option><option value="en">Inglês</option><option value="nl">Holandês</option><option value="pt">Português</option></select></label><label class="field"><span class="lbl">Linhas por slide</span><select class="select" id="yt-per"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label></div>
+      </details>
+      <button class="btn primary block" id="yt-ok">Importar músicas</button>
+      <div class="yt-res" id="yt-res"></div></div>
     <div class="imp"><span class="lbl">Importar vídeo ou áudio por link</span>
       <input class="input" id="imp-url" placeholder="YouTube, Vimeo, Spotify ou link de .mp4 / .mp3">
       <span class="muted" id="imp-lbl" style="font-size:var(--t-sm)">Entra do jeito que é: sem fonte, sem estilo. Toca sozinho quando o item entrar no ao vivo.</span>
@@ -465,7 +524,8 @@ UI.qs("#add").onclick = () => {
     <div class="imp"><span class="lbl">Importar PDF (slides do pastor)</span>
       <span class="muted" style="font-size:var(--t-sm)">Cada página vira um slide. Entra como Sermão na posição escolhida acima e fica também em Arquivos → Pregação.</span>
       <button class="btn block" id="pdf-ok">Escolher PDF…</button></div>
-    <span class="lbl">Ou um item vazio</span>${Object.entries(XL.types).filter(([k]) => k !== "media").map(([k, t]) => `<button class="pick" data-new="${k}"><span class="grow"><h3>${t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note}</span></span>${UI.I.plus.replace("<svg", '<svg width="18" height="18"')}</button>`).join("")}</div>`);
+    <span class="lbl">Ou um item vazio</span>${Object.entries(XL.types).filter(([k]) => k !== "media").map(([k, t]) => `<button class="pick" data-new="${k}"><span class="grow"><h3>${t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note}</span></span>${UI.I.plus}</button>`).join("")}</div>`);
+  sh.querySelector("#yt-ok").onclick = () => importSongs(sh);
   sh.querySelector("#imp-url").oninput = (e) => { const m = MEDIA.parse(e.target.value); sh.querySelector("#imp-lbl").textContent = e.target.value.trim() ? (m ? MEDIA.label(m) + " · reconhecido" : "Link não reconhecido. Use YouTube, Vimeo, Spotify ou um arquivo .mp4/.mp3.") : "Entra do jeito que é: sem fonte, sem estilo."; };
   sh.querySelector("#imp-ok").onclick = () => {
     const url = sh.querySelector("#imp-url").value.trim(), m = MEDIA.parse(url);
@@ -497,6 +557,16 @@ UI.qs("#add").onclick = () => {
 };
 render();
 if (location.hash) setTimeout(() => { const el = UI.qs(location.hash); el && el.scrollIntoView({ block: "center" }); }, 50);
+/* veio do "Novo programa" com links de músicas: abre "Novo item" e importa na hora */
+try {
+  const pend = JSON.parse(sessionStorage.getItem("xlide.v2.pendingSongs") || "null");
+  if (pend && pend.p === prog.id) {
+    sessionStorage.removeItem("xlide.v2.pendingSongs");
+    UI.qs("#add").click();
+    const sh = UI.qs(".sheet"); sh.querySelector("#yt-links").value = pend.links;
+    importSongs(sh).then(() => save("rascunho", true));
+  }
+} catch {}
 })();
 </script>
 </body>
