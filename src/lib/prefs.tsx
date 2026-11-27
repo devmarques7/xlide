@@ -88,6 +88,9 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(prefs));
+      // as telas em /v2 leem o mesmo tema e idioma (um sistema só)
+      localStorage.setItem("xlide.v2.theme", resolvedTheme);
+      localStorage.setItem("xlide.v2.lang", prefs.locale);
     } catch {
       /* storage unavailable */
     }

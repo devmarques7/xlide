@@ -32,7 +32,8 @@ export function AppHeader({ children, className }: { children?: ReactNode; class
   return (
     <>
     <AppSidebar />
-    <header className={cn("sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md", className)}>
+    {/* no desktop o menu lateral faz tudo (navegação, idioma, tema, sair): o topo some, como nas telas do v2 */}
+    <header className={cn("sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md lg:hidden", className)}>
       <div className="mx-auto flex h-14 max-w-[90rem] items-center gap-2 px-4 sm:h-16 sm:px-6">
         <a href="/v2/inicio.html" className="mr-2 shrink-0 lg:hidden" aria-label="XLIDE">
           <Logo />

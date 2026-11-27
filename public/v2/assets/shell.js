@@ -122,7 +122,7 @@
     const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     const nx = cur === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = nx;
-    try { localStorage.setItem("xlide.v2.theme", nx); } catch {}
+    try { localStorage.setItem("xlide.v2.theme", nx); const pr = JSON.parse(localStorage.getItem("xlide.prefs") || "{}"); pr.theme = nx; localStorage.setItem("xlide.prefs", JSON.stringify(pr)); } catch {}
   }
 
   function mkBar() {

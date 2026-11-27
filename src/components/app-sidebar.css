@@ -1,0 +1,70 @@
+/* Menu lateral único do XLIDE: cópia fiel do menu das telas /v2 (public/v2/assets/ui.css, .sbar).
+   Mesmas medidas e cores; tema pelo .dark do app. */
+.xsb {
+  --x-bg: #f1f0ec; --x-surface: #f7f6f3; --x-sunken: #e6e5e0; --x-line: #d6d5cf; --x-fg: #161615; --x-fg2: #6f6e69;
+  --x-inv-bg: #161615; --x-inv-fg: #f1f0ec; --x-live: #1f4bd8;
+  --x-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  position: fixed; inset: 0 auto 0 0; z-index: 50; width: 248px;
+  display: none; grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  background: var(--x-surface); border-right: 1px solid var(--x-line); color: var(--x-fg);
+  font-size: 13px; line-height: 1.3;
+}
+.dark .xsb {
+  --x-bg: #121211; --x-surface: #1a1a19; --x-sunken: #232322; --x-line: #2e2e2c; --x-fg: #ecebe6; --x-fg2: #8f8e89;
+  --x-inv-bg: #ecebe6; --x-inv-fg: #121211; --x-live: #5b7cf0;
+}
+@media (min-width: 1024px) {
+  .xsb { display: grid; }
+  html.has-sidebar body { padding-left: 248px; }
+}
+.xsb a, .xsb button { color: inherit; font-family: inherit; background: none; border: 0; cursor: pointer; text-decoration: none; }
+.xsb svg { flex: none; }
+.xsb-brand { display: flex; align-items: center; gap: 12px; padding: 16px 16px 12px; }
+.xsb-brand .xsb-mark { width: 36px; height: 36px; display: grid; place-items: center; background: var(--x-fg); color: var(--x-surface); }
+.xsb .xsb-brand b { display: block; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.xsb-brand small { display: block; margin-top: 3px; font: 400 10px var(--x-mono); color: var(--x-fg2); }
+.xsb .xsb-create { display: grid; grid-template-columns: 20px 1fr auto; gap: 12px; align-items: center; height: 48px; margin: 0 12px 16px; padding: 0 12px; background: var(--x-live); color: #fff; font-size: 16px; font-weight: 600; text-align: left; box-shadow: 0 10px 24px -14px var(--x-live); }
+.xsb .xsb-create:hover { outline: 2px solid var(--x-live); outline-offset: 2px; }
+.xsb-create kbd { font: 400 10px var(--x-mono); padding: 1px 5px; border: 1px solid rgb(255 255 255 / .5); }
+.xsb-scroll { overflow-y: auto; padding: 16px 12px; border-top: 1px solid var(--x-line); }
+.xsb .xsb-i { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 36px; padding: 0 12px; font-size: 13px; color: var(--x-fg2) !important; }
+.xsb-i:hover { color: var(--x-fg) !important; background: var(--x-sunken); }
+.xsb-i.on { background: var(--x-inv-bg) !important; color: var(--x-inv-fg) !important; }
+.xsb-i span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xsb-top { margin-bottom: 8px; }
+.xsb-g + .xsb-g { margin-top: 2px; }
+.xsb-g .xsb-kids { display: none; }
+.xsb-g.open .xsb-kids { display: block; }
+.xsb-g .xsb-kids .xsb-i { margin-left: 12px; border-left: 1px solid var(--x-line); }
+.xsb-g .xsb-kids .xsb-i.on { border-left-color: var(--x-inv-bg); }
+.xsb-h { display: flex; width: 100%; align-items: center; gap: 8px; padding: 6px 12px; font: 400 11px var(--x-mono) !important; text-transform: uppercase; letter-spacing: 0.08em; color: var(--x-fg2) !important; }
+.xsb-h:hover { color: var(--x-fg) !important; }
+.xsb-h span { flex: 1; text-align: left; }
+.xsb-h i { width: 5px; height: 5px; background: var(--x-live); }
+.xsb-h svg { transition: transform .15s; transform: rotate(-90deg); }
+.xsb-g.open .xsb-h svg { transform: none; }
+.xsb-lang { display: grid; grid-template-columns: repeat(3, 1fr) 44px; margin: 0 12px 12px; border: 1px solid var(--x-line); }
+.xsb-lang button { height: 34px; font: 400 11px var(--x-mono) !important; color: var(--x-fg2) !important; border-right: 1px solid var(--x-line) !important; display: grid; place-items: center; }
+.xsb-lang button:last-child { border-right: 0 !important; }
+.xsb-lang button.on { background: var(--x-inv-bg) !important; color: var(--x-inv-fg) !important; }
+.xsb-lang button:hover:not(.on) { color: var(--x-fg) !important; }
+.xsb .xsb-me { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; padding: 12px 16px; text-align: left; border-top: 1px solid var(--x-line) !important; }
+.xsb-me:hover { background: var(--x-sunken); }
+.xsb-av { width: 36px; height: 36px; display: grid; place-items: center; background: var(--x-sunken); font: 600 13px/1 inherit; }
+.xsb-me b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xsb-me small { display: block; font-size: 11px; color: var(--x-fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xsb-menu { position: absolute; left: 12px; right: 12px; bottom: 68px; display: grid; background: var(--x-surface); border: 1px solid var(--x-line); box-shadow: 0 16px 40px -20px rgb(0 0 0 / .5); }
+.xsb .xsb-menu > * { display: flex !important; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px; font-size: 13px; text-align: left; border-bottom: 1px solid var(--x-line) !important; }
+.xsb-menu > *:last-child { border-bottom: 0 !important; }
+.xsb-menu .xsb-fs { justify-content: space-between; color: var(--x-fg2); }
+.xsb-menu .xsb-fs span { display: flex; gap: 4px; }
+.xsb-menu .xsb-fs button { width: 30px; height: 28px; display: grid; place-items: center; border: 1px solid var(--x-line) !important; color: var(--x-fg) !important; }
+.xsb-menu .xsb-fs button:disabled { opacity: .4; }
+.xsb-menu a:hover, .xsb-menu > button:hover { background: var(--x-sunken); }
+/* folha "Criar" */
+.xsb-create-list { display: grid; }
+.xsb-create-list a { display: grid; grid-template-columns: 20px minmax(0, 1fr) 16px; gap: 14px; align-items: center; padding: 14px 4px; border-bottom: 1px solid var(--border); }
+.xsb-create-list a:last-child { border-bottom: 0; }
+.xsb-create-list a:hover { background: var(--muted); }
+.xsb-create-list b { display: block; font-weight: 600; }
+.xsb-create-list span span { display: block; font-size: 13px; color: var(--muted-foreground); }

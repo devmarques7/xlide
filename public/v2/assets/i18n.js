@@ -170,7 +170,7 @@
     try { ms.forEach((m) => { if (m.type === "characterData") textNode(m.target); else if (m.type === "attributes") attrs(m.target); else m.addedNodes.forEach(walk); }); } finally { busy = false; }
   });
   function set(l) {
-    lang = l; try { localStorage.setItem("xlide.v2.lang", l); } catch {}
+    lang = l; try { localStorage.setItem("xlide.v2.lang", l); const pr = JSON.parse(localStorage.getItem("xlide.prefs") || "{}"); pr.locale = l; localStorage.setItem("xlide.prefs", JSON.stringify(pr)); } catch {}
     document.documentElement.lang = l === "pt" ? "pt-BR" : l;
     walk(document.body); paint();
   }

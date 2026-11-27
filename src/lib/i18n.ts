@@ -1,6 +1,19 @@
 import type { Locale } from "./types";
 
 const en = {
+  "nav.tagline": "Slides, ideas and service",
+  "nav.create": "Create",
+  "create.mood": "Moodboard",
+  "create.moodD": "Free canvas: images, notes, colours, tasks",
+  "create.map": "Mind map",
+  "create.mapD": "The idea in the centre, the steps around it",
+  "create.deck": "Slide deck",
+  "create.deckD": "Presentation, announcements or sermon",
+  "create.music": "Song",
+  "create.musicD": "Lyrics that become slides, timed to the song",
+  "create.program": "Service program",
+  "create.programD": "The service timeline",
+  "nav.signOut": "Sign out",
   "nav.home": "Overview",
   "nav.files": "Files",
   "nav.group.slides": "Slides",
@@ -707,6 +720,19 @@ export type TKey = keyof typeof en;
 type Dict = Record<TKey, string>;
 
 const pt: Dict = {
+  "nav.tagline": "Slides, ideias e culto",
+  "nav.create": "Criar",
+  "create.mood": "Moodboard",
+  "create.moodD": "Tela livre: imagens, notas, cores, tarefas",
+  "create.map": "Mapa mental",
+  "create.mapD": "A ideia no centro e as etapas em volta",
+  "create.deck": "Deck de slides",
+  "create.deckD": "Apresentação, avisos ou sermão",
+  "create.music": "Música",
+  "create.musicD": "Letra que vira slides, com o tempo da música",
+  "create.program": "Programa do culto",
+  "create.programD": "A linha do tempo do culto",
+  "nav.signOut": "Sair",
   "nav.home": "Visão geral",
   "nav.files": "Arquivos",
   "nav.group.slides": "Slides",
@@ -1396,6 +1422,19 @@ const pt: Dict = {
 };
 
 const nl: Dict = {
+  "nav.tagline": "Slides, ideeën en dienst",
+  "nav.create": "Maken",
+  "create.mood": "Moodboard",
+  "create.moodD": "Vrij canvas: beelden, notities, kleuren, taken",
+  "create.map": "Mindmap",
+  "create.mapD": "Het idee in het midden, de stappen eromheen",
+  "create.deck": "Slidedeck",
+  "create.deckD": "Presentatie, mededelingen of preek",
+  "create.music": "Lied",
+  "create.musicD": "Tekst die slides wordt, op de tijd van het lied",
+  "create.program": "Dienstprogramma",
+  "create.programD": "De tijdlijn van de dienst",
+  "nav.signOut": "Afmelden",
   "nav.home": "Overzicht",
   "nav.files": "Bestanden",
   "nav.group.slides": "Slides",
