@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>XLIDE v2 · Programa</title>
+<title>XLIDE · Programa</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
 <script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script><script src="assets/trilha.js"></script><script src="assets/files.js"></script><script src="assets/media.js"></script>
 <style>
@@ -180,13 +180,13 @@ function toastMsg(m) {
 }
 /* próximo sábado: data padrão de um programa novo */
 const nextSat = () => { const d = new Date(); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7)); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-function newProgramSheet() {
+function newProgramSheet(pre) {
   const T = PROGS.TEMPLATES;
   const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Novo programa</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
-    <label class="field"><span class="lbl">Nome</span><input class="input" id="np-n" placeholder="Ex.: Culto principal, Santa Ceia"></label>
+    <label class="field"><span class="lbl">Nome</span><input class="input" id="np-n" placeholder="Ex.: Culto principal, Santa Ceia" value="${T[pre] ? T[pre].name : ""}"></label>
     <div class="grid grid-2"><label class="field"><span class="lbl">Data</span><input class="input" type="date" id="np-d" value="${nextSat()}"></label><label class="field"><span class="lbl">Começa às (opcional)</span><input class="input" type="time" id="np-h"></label></div>
     <span class="lbl">Começar de</span>
-    ${Object.entries(T).map(([k, t]) => `<button class="pick" data-np="${k}"><span class="grow"><h3>${k === "branco" ? t.name : "Modelo: " + t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note} · ${t.starts}</span></span>${UI.I.plus}</button>`).join("")}
+    ${Object.entries(T).map(([k, t]) => `<button class="pick${k === pre ? " on" : ""}" data-np="${k}"><span class="grow"><h3>${k === "branco" ? t.name : "Modelo: " + t.name}</h3><span class="muted" style="font-size:var(--t-sm)">${t.note} · ${t.starts}</span></span>${UI.I.plus}</button>`).join("")}
     ${PROGS.all().length ? `<p class="muted" style="font-size:var(--t-sm)">Para partir de um culto que já existe, use Duplicar no cartão dele.</p>` : ""}</div>`);
   UI.qsa("[data-np]", sh).forEach((b) => (b.onclick = () => {
     const k = b.dataset.np;
@@ -239,6 +239,8 @@ if (!OPEN) {
     if (b.dataset.pkill) { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = "Confirmar"; return; } if (b.dataset.pkill === PROGS.liveId) return toastMsg("Este programa está no ao vivo; escolha outro antes."); PROGS.destroy(b.dataset.pkill); list(); }
   });
   list();
+  // Slides → Modelos → um modelo de culto: já abre "Novo programa"
+  if (params.get("novo")) newProgramSheet(params.get("novo"));
 }
 
 /* ── ?p=<id>: o editor do programa ── */

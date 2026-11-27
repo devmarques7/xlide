@@ -103,7 +103,12 @@
     const doc = d.doc || {}, s = doc.slides || [], l = (doc.languages || ["pt"])[0];
     const img = (s.find((x) => x.image) || {}).image;
     const pdf = s.length && s.every((x) => x.variant === "page" && x.image);
-    return { title: tx(doc.title, l) || d.title || "Sem título", kind: "deck", slides: s.length, layout: (s[0] && s[0].layout) || "cover", updated: rel(d.updated_at), cover: img || null, pages: pdf ? s.map((x) => x.image) : undefined, real: true };
+    const langs = doc.languages && doc.languages.length ? doc.languages : ["pt"], L = langs.includes("pt") ? "pt" : l;
+    const small = (u) => (u && (!/^data:/.test(u) || u.length < 30000) ? u : null);
+    const first = s[0] || {};
+    // o mesmo cartão do painel de slides: capa, título, descrição, tags e idiomas
+    return { title: tx(doc.title, L) || d.title || "Sem título", kind: "deck", slides: s.length, layout: first.layout || "cover", updated: rel(d.updated_at), at: d.updated_at, cover: small(img), tone: first.tone || (img ? "dark" : null),
+      desc: tx(doc.description, L), tags: (doc.tags || []).filter((t) => t !== "template").slice(0, 3), langs, template: !!doc.template || (doc.tags || []).includes("template"), pages: pdf ? s.map((x) => x.image) : undefined, real: true };
   }
   /* boards: além da contagem, guarda uma prévia de verdade (fotos, cores, um recorte do moodboard e o mapa) */
   const ytId = (u) => { const m = String(u || "").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/); return m && m[1]; };
@@ -134,8 +139,8 @@
     const kids = edges.filter((e) => e.from === c.id).map((e) => nodes.find((n) => n.id === e.to)).filter(Boolean);
     const pool = (kids.length ? kids : nodes.filter((n) => n !== c && n.kind === "stage")).concat(nodes.filter((n) => n !== c));
     const seen = new Set(), around = [];
-    for (const n of pool) { if (around.length >= 6) break; if (seen.has(n.id)) continue; seen.add(n.id); const t = clip(n.title || n.tag || n.text, 22); if (t) around.push(t); }
-    return { center: clip(c.title || title, 28), around };
+    for (const n of pool) { if (around.length >= 6) break; if (seen.has(n.id)) continue; seen.add(n.id); const t = clip(n.title || n.tag || n.text, 24); if (t) around.push(t); }
+    return { center: clip(c.title || title, 26), around };
   }
   function board(b) {
     const doc = b.doc || {};

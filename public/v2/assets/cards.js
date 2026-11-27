@@ -30,12 +30,21 @@
   function pvMap(m, cls = "mm") {
     if (!m) return "";
     const n = m.around.length, pts = m.around.map((t, k) => { const a = (-Math.PI / 2) + (k / Math.max(n, 1)) * Math.PI * 2; return [t, 100 + Math.cos(a) * 70, 62 + Math.sin(a) * 40]; });
-    const w = (t, min) => Math.max(min, Math.min(78, t.length * 3.6 + 10));
-    return `<svg class="${cls}" viewBox="0 0 200 125" role="img" aria-label="Mapa: ${esc(m.center)}">${pts.map(([, x, y]) => `<path d="M100 62 C ${(100 + x) / 2} 62, ${(100 + x) / 2} ${y}, ${x} ${y}"/>`).join("")}${pts.map(([t, x, y]) => { const ww = w(t, 30); return `<g><rect x="${x - ww / 2}" y="${y - 7}" width="${ww}" height="14"/><text x="${x}" y="${y + 3}" text-anchor="middle">${esc(t)}</text></g>`; }).join("")}<g class="c"><rect x="${100 - w(m.center, 50) / 2}" y="53" width="${w(m.center, 50)}" height="18"/><text x="100" y="65" text-anchor="middle">${esc(m.center)}</text></g></svg>`;
+    const w = (t, min) => Math.max(min, Math.min(84, t.length * 3.3 + 10));
+    const wc = Math.max(50, Math.min(116, m.center.length * 3.95 + 14));
+    return `<svg class="${cls}" viewBox="0 0 200 125" role="img" aria-label="Mapa: ${esc(m.center)}">${pts.map(([, x, y]) => `<path d="M100 62 C ${(100 + x) / 2} 62, ${(100 + x) / 2} ${y}, ${x} ${y}"/>`).join("")}${pts.map(([t, x, y]) => { const ww = w(t, 30); return `<g><rect x="${x - ww / 2}" y="${y - 7}" width="${ww}" height="14"/><text x="${x}" y="${y + 3}" text-anchor="middle">${esc(t)}</text></g>`; }).join("")}<g class="c"><rect x="${100 - wc / 2}" y="53" width="${wc}" height="18"/><text x="100" y="65" text-anchor="middle">${esc(m.center)}</text></g></svg>`;
   }
   const pvBoard = (b) => (b.mood ? `<div class="pv pv-real">${pvMood(b.mood)}</div>` : b.map ? `<div class="pv pv-real">${pvMap(b.map, "mm")}</div>`
     : `<div class="pv pv-board"><i class="tall" style="${bg(thumb(b, 0))}"></i><i style="${bg(thumb(b, 1))}"></i><span class="sw3">${b.colors.map((c) => `<i style="background:${safeC(c)}"></i>`).join("")}</span></div>`);
   const pvDeck = (d) => `<div class="pv"><div class="slide"><div><div class="s-eyebrow">${esc(d.layout)}</div><div class="s-title" style="font-size:8cqw">${esc(d.title)}</div></div></div></div>`;
+  /* deck real (xlide_decks): capa como no painel de slides — imagem, título grande, tag */
+  const pvDeckReal = (d) => `<div class="pv pv-deck${d.cover ? " img" : ""}${d.tone === "dark" || d.cover ? " dk" : ""}" style="${bg(d.cover)}"><span class="pd-t">${esc(d.title)}</span>${d.tags && d.tags[0] ? `<span class="pd-tag">${esc(d.tags[0])}</span>` : ""}</div>`;
+  function deckCard(id) {
+    const d = XL.decks[id];
+    if (!d.real) return card("deck", id);
+    const href = `/p/${encodeURIComponent(id)}`;
+    return `<article class="rc rc-deck"><span class="rc-top"><span>${esc(d.updated)}</span><span>${d.slides} slides</span></span><a href="${href}" aria-label="Abrir ${esc(d.title)}">${pvDeckReal(d)}</a><h3><a href="${href}">${esc(d.title)}</a></h3>${d.desc ? `<p class="rc-d">${esc(d.desc)}</p>` : ""}<span class="rc-foot"><span>${(d.langs || []).map((l) => `<i class="lng">${esc(String(l).toUpperCase())}</i>`).join("")}</span><span class="rc-acts"><a href="${href}">Editar</a> · <a href="/present/${encodeURIComponent(id)}">Apresentar</a></span></span></article>`;
+  }
   const pvSong = (id) => `<div class="pv"><div class="slide song">${window.XLOOK ? XLOOK.songSlide(id, 0, { section: false }) : ""}</div></div>`;
 
   /* cartão de recente: data · tipo / título / prévia / rodapé */
@@ -62,5 +71,5 @@
   };
   const makeCell = ([ic, n, d, f]) => `<a class="make" href="${f}">${make[ic]()}<span class="mk-t"><b>${n}</b><span>${d}</span></span></a>`;
 
-  window.CARDS = { card, makeCell, pvBoard, pvMood, pvMap, pvSong, yt, bg };
+  window.CARDS = { card, deckCard, pvDeckReal, makeCell, pvBoard, pvMood, pvMap, pvSong, yt, bg };
 })();

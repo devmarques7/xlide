@@ -40,7 +40,7 @@ export default function Editor() {
         <div>
           <p className="text-muted-foreground">{t("editor.notFound")}</p>
           <Button asChild variant="outline" className="mt-4">
-            <Link to="/">{t("nav.back")}</Link>
+            <Link to="/slides">{t("nav.back")}</Link>
           </Button>
         </div>
       </div>
@@ -125,7 +125,7 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="flex h-14 items-center gap-2 px-3 sm:h-16 sm:px-4">
           <Button variant="ghost" size="icon" asChild aria-label={t("nav.back")}>
-            <Link to="/">
+            <Link to="/slides">
               <ArrowLeft />
             </Link>
           </Button>

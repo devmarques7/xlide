@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>XLIDE v2 · Equipe</title>
+<title>XLIDE · Equipe</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
 <script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script>
 <style>
@@ -118,7 +118,7 @@ function render() {
 function edit(k) {
   const p = XL.people[k];
   const sh = UI.sheet(`<div class="stack"><div class="row"><span class="avatar" style="width:48px;height:48px">${p.ini}</span><span class="grow"><h2>${p.name}</h2><span class="lbl">${p.title}</span></span></div>
-    <span class="lbl">Papel no Live Church</span>
+    <span class="lbl">Papel no XLIDE</span>
     ${Object.entries(XL.roles).map(([rk, r]) => `<button class="pick" style="display:flex;gap:12px;width:100%;padding:12px;border:1px solid ${rk === p.role ? "var(--fg)" : "var(--line)"};text-align:left" data-r="${rk}"><span class="grow"><h3>${r.name}</h3><span class="muted" style="font-size:var(--t-sm)">${r.can}</span></span></button>`).join("")}
     <span class="lbl">Área (editor)</span>
     <div class="seg">${Object.entries(XL.areas).map(([ak, a]) => `<button class="${ak === p.area ? "on" : ""}" data-a="${ak}">${a}</button>`).join("")}</div>

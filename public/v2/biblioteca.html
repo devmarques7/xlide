@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>XLIDE v2 · Biblioteca</title>
+<title>XLIDE · Biblioteca</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
 <script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/cards.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script>
 <style>
@@ -80,7 +80,13 @@ const ROLES = {
   bia: { n: "Operador", song: "view", deck: "view", why: "Operador: vê músicas e slides para projetar. Não cria nem edita." },
 };
 const params = new URLSearchParams(location.search);
-let me = params.get("as") || "ana";
+const CLOUD = !!(window.XCLOUD && XCLOUD.on && !XCLOUD.leaving);
+/* no app real o papel vem do perfil de quem entrou (sem "Ver como") */
+const myRole = () => { const p = XL.people[UI.me()] || {}; return p.role === "admin" ? "ana" : p.role === "operator" || p.role === "reader" ? "bia" : p.area === "music" ? "lucas" : "pr"; };
+let me = CLOUD ? myRole() : params.get("as") || "ana";
+if (CLOUD) ROLES.pr = { ...ROLES.pr, n: "Editor", why: "Editor: cria e edita slides. Músicas, só para ver." };
+/* modelos de slides: os mesmos do painel de slides (src/lib/templates.ts) */
+const DECK_TPL = [["editorial", "Editorial", "Capa, capítulos, citação, imagem e fechamento"], ["pitch", "Investor Pitch", "Dez slides: problema, solução, produto, mercado, tração"], ["brand", "Brand Guidelines", "Capa, índice, introdução, cores, tipografia, logo"]];
 let tab = params.get("tab") || "songs";
 let q = "";
 const can = (what) => ROLES[me][what] === "edit";
@@ -90,9 +96,10 @@ UI.qs("#sr").insertAdjacentHTML("afterbegin", UI.I.search);
 UI.qs("#q").oninput = (e) => { q = e.target.value.toLowerCase(); render(); };
 
 function render() {
+  if (CLOUD) UI.qs("#as").closest(".as").style.display = "none";
   UI.qs("#as").innerHTML = Object.entries(ROLES).map(([k, r]) => `<button class="${k === me ? "on" : ""}" data-k="${k}">${r.n}</button>`).join("");
   UI.qsa("#as button").forEach((b) => (b.onclick = () => { me = b.dataset.k; history.replaceState(null, "", `?as=${me}&tab=${tab}`); render(); }));
-  const T = [["songs", "Músicas", Object.keys(XL.songs).length], ["decks", "Decks", Object.keys(XL.decks).length], ["boards", "Boards", Object.keys(XL.boards).length], ["tpl", "Modelos", XL.templates.length]];
+  const T = [["songs", "Músicas", Object.keys(XL.songs).length], ["decks", "Decks", Object.keys(XL.decks).length], ["boards", "Boards", Object.keys(XL.boards).length], ["tpl", "Modelos", CLOUD ? DECK_TPL.length + Object.keys(PROGS.TEMPLATES).length : XL.templates.length]];
   UI.qs("#tabs").innerHTML = T.map(([k, n, c]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${n}<span class="pill-n">${c}</span></button>`).join("");
   UI.qsa("#tabs button").forEach((b) => (b.onclick = () => { tab = b.dataset.t; history.replaceState(null, "", `?as=${me}&tab=${tab}`); UI.navOn(tab); render(); }));
   UI.qsa(".pane").forEach((p) => p.classList.toggle("on", p.id === "p-" + tab));
@@ -123,13 +130,38 @@ function render() {
       extra: `<a class="btn primary block" href="deck.html?d=${k}">Abrir no editor de deck</a>` + (can("deck") ? "" : `<p class="perm-note">${lock}<span>Você pode analisar o deck, mas não salvar mudanças.</span></p>`),
       onSave: can("deck") ? () => toast("Deck salvo") : null });
   }));
-  UI.qs("[data-newdeck]") && (UI.qs("[data-newdeck]").onclick = () => (location.href = "deck.html?novo=pregacao"));
+  UI.qs("[data-newdeck]") && (UI.qs("[data-newdeck]").onclick = () => (CLOUD ? newDeck() : (location.href = "deck.html?novo=pregacao")));
+  if (CLOUD) {
+    // decks reais: o mesmo conteúdo do painel de slides, com capa; clique abre o editor de slides
+    const real = Object.entries(XL.decks).filter(([, d]) => !q || (d.title + " " + (d.desc || "") + " " + (d.tags || []).join(" ")).toLowerCase().includes(q)).sort((a, b) => String(b[1].at || "").localeCompare(String(a[1].at || "")));
+    UI.qs("#deck-list").innerHTML = (can("deck") ? `<button class="rc-new" data-newdeck>${UI.I.plus}<b>Nova apresentação</b><span style="font-size:var(--t-sm)">Em branco, de um modelo, JSON ou PDF</span></button>` : "") + (real.map(([k]) => CARDS.deckCard(k)).join("") || `<p class="muted">${q ? `Nenhum deck com “${esc(q)}”.` : "Nenhum deck ainda."}</p>`);
+    UI.qs("[data-newdeck]") && (UI.qs("[data-newdeck]").onclick = newDeck);
+  }
 
   UI.qs("#board-list").innerHTML = Object.keys(XL.boards).filter((id) => !q || XL.boards[id].title.toLowerCase().includes(q)).map((id) => CARDS.card("board", id).replace(`href="boards.html#${id}"`, `href="board.html?id=${id}"`)).join("");
-  UI.qs("#tpl-list").innerHTML = `<div class="cal">${XL.templates.map((t) => `<div class="cal-row" style="min-height:88px"><span class="cr-who"><span class="lbl">usado ${t.uses}×</span><span><b>${t.name}</b><small>${t.items} itens, ${t.minutes} min</small></span></span><span class="cr-n" style="font-size:72px">${t.minutes}</span></div>`).join("")}</div>`;
+  if (CLOUD) {
+    UI.qs("#tpl-list").innerHTML = `<header class="sec-x"><span class="n">01</span><h2>Modelos de slides</h2><a class="lbl" href="/slides">Painel de slides</a></header>
+      <div class="tpl-grid">${DECK_TPL.map(([id, n, d]) => `<a class="act" href="/slides?novo=${id}">${UI.I.slides}<span><b>${n}</b><span>${d}</span></span></a>`).join("")}<a class="act" href="/slides?novo=branco">${UI.I.plus}<span><b>Em branco</b><span>Um slide de capa; você monta o resto</span></span></a></div>
+      <header class="sec-x" style="margin-top:var(--s5)"><span class="n">02</span><h2>Estilos</h2></header>
+      <div class="tpl-grid"><a class="act" href="/identity">${UI.I.palette}<span><b>Identidade</b><span>Cores, fontes e logo do sistema</span></span></a><a class="act" href="kit.html">${UI.I.palette}<span><b>Fundos e fontes</b><span>Fundos dos slides de música e avisos</span></span></a><a class="act" href="/boards">${UI.I.board}<span><b>Boards</b><span>Moodboards e mapas de referência</span></span></a></div>
+      <header class="sec-x" style="margin-top:var(--s5)"><span class="n">03</span><h2>Modelos de culto</h2><a class="lbl" href="programa.html">Programas</a></header>
+      <div class="cal">${Object.entries(PROGS.TEMPLATES).map(([k, t]) => `<a class="cal-row" style="min-height:88px" href="programa.html?novo=${k}"><span class="cr-who"><span class="lbl">${t.starts}</span><span><b>${t.name}</b><small>${t.note}</small></span></span><span class="cr-n" style="font-size:72px">${t.targetMin}</span></a>`).join("")}</div>`;
+    UI.qs("#p-tpl > header").hidden = true; UI.qs("#p-tpl > p").hidden = true;
+  } else UI.qs("#tpl-list").innerHTML = `<div class="cal">${XL.templates.map((t) => `<div class="cal-row" style="min-height:88px"><span class="cr-who"><span class="lbl">usado ${t.uses}×</span><span><b>${t.name}</b><small>${t.items} itens, ${t.minutes} min</small></span></span><span class="cr-n" style="font-size:72px">${t.minutes}</span></div>`).join("")}</div>`;
 
   UI.qs("[data-yt]").onclick = youtube;
   UI.qs("[data-new]").onclick = () => UI.sheet(`<div class="stack"><div class="row between"><h2>Nova faixa</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div><label class="field"><span class="lbl">Título</span><input class="input" placeholder="Nome da música"></label><label class="field"><span class="lbl">Letra</span><textarea class="textarea" placeholder="[Verso]\nPrimeira linha\nSegunda linha\n\n[Refrão]\n…"></textarea></label><p class="muted" style="font-size:var(--t-sm)">Linha em branco = novo slide. [Refrão] marca a seção.</p><a class="btn primary block" href="estudio.html">Criar e abrir no estúdio</a></div>`);
+}
+
+const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+/* Nova apresentação: os mesmos caminhos do painel de slides */
+function newDeck() {
+  const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Nova apresentação</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
+    <div class="create-list"><a class="create-row" href="/slides?novo=branco">${UI.I.plus}<span class="grow"><b>Em branco</b><span>Abre o editor de slides</span></span>${UI.I.arrow}</a>
+    ${DECK_TPL.map(([id, n, d]) => `<a class="create-row" href="/slides?novo=${id}">${UI.I.slides}<span class="grow"><b>Modelo: ${n}</b><span>${d}</span></span>${UI.I.arrow}</a>`).join("")}
+    <a class="create-row" href="/slides?importar=1">${UI.I.doc}<span class="grow"><b>Importar JSON</b><span>Cole ou envie o JSON de um deck</span></span>${UI.I.arrow}</a>
+    <a class="create-row" href="#" data-pdf2>${UI.I.doc}<span class="grow"><b>Importar PDF</b><span>Cada página vira um slide</span></span>${UI.I.arrow}</a></div></div>`);
+  UI.qs("[data-pdf2]", sh).onclick = (e) => { e.preventDefault(); UI.closeSheet(); window.PDFIMPORT && PDFIMPORT.pick((r) => { const f = PDFIMPORT.toFile(r, "pregacao"); setTimeout(() => (location.href = "deck.html?f=" + f.id), 700); }); };
 }
 
 /* Importar do YouTube: o que acontece em cada passo */

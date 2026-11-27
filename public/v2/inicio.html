@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>XLIDE v2 · Início</title>
+<title>XLIDE · Visão geral</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
 <script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/cards.js"></script><script src="assets/drawer.js"></script><script src="assets/files.js"></script>
 <style>
@@ -78,8 +78,6 @@
   .wg-f { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); padding-right: 28px; }
   .wg-f b { font-size: var(--t-sm); font-weight: 600; display: block; } .wg-f small { font-size: var(--t-xs); color: var(--fg-2); }
   .mm { width: 100%; aspect-ratio: 16 / 10; display: block; background-color: var(--sunken); background-image: radial-gradient(color-mix(in srgb, var(--fg) 22%, transparent) 1px, transparent 1.3px); background-size: 12px 12px; }
-  .mm text { font: 500 9px var(--font); fill: var(--fg); }
-  .mm .c text { fill: var(--bg); font-weight: 700; }
   .mm rect { fill: var(--surface); stroke: var(--fg); stroke-width: 1; }
   .mm .c rect { fill: var(--fg); }
   .mm path { stroke: var(--fg-2); stroke-dasharray: 3 3; fill: none; }
@@ -198,7 +196,7 @@ function tick() {
 function render() {
   const p = people[me], h = now().getHours(), A = alerts(), R = readiness();
   const okAll = R.reduce((a, r) => a + r[1], 0), tot = R.reduce((a, r) => a + r[2], 0);
-  if (CLOUD) UI.qs("#as").closest(".as").hidden = true;
+  if (CLOUD) UI.qs("#as").closest(".as").style.display = "none";
   UI.qs("#as").innerHTML = Object.entries(views).map(([k, n]) => `<button class="${k === me ? "on" : ""}" data-k="${k}">${n}</button>`).join("");
   UI.qsa("#as button").forEach((b) => (b.onclick = () => { me = b.dataset.k; UI.setMe(me); UI.refreshNav(); render(); }));
   UI.qs("#hello").innerHTML = `${h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"},<b>${esc(first(p.name))}.</b>`;

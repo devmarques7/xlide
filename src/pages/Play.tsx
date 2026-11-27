@@ -39,7 +39,7 @@ export default function Play() {
         <div>
           {t("editor.notFound")}
           <Button asChild variant="outline" className="mt-4 block">
-            <Link to="/">{t("nav.back")}</Link>
+            <Link to="/slides">{t("nav.back")}</Link>
           </Button>
         </div>
       </div>

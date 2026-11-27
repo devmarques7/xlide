@@ -1,11 +1,10 @@
 import { Copy, FileJson, FileText, LayoutTemplate, MoreHorizontal, Music2, Pencil, Play, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Highlight } from "@/components/highlight";
 import { ImportPanel } from "@/components/import-panel";
-import { LiveChurchPanel } from "@/components/live-church-panel";
 import { TemplateJson } from "@/components/template-json";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +61,21 @@ export default function Dashboard() {
     savePresentation(p);
     navigate(`/p/${p.id}`);
   };
+
+  // links das telas /v2 (Slides → Modelos): /slides?novo=<modelo|branco> cria e abre; ?importar=1 abre o importador
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const novo = params.get("novo");
+    if (params.get("importar")) {
+      setImportOpen(true);
+      setParams({}, { replace: true });
+    } else if (novo === "branco") createNew();
+    else if (novo && TEMPLATE_LIST.some((x) => x.id === novo)) {
+      const p = savePresentation(fromTemplate(novo as (typeof TEMPLATE_LIST)[number]["id"]));
+      navigate(`/p/${p.id}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-dvh">
@@ -134,9 +148,6 @@ export default function Dashboard() {
             </Button>
           </div>
         </section>
-
-        {/* Live Church (só administrador) */}
-        <LiveChurchPanel />
 
         {/* Results */}
         <section className="pb-20">

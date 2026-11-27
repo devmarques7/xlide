@@ -95,7 +95,7 @@ function BoardCanvas({ original, role }: { original: Board; role: Role }) {
   const [live, setLive] = useState<Live | null>(null);
   const [view, setView] = useState<View>({ x: 0, y: 0, z: 1 });
   const [tool, setTool] = useState<Tool>("select");
-  // ?mode=mood abre direto no moodboard (links do Início do Live Church)
+  // ?mode=mood abre direto no moodboard (links da Visão geral)
   const [mode, setMode] = useState<"map" | "mood" | "kanban">(() => {
     const m = params.get("mode");
     return m === "mood" || m === "kanban" ? m : "map";

@@ -23,6 +23,14 @@ import Print from "@/pages/Print";
 import Remote from "@/pages/Remote";
 import Viewer from "@/pages/Viewer";
 
+/** O XLIDE abre na Visão geral (/v2/inicio.html). Sem o Supabase (modo local), "/" segue sendo o painel de slides. */
+function Home() {
+  useEffect(() => {
+    if (supabaseEnabled) location.replace("/v2/inicio.html" + location.search);
+  }, []);
+  return supabaseEnabled ? null : <Dashboard />;
+}
+
 /** Static hosts without SPA rewrites (e.g. a preview) use #/ routes. */
 const Router = import.meta.env.VITE_HASH_ROUTER ? HashRouter : BrowserRouter;
 
@@ -63,7 +71,8 @@ export default function App() {
         <PageTracker />
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<RequireCode><Dashboard /></RequireCode>} />
+          <Route path="/" element={<RequireCode><Home /></RequireCode>} />
+          <Route path="/slides" element={<RequireCode><Dashboard /></RequireCode>} />
           <Route path="/boards" element={<RequireCode><Boards /></RequireCode>} />
           <Route path="/b/:id" element={<RequireCode><BoardPage /></RequireCode>} />
           <Route path="/identity" element={<RequireCode><Identity /></RequireCode>} />

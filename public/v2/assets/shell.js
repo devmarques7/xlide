@@ -34,6 +34,7 @@
     present: P('<rect x="3" y="4" width="18" height="12"/><path d="M12 16v4M8 20h8M10 8l5 2-5 2z"/>'),
     arrow: P('<path d="M7 17 17 7M9 7h8v8"/>'),
     palette: P('<rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8" fill="currentColor"/><rect x="3" y="13" width="8" height="8" fill="currentColor" opacity=".45"/><path d="M13 21c0-4 4-8 8-8"/>'),
+    grid: P('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>'),
     spark: P('<path d="M12 3v6M12 15v6M3 12h6M15 12h6"/><rect x="10" y="10" width="4" height="4" fill="currentColor"/>'),
     wave: P('<path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 11v2M21 12h0"/>'),
     menu: P('<path d="M4 7h16M4 12h16M4 17h10"/>'),
@@ -61,13 +62,15 @@
     ["ao-vivo.html", "Ao vivo"], ["relatorio.html", "Relatório"], ["equipe.html", "Equipe"], ["componentes.html", "Componentes"],
   ];
   /* Navegação por categoria. [chave, arquivo, nome, ícone, contador?] */
+  /* O mesmo menu do app (src/components/app-sidebar.tsx, NAV): mude os dois juntos.
+     Caminhos com "/" na frente são telas do app (painel de slides, identidade, boards, editor de música). */
   const NAV = [
-    { items: [["inicio", "inicio.html", "Início", "home"], ["arquivos", "arquivos.html", "Arquivos", "folder", "files"]] },
-    { g: "Slides", d: "O que vai para a tela", items: [["songs", "biblioteca.html?tab=songs", "Músicas", "music", "songs"], ["decks", "biblioteca.html?tab=decks", "Decks", "slides", "decks"], ["avisos", "kit.html#avisos", "Fundos de avisos", "present"], ["tpl", "biblioteca.html?tab=tpl", "Modelos", "doc"]] },
-    { g: "Estúdio", d: "Visual e testes", items: [["kit", "kit.html", "Fundos e fontes", "palette"], ["testar", "kit.html#testar", "Testar um slide", "spark"], ["editor", "estudio.html", "Editor de música", "wave"]] },
-    { g: "Culto", d: "O sábado", items: [["agenda", "agenda.html", "Agenda", "cal"], ["programa", "programa.html", "Programa", "list"], ["console", "console.html", "Ao vivo", "live"], ["tela", "tela.html", "Tela do projetor", "screen"], ["relatorio", "relatorio.html", "Relatório", "clock"]] },
+    { items: [["inicio", "inicio.html", "Visão geral", "home"], ["arquivos", "arquivos.html", "Arquivos", "folder", "files"]] },
+    { g: "Slides", d: "O que vai para a tela", items: [["decks", "biblioteca.html?tab=decks", "Decks", "slides", "decks"], ["painel", "/slides", "Painel de slides", "grid"], ["songs", "biblioteca.html?tab=songs", "Músicas", "music", "songs"], ["tpl", "biblioteca.html?tab=tpl", "Modelos", "doc"], ["identidade", "/identity", "Identidade", "palette"]] },
+    { g: "Estúdio", d: "Visual e testes", items: [["kit", "kit.html", "Fundos e fontes", "palette"], ["testar", "kit.html#testar", "Testar um slide", "spark"], ["avisos", "kit.html#avisos", "Fundos de avisos", "present"], ["editor", "estudio.html", "Editor de música", "wave"], ["xmusic", "/music", "Importar música", "music"]] },
+    { g: "Culto", d: "O sábado", items: [["agenda", "agenda.html", "Agenda", "cal"], ["programa", "programa.html", "Programas", "list"], ["console", "console.html", "Ao vivo", "live"], ["tela", "tela.html", "Tela do projetor", "screen"], ["relatorio", "relatorio.html", "Relatório", "clock"]] },
     { g: "Ideias", d: "Antes dos slides", items: [["boards", "boards.html", "Boards", "board"]] },
-    { g: "Igreja", items: [["equipe", "equipe.html", "Equipe e acesso", "team"]] },
+    { g: "Equipe", items: [["equipe", "equipe.html", "Equipe e acesso", "team"]] },
   ];
   // Celular: 6 atalhos + Criar no meio; o resto mora no Menu.
   const BAR = [["inicio", "inicio.html", "Início", "home"], ["songs", "biblioteca.html", "Slides", "slides"], ["arquivos", "arquivos.html", "Arquivos", "folder"], null, ["programa", "programa.html", "Programa", "list"], ["console", "console.html", "Ao vivo", "live"], ["menu", "#", "Menu", "menu"]];
@@ -75,12 +78,8 @@
 
   /* Quem está usando (troca em "Ver como" no Início e no cartão do menu). */
   const CLOUD = !!(window.XCLOUD && XCLOUD.on && !XCLOUD.leaving);
-  /* Um sistema só: no app real, o menu do Live Church começa com as abas do XLIDE (decks, boards, identidade, música),
-     as mesmas do menu lateral do app (src/components/app-sidebar.tsx). */
-  if (CLOUD) {
-    NAV.unshift({ g: "XLIDE", d: "Decks, boards e identidade", items: [["painel", "/", "Painel", "slides"], ["xboards", "/boards", "Boards", "board"], ["identidade", "/identity", "Identidade", "palette"], ["xmusic", "/music", "Música", "music"]] });
-    NAV.forEach((G) => G.items.forEach((it) => { if (it[0] === "boards") it[1] = "/boards"; }));
-  }
+  /* no app real, Boards abre a lista de boards do app (mapa, moodboard e quadro de verdade) */
+  if (CLOUD) NAV.forEach((G) => G.items.forEach((it) => { if (it[0] === "boards") it[1] = "/boards"; }));
   const me = () => { if (CLOUD && XCLOUD.uid) return XCLOUD.uid; try { return new URLSearchParams(location.search).get("as") || localStorage.getItem("xlide.v2.me") || "ana"; } catch { return "ana"; } };
   function setMe(k) { try { localStorage.setItem("xlide.v2.me", k); } catch {} }
 
@@ -194,7 +193,7 @@
     const side = document.createElement("nav");
     side.className = "sbar";
     side.setAttribute("aria-label", "Navegação principal");
-    side.innerHTML = `<a class="sb-brand" href="${CLOUD ? "/" : "index.html"}" aria-label="XLIDE">${mark()}<span><b>XLIDE</b><small>Nova Semente Rotterdam</small></span></a>
+    side.innerHTML = `<a class="sb-brand" href="${CLOUD ? "inicio.html" : "index.html"}" aria-label="XLIDE">${mark()}<span><b>XLIDE</b><small>Slides, ideias e culto</small></span></a>
       <button class="sb-create" type="button">${I.plus}<span>Criar</span><kbd>N</kbd></button>
       <div class="sb-scroll">${groupsHTML(on)}</div>
       <button class="sb-me" type="button" aria-label="Quem está usando: trocar de pessoa">${who_()}</button>`;
@@ -292,17 +291,15 @@
     const P = XL.program, pend = P.items.filter((it) => it.type === "video" || (it.type === "song" && XL.songs[it.song].langs.length < 2)).length;
     if (g === "Arquivos") return { t: "Arquivos", ins: ["Seus arquivos", `${mine.length} ativos · ${mine.filter((f) => f.star).length} favoritos. O mais recente: ${mine[0] ? mine[0].name : "nenhum"}.`, "arquivos.html"],
       cards: [...FOLDERS.map(([k, n]) => { const f = mine.find((x) => x.folder === k); return [`arquivos.html?pasta=${k}`, n, `${c[k] || 0} arquivos`, f ? mini(f) : ""]; }), ...STATUS.map(([k, n, d]) => [`arquivos.html?pasta=${k}`, n, `${c[k] || 0} · ${d}`, ""])] };
-    if (g === "Slides") return { t: "Slides", ins: ["Para sábado", `${P.items.filter((it) => it.type === "song").length} músicas e ${P.items.filter((it) => it.deck).length} decks no programa.`, "biblioteca.html"],
-      cards: [["biblioteca.html?tab=songs", "Músicas", `${Object.keys(XL.songs).length} músicas`, window.XLOOK ? `<div class="slide song">${XLOOK.songSlide("s1", 0, { section: false })}</div>` : ""], ["biblioteca.html?tab=decks", "Decks", `${Object.keys(XL.decks).length} decks`, mini({ eyebrow: "Série", title: "Casa de muitos", bg: "wash:gold", font: "serif" })], ["kit.html#avisos", "Fundos de avisos", "6 fundos", mini({ eyebrow: "Sábado 13/12", title: "Batismo", bg: "plain:papel", layout: null })], ["biblioteca.html?tab=tpl", "Modelos", `${XL.templates.length} modelos`, ""]] };
+    if (g === "Slides") return { t: "Slides", ins: ["Decks e músicas", `${Object.keys(XL.decks).length} decks e ${Object.keys(XL.songs).length} músicas. Os modelos são os mesmos do painel de slides.`, "biblioteca.html?tab=decks"],
+      cards: [["/slides", "Painel de slides", "Busca, importar JSON, modelos", ""], ["/identity", "Identidade", "Cores, fontes e logo", ""], ["biblioteca.html?tab=songs", "Músicas", `${Object.keys(XL.songs).length} músicas`, window.XLOOK ? `<div class="slide song">${XLOOK.songSlide("s1", 0, { section: false })}</div>` : ""], ["biblioteca.html?tab=decks", "Decks", `${Object.keys(XL.decks).length} decks`, mini({ eyebrow: "Série", title: "Casa de muitos", bg: "wash:gold", font: "serif" })], ["kit.html#avisos", "Fundos de avisos", "6 fundos", mini({ eyebrow: "Sábado 13/12", title: "Batismo", bg: "plain:papel", layout: null })], ["biblioteca.html?tab=tpl", "Modelos", `${XL.templates.length} modelos`, ""]] };
     if (g === "Estúdio") return { t: "Estúdio", ins: ["Testar antes de criar", "23 fundos, 4 fontes e 5 cores de texto, com edição direto no slide.", "kit.html#testar"],
       cards: [["kit.html", "Fundos e fontes", "23 fundos · 4 fontes", mini({ eyebrow: "Ember", title: "Aa Bb", bg: "wash:ember" })], ["kit.html#testar", "Testar um slide", "Música, deck ou aviso", mini({ eyebrow: "Teste", title: "Tem lugar na mesa", bg: "wash:dusk" })], ["estudio.html", "Editor de música", "Tempo de cada slide", ""]] };
     if (g === "Culto") return { t: "Culto", ins: [`${P.title} · ${P.date.split(",")[1] || P.date}`, pend ? `${pend} pendências antes do culto. ${P.items.length} itens, começa ${P.starts}.` : "Tudo pronto.", "programa.html"],
       cards: [["agenda.html", "Agenda", "Semana do culto", ""], ["programa.html", "Programa", `${P.items.length} itens · rascunho`, mini({ eyebrow: "Programa", title: P.title, bg: "wash:midnight" })], ["console.html", "Ao vivo", "Multiview e trilha", mini({ eyebrow: "Na tela", title: "05:00", bg: "loop:5djr6ofyLLY" })], ["tela.html", "Tela do projetor", "Abrir na outra tela", ""], ["relatorio.html", "Relatório", "Último: +9 min", ""]] };
-    if (g === "XLIDE") return { t: "XLIDE", ins: ["Painel", "Decks, boards, identidade e músicas do XLIDE.", "/"],
-      cards: [["/", "Painel", "Todas as apresentações", ""], ["/boards", "Boards", `${Object.keys(XL.boards).length} boards · mapas e moodboards`, ""], ["/identity", "Identidade", "Cores, fontes e logo", ""], ["/music", "Música", `${Object.keys(XL.songs).length} músicas`, ""]] };
     if (g === "Ideias") return { t: "Ideias", ins: ["Boards", `${Object.keys(XL.boards).length} boards. Mais recente: ${(Object.values(XL.boards)[0] || {}).title || "nenhum"}.`, CLOUD ? "/boards" : "boards.html"],
       cards: Object.entries(XL.boards).filter(([, b]) => !b.archived).slice(0, 6).map(([id, b]) => [b.real ? `/b/${id}${b.mood ? "?mode=mood" : ""}` : `board.html?id=${id}`, b.title, `${b.items} itens · ${b.updated}`, window.CARDS ? `<div class="fly-mb">${CARDS.pvBoard(b)}</div>` : ""]) };
-    return { t: "Igreja", ins: ["Equipe", `${Object.keys(XL.people).length} pessoas em ${Object.keys(XL.areas).length} áreas.`, "equipe.html"], cards: [["equipe.html", "Equipe e acesso", "Quem edita o quê", ""], ["equipe.html#perm-t", "Permissões", "Admin, púlpito, música, operador", ""]] };
+    return { t: "Equipe", ins: ["Equipe", `${Object.keys(XL.people).length} pessoas em ${Object.keys(XL.areas).length} áreas.`, "equipe.html"], cards: [["equipe.html", "Equipe e acesso", "Quem edita o quê", ""], ["equipe.html#perm-t", "Permissões", "Admin, púlpito, música, operador", ""]] };
   }
   let flyEl = null, flyOn = null;
   function closeFly() { flyEl && flyEl.remove(); flyEl = null; flyOn = null; qsa(".sb-h.flying, .sb-flybtn.flying").forEach((b) => b.classList.remove("flying")); }

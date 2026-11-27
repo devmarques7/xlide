@@ -195,7 +195,7 @@ export default function Music() {
     <div className="min-h-dvh bg-background">
       <header className="flex items-center gap-3 border-b border-border px-4 py-3">
         <Button variant="ghost" size="icon" asChild aria-label={t("nav.back")}>
-          <Link to="/">
+          <Link to="/slides">
             <ArrowLeft />
           </Link>
         </Button>

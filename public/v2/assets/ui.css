@@ -319,8 +319,8 @@ img.xw-media { width: 100%; height: 100%; object-fit: cover; transform: scale(1.
 .pv-mood .mi b { display: block; font: 600 2.4cqw/1.1 var(--font); color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 1px 2px; }
 .pv-mood .mi.nt b { color: #161615; font-weight: 500; }
 .mm { display: block; background-color: var(--sunken); background-image: radial-gradient(color-mix(in srgb, var(--fg) 22%, transparent) 1px, transparent 1.3px); background-size: 12px 12px; }
-.mm text { font: 500 7px var(--font); fill: var(--fg); }
-.mm .c text { fill: var(--bg); font-weight: 700; font-size: 8px; }
+.mm text { font: 500 6px var(--font); fill: var(--fg); }
+.mm .c text { fill: var(--bg); font-weight: 700; font-size: 7px; }
 .mm rect { fill: var(--surface); stroke: var(--fg); stroke-width: 1; }
 .mm .c rect { fill: var(--fg); }
 .mm path { stroke: var(--fg-2); stroke-dasharray: 3 3; fill: none; }
@@ -763,3 +763,16 @@ img.xw-media { width: 100%; height: 100%; object-fit: cover; transform: scale(1.
 .slide.page { background: #000; padding: 0; display: grid; place-items: center; }
 .slide.page .s-page { width: 100%; height: 100%; object-fit: contain; display: block; }
 .fly-mb > .pv { grid-column: 1 / -1; position: relative; height: 100%; overflow: hidden; }
+
+/* deck do painel de slides (capa real) */
+.pv-deck { display: flex; align-items: flex-end; padding: 6% 6% 5%; background: var(--sunken) center / cover no-repeat; color: var(--fg); }
+.pv-deck.dk { color: #f7f6f3; }
+.pv-deck.img::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 45%, rgba(0, 0, 0, .55)); }
+.pv-deck .pd-t { position: relative; font: 700 clamp(16px, 2.2vw, 30px)/.95 var(--font); letter-spacing: -0.035em; text-transform: uppercase; max-width: 80%; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pv-deck .pd-tag { position: absolute; right: 4%; bottom: 5%; padding: 3px 8px; background: rgba(0, 0, 0, .6); color: #f7f6f3; font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.rc-deck { grid-template-rows: auto; align-content: start; }
+.rc-deck > a { display: block; }
+.rc-deck .rc-d { font-size: var(--t-sm); color: var(--fg-2); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.rc-deck .lng { display: inline-flex; height: 20px; align-items: center; padding: 0 6px; margin-right: 4px; border: 1px solid var(--line); font: 400 10px var(--mono); font-style: normal; }
+.rc-acts a { text-decoration: underline; }
+.tpl-grid { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
