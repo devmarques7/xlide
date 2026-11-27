@@ -1,4 +1,4 @@
-import { LAYOUTS, LOCALES, TEMPLATES, TONES, type BrandTheme, type Layout, type Template, type Tone, type Locale, type LText, type MusicTrack, type Presentation, type Slide, type SlideItem, SONG_SECTIONS, type SongSection } from "./types";
+import { LAYOUTS, LOCALES, TEMPLATES, TONES, type BrandTheme, type DeckIdentity, type Layout, type Template, type Tone, type Locale, type LText, type MusicTrack, type Presentation, type Slide, type SlideItem, SONG_SECTIONS, type SongSection } from "./types";
 import { uid } from "./utils";
 
 function asLText(v: unknown): LText | undefined {
@@ -86,6 +86,7 @@ export interface ParsedImport {
   languages?: Locale[];
   defaultLanguage?: Locale;
   music?: MusicTrack;
+  identity?: DeckIdentity;
   slides: Slide[];
 }
 
@@ -135,6 +136,7 @@ export function parseImport(input: string): ParsedImport {
       languages: languages?.length ? languages : undefined,
       defaultLanguage: (LOCALES as readonly string[]).includes(obj.defaultLanguage) ? obj.defaultLanguage : undefined,
       music: asMusic(obj.music),
+      identity: obj.identity && typeof obj.identity === "object" && !Array.isArray(obj.identity) ? (obj.identity as DeckIdentity) : undefined,
       slides: obj.slides.map(asSlide),
     };
   }
@@ -158,6 +160,7 @@ export function presentationFromImport(p: ParsedImport, fallbackLang: Locale): P
     defaultLanguage: p.defaultLanguage ?? languages[0],
     slides: p.slides,
     music: p.music,
+    identity: p.identity,
     tags: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -182,6 +185,7 @@ export function exportPresentation(p: Presentation) {
     languages: p.languages,
     defaultLanguage: p.defaultLanguage,
     music: p.music,
+    identity: p.identity,
     slides: p.slides.map((s) => ({ ...strip(s), items: s.items?.map(strip) })),
   };
 }

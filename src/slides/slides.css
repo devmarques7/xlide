@@ -646,3 +646,7 @@
 /* Página de PDF importado (layout image, variante page) */
 .xs-pdf-page { position: absolute; inset: 0; display: grid; place-items: center; background: #000; }
 .xs-pdf-page img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* Fontes da identidade do deck (Deck → Identidade): títulos e texto em qualquer modelo; rótulos seguem mono. */
+.xs.has-idf { font-family: var(--idf-body, var(--font-sans)), var(--font-sans); }
+.xs.has-idf :is(h1, h2, h3, [class*="-title"], .xs-value, .br-title, .br-text-lead, .br-stat strong) { font-family: var(--idf-head, var(--idf-body, inherit)), var(--font-sans); }

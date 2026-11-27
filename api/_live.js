@@ -1,4 +1,4 @@
-// MCP do XLIDE v2 (Live Church): decks e slides, textos em várias línguas, programas do culto e o relatório de auditoria.
+// MCP do XLIDE: decks e slides, textos em várias línguas, programas do culto e o relatório de auditoria.
 // Tudo no Supabase (xlide_decks, xlide_programs), com a chave de serviço; cada mudança entra em xlide_audit com via = 'mcp'.
 // Somado às ferramentas de boards em shared/board.js (ctx.extraTools / ctx.extraCall).
 import { auditReport, hasSupabase, rest } from "./_supabase.js";
@@ -41,7 +41,46 @@ function cleanSlide(raw, lang) {
   return s;
 }
 const deckSummary = (d) => ({ id: d.id, title: txt(d.title, d.defaultLanguage), languages: d.languages, slides: d.slides.length, updatedAt: d.updatedAt });
-const slideOutline = (d, l) => d.slides.map((s, i) => ({ n: i + 1, id: s.id, layout: s.layout, ...Object.fromEntries(TEXT_FIELDS.filter((f) => s[f] != null).map((f) => [f, txt(s[f], l)])) }));
+const slideOutline = (d, l) => d.slides.map((s, i) => ({ n: i + 1, id: s.id, layout: s.layout, ...Object.fromEntries(TEXT_FIELDS.filter((f) => s[f] != null).map((f) => [f, txt(s[f], l)])), ...(s.image ? { image: s.image } : {}), ...(s.ai ? { ai_request: s.ai } : {}) }));
+
+/* ── identidade do deck (cores, tipografia, referências, tom) e pedidos para a IA ── */
+const ROLES = ["primary", "background", "text", "accent", "support"];
+const HEX = /^#[0-9a-f]{6}$/i;
+function cleanIdentity(raw = {}, base = {}) {
+  const id = { ...base };
+  if (Array.isArray(raw.palette)) id.palette = raw.palette.filter((c) => c && HEX.test(c.hex)).slice(0, 12).map((c) => ({ hex: c.hex, ...(c.name ? { name: String(c.name).slice(0, 40) } : {}), ...(ROLES.includes(c.role) ? { role: c.role } : {}) }));
+  if (raw.fonts && typeof raw.fonts === "object") id.fonts = { ...(base.fonts || {}), ...Object.fromEntries(["heading", "body"].filter((k) => raw.fonts[k] != null).map((k) => [k, String(raw.fonts[k]).slice(0, 60) || undefined])) };
+  if (Array.isArray(raw.references)) id.references = raw.references.filter((r) => r && /^(https?:|data:image\/)/.test(r.url || "")).slice(0, 30).map((r) => ({ url: r.url, ...(r.note ? { note: String(r.note).slice(0, 300) } : {}) }));
+  for (const k of ["mood", "notes"]) if (raw[k] != null) id[k] = String(raw[k]).slice(0, 2000) || undefined;
+  if (raw.board_id != null) id.board = raw.board_id || undefined;
+  if (raw.apply != null) id.apply = !!raw.apply;
+  return id;
+}
+/* o que a identidade muda no visual (igual a lookFromIdentity no app): destaque e tema */
+function applyIdentity(d) {
+  const id = d.identity || {};
+  if (id.apply === false) return;
+  const pal = id.palette || [], pick = (r) => (pal.find((c) => c.role === r) || {}).hex;
+  const accent = pick("accent") || pick("primary") || (pal[0] && pal[0].hex);
+  if (accent) d.accent = accent;
+  const th = { light: pick("background"), dark: pick("text"), heading: id.fonts && id.fonts.heading, body: id.fonts && id.fonts.body };
+  d.theme = { ...(d.theme || {}), ...Object.fromEntries(Object.entries(th).filter(([, v]) => v)) };
+}
+async function boardBrief(bid) {
+  if (!bid) return null;
+  try {
+    const b = (await getRow("xlide_boards", bid)).doc || {};
+    const items = (b.mood && b.mood.items) || [];
+    return {
+      id: bid, title: b.title, idea: b.idea,
+      map: (b.nodes || []).slice(0, 80).map((n) => ({ kind: n.kind, title: n.title, ...(n.text ? { text: String(n.text).slice(0, 300) } : {}), ...(n.url ? { url: n.url } : {}) })),
+      images: items.filter((i) => i.type === "image" && /^https?:/.test(i.src || i.url || "")).slice(0, 24).map((i) => ({ url: i.src || i.url, caption: i.caption })),
+      colors: items.filter((i) => i.type === "color" && i.color).slice(0, 12).map((i) => ({ hex: i.color, name: i.name })),
+      texts: items.filter((i) => (i.type === "text" || i.type === "note") && (i.text || i.title)).slice(0, 30).map((i) => String(i.title || i.text).slice(0, 200)),
+    };
+  } catch { return { id: bid, error: "board não encontrado" }; }
+}
+const IDENTITY_GUIDE = "Use a identidade em todo slide: cores da paleta (accent = destaque; background/text para tom claro/escuro), fontes de títulos/texto (o app já aplica), imagens com a mesma luz, cor e assunto das referências (só URLs https reais), e o tom descrito. Uma ideia por slide, pouco texto. Ao terminar, chame resolve_ai_request.";
 
 /* ── programa ── */
 function cleanItem(raw) {
@@ -76,7 +115,11 @@ const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "
 export const LIVE_TOOLS = [
   { name: "list_decks", description: "Lista os decks e músicas do XLIDE (id, título, línguas, nº de slides). Filtros: texto no título e tipo (deck ou song).", inputSchema: S({ query: { type: "string" }, kind: { type: "string", enum: ["deck", "song"] } }) },
   { name: "get_deck", description: "Lê um deck: cada slide com posição, id, layout e textos na língua pedida.", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS } }, ["deck_id"]) },
-  { name: "create_deck", description: "Cria um deck inteiro em uma chamada (título, línguas e todos os slides). Textos na língua `lang`; depois use add_translations para as outras.", inputSchema: S({ title: { type: "string" }, lang: { type: "string", enum: LANGS }, languages: { type: "array", items: { type: "string", enum: LANGS } }, slides: { type: "array", items: S(slideProps) } }, ["title", "slides"]) },
+  { name: "create_deck", description: "Cria um deck inteiro em uma chamada (título, línguas e todos os slides). Textos na língua `lang`; depois use add_translations para as outras. Pode já levar a identidade (mesmos campos de set_deck_identity).", inputSchema: S({ title: { type: "string" }, lang: { type: "string", enum: LANGS }, languages: { type: "array", items: { type: "string", enum: LANGS } }, slides: { type: "array", items: S(slideProps) }, identity: { type: "object", description: "palette, fonts, references, mood, notes, board_id" } }, ["title", "slides"]) },
+  { name: "get_deck_identity", description: "Lê a identidade de um deck (cores, tipografia, referências, tom, regras), o board ligado (mapa mental + moodboard) e os pedidos abertos para a IA. Leia antes de criar ou melhorar slides do deck.", inputSchema: S({ deck_id: { type: "string" } }, ["deck_id"]) },
+  { name: "set_deck_identity", description: "Grava a identidade do deck (só os campos enviados): palette [{hex, name, role: primary|background|text|accent|support}], fonts {heading, body} (Google Fonts/Fontshare), references [{url, note}], mood, notes, board_id, apply. Com apply (padrão), a cor principal vira o destaque e as fontes valem nos slides.", inputSchema: S({ deck_id: { type: "string" }, palette: { type: "array", items: S({ hex: { type: "string" }, name: { type: "string" }, role: { type: "string", enum: ROLES } }, ["hex"]) }, fonts: S({ heading: { type: "string" }, body: { type: "string" } }), references: { type: "array", items: S({ url: { type: "string" }, note: { type: "string" } }, ["url"]) }, mood: { type: "string" }, notes: { type: "string" }, board_id: { type: "string" }, apply: { type: "boolean" } }, ["deck_id"]) },
+  { name: "list_ai_requests", description: "Pedidos abertos para a IA feitos no editor (deck inteiro ou um slide), com o texto do pedido. Sem deck_id, lista de todos os decks.", inputSchema: S({ deck_id: { type: "string" }, include_done: { type: "boolean" } }) },
+  { name: "resolve_ai_request", description: "Marca um pedido como feito (deck ou slide) com um resumo curto do que foi feito.", inputSchema: S({ deck_id: { type: "string" }, slide: { type: ["string", "number"], description: "Id ou posição; sem ele, o pedido do deck." }, summary: { type: "string" } }, ["deck_id"]) },
   { name: "add_slides", description: "Acrescenta slides a um deck (no fim ou depois da posição `after`).", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS }, after: { type: "number" }, slides: { type: "array", items: S(slideProps) } }, ["deck_id", "slides"]) },
   { name: "update_slide", description: "Edita um slide (por id ou posição 1..n): layout, imagem e textos na língua `lang`. Campos vazios ('') apagam o texto daquela língua.", inputSchema: S({ deck_id: { type: "string" }, slide: { type: ["string", "number"] }, lang: { type: "string", enum: LANGS }, ...slideProps }, ["deck_id", "slide"]) },
   { name: "move_slide", description: "Muda um slide de posição.", inputSchema: S({ deck_id: { type: "string" }, slide: { type: ["string", "number"] }, to: { type: "number" } }, ["deck_id", "slide", "to"]) },
@@ -111,11 +154,42 @@ export async function callLiveTool(name, a = {}, origin = "") {
       const rows = await rest(`xlide_decks?select=doc&order=updated_at.desc&limit=200${a.query ? `&title=ilike.*${enc(a.query)}*` : ""}${a.kind ? `&kind=eq.${a.kind}` : ""}`);
       return { decks: rows.map((r) => deckSummary(r.doc)) };
     }
-    case "get_deck": { const d = await loadDeck(a.deck_id); return { ...deckSummary(d), slides: slideOutline(d, lang) }; }
+    case "get_deck": { const d = await loadDeck(a.deck_id); return { ...deckSummary(d), ...(d.identity ? { identity: d.identity } : {}), ...(d.ai ? { ai_request: d.ai } : {}), slides: slideOutline(d, lang) }; }
+    case "get_deck_identity": {
+      const d = await loadDeck(a.deck_id);
+      return { ...deckSummary(d), identity: d.identity || null, accent: d.accent || null, template: d.template || "editorial", theme: d.theme || null, board: await boardBrief(d.identity && d.identity.board),
+        requests: [...(d.ai ? [{ scope: "deck", ...d.ai }] : []), ...d.slides.map((s, i) => (s.ai ? { scope: "slide", n: i + 1, slide_id: s.id, layout: s.layout, ...s.ai } : null)).filter(Boolean)],
+        guide: d.identity ? IDENTITY_GUIDE : "Este deck ainda não tem identidade. Proponha uma (set_deck_identity) a partir do pedido e das referências antes de montar os slides." };
+    }
+    case "set_deck_identity": {
+      const d = await loadDeck(a.deck_id);
+      d.identity = cleanIdentity(a, d.identity || { apply: true });
+      applyIdentity(d);
+      await saveDeck(d); return { ...deckSummary(d), identity: d.identity, accent: d.accent, theme: d.theme };
+    }
+    case "list_ai_requests": {
+      const rows = a.deck_id ? [{ doc: await loadDeck(a.deck_id) }] : await rest("xlide_decks?select=doc&kind=eq.deck&order=updated_at.desc&limit=200");
+      const out = [];
+      for (const { doc: d } of rows) {
+        if (!d) continue;
+        const open = (r) => r && (a.include_done || r.status !== "feito");
+        if (open(d.ai)) out.push({ deck_id: d.id, deck: txt(d.title, d.defaultLanguage), scope: "deck", ...d.ai, has_identity: !!d.identity });
+        (d.slides || []).forEach((s, i) => open(s.ai) && out.push({ deck_id: d.id, deck: txt(d.title, d.defaultLanguage), scope: "slide", n: i + 1, slide_id: s.id, ...s.ai, has_identity: !!d.identity }));
+      }
+      return { requests: out, next: out.length ? "Para cada pedido: get_deck_identity → crie/edite os slides → resolve_ai_request." : "Nenhum pedido aberto." };
+    }
+    case "resolve_ai_request": {
+      const d = await loadDeck(a.deck_id);
+      const target = a.slide != null ? d.slides[findSlide(d, a.slide)] : d;
+      if (!target.ai) throw new Error("Não há pedido aberto aí.");
+      target.ai = { ...target.ai, status: "feito", done: String(a.summary || "").slice(0, 300) || undefined };
+      await saveDeck(d); return { ok: true, request: target.ai };
+    }
     case "create_deck": {
       const now = Date.now(), languages = [...new Set([lang, ...(a.languages || []).filter((l) => LANGS.includes(l))])];
       const d = { id: rid("p_"), title: { [lang]: String(a.title) }, languages, defaultLanguage: lang, template: "editorial", slides: (a.slides || []).map((s) => cleanSlide(s, lang)), createdAt: now, updatedAt: now };
       if (!d.slides.length) throw new Error("Mande pelo menos um slide.");
+      if (a.identity) { d.identity = cleanIdentity(a.identity, { apply: true }); applyIdentity(d); }
       await saveDeck(d); return { ...deckSummary(d), slides: slideOutline(d, lang) };
     }
     case "add_slides": {
@@ -265,6 +339,7 @@ export async function callLiveTool(name, a = {}, origin = "") {
 }
 
 export const LIVE_INSTRUCTIONS =
-  " XLIDE v2 (Live Church): também cria e edita decks e slides (create_deck com todos os slides de uma vez; update_slide para cada slide; textos por língua pt/en/nl), " +
+  " XLIDE: também cria e edita decks e slides (create_deck com todos os slides de uma vez; update_slide para cada slide; textos por língua pt/en/nl), " +
+  "com identidade por deck: antes de montar ou melhorar slides, leia get_deck_identity (cores, tipografia, referências, tom e o board ligado) e siga-a; pedidos feitos no editor aparecem em list_ai_requests e se fecham com resolve_ai_request; para definir a identidade use set_deck_identity. " +
   "replica para outras línguas (missing_translations → traduza → add_translations), monta programas do culto (create_program com todos os itens; add_program_items, update_program_item, move_program_item, set_program_status, duplicate_program) " +
   "e lê o relatório de uso e auditoria (get_audit_report). Escreva no idioma do usuário.";

@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Braces, ChevronLeft, ChevronRight, Clock, FileText, ImagePlus, Loader2, Music2, Palette, Play, Plus, Printer, Settings2, Share2 } from "lucide-react";
+import { ArrowLeft, BarChart3, Braces, Fingerprint, ChevronLeft, ChevronRight, Clock, FileText, ImagePlus, Loader2, Music2, Palette, Play, Plus, Printer, Settings2, Share2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { matchImages, uploadImage } from "@/lib/images";
@@ -23,6 +23,7 @@ import { SlideFrame } from "@/slides/SlideView";
 import { SlideContentForm } from "./editor/fields";
 import { isMusicDeck, MusicDeckPanel, MusicSlideFields, MusicStylePanel, MusicTimePanel } from "./editor/music-panels";
 import { AnalysisPanel, DeckPanel, DesignPanel, JsonPanel } from "./editor/panels";
+import { IdentityPanel } from "./editor/identity-panel";
 import { SlideList } from "./editor/slide-list";
 
 export default function Editor() {
@@ -54,7 +55,8 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
   const navigate = useNavigate();
   const [selected, setSelected] = useState(deck.slides[0]?.id);
   const [lang, setLang] = useState<Locale>(initialLang);
-  const [tab, setTab] = useState("content");
+  // ?tab=identidade abre direto na identidade (nova apresentação "com o Claude")
+  const [tab, setTab] = useState(() => (new URLSearchParams(location.search).get("tab") === "identidade" ? "identity" : "content"));
   const [shareOpen, setShareOpen] = useState(false);
   const bulkInput = useRef<HTMLInputElement>(null);
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
@@ -287,10 +289,16 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                 <TabsTrigger value="design" aria-label={music ? t("editor.tabStyle") : t("editor.design")}>
                   <Palette /> <span className="hidden min-[400px]:inline">{music ? t("editor.tabStyle") : t("editor.design")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="analysis" aria-label={music ? t("editor.tabTime") : t("editor.analysis")}>
+                <TabsTrigger value="analysis" aria-label={music ? t("editor.tabTime") : t("editor.analysis")} title={music ? t("editor.tabTime") : t("editor.analysis")}>
                   {music ? <Clock /> : <BarChart3 />}
-                  <span className="hidden min-[400px]:inline">{music ? t("editor.tabTime") : t("editor.analysis")}</span>
+                  {/* com a aba Identidade, "Análise" fica só no ícone para caber */}
+                  {music && <span className="hidden min-[400px]:inline">{t("editor.tabTime")}</span>}
                 </TabsTrigger>
+                {!music && (
+                  <TabsTrigger value="identity" aria-label={t("id.tab")} title={t("id.tab")}>
+                    <Fingerprint />
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="json" aria-label={t("editor.json")}>
                   <Braces />
                 </TabsTrigger>
@@ -331,6 +339,9 @@ function EditorInner({ deck, initialLang }: { deck: Presentation; initialLang: L
                 ) : (
                   <AnalysisPanel deck={deck} slideIndex={index} lang={editLang} onGo={go} />
                 )}
+              </TabsContent>
+              <TabsContent value="identity">
+                <IdentityPanel deck={deck} slide={slide} onChange={update} onSlide={patchSlide} />
               </TabsContent>
               <TabsContent value="json">
                 <JsonPanel

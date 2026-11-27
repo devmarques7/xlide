@@ -69,7 +69,8 @@
     music: () => `<div class="pv pv-wave">${Array.from({ length: 22 }, (_, k) => `<i class="${k < 9 ? "p" : ""}" style="height:${18 + ((k * 37) % 50)}%"></i>`).join("")}</div>`,
     list: () => `<div class="pv pv-prog">${[70, 46, 88, 60, 34, 74].map((w, k) => `<i class="${k === 2 ? "now" : ""}" style="width:${w}%"></i>`).join("")}</div>`,
   };
-  const makeCell = ([ic, n, d, f]) => `<a class="make" href="${f}">${make[ic]()}<span class="mk-t"><b>${n}</b><span>${d}</span></span></a>`;
+  make.spark = () => `<div class="pv pv-prog">${[40, 70, 55].map((w) => `<i style="width:${w}%"></i>`).join("")}</div>`;
+  const makeCell = ([ic, n, d, f]) => `<a class="make" href="${f}">${(make[ic] || make.list)()}<span class="mk-t"><b>${n}</b><span>${d}</span></span></a>`;
 
   window.CARDS = { card, deckCard, pvDeckReal, makeCell, pvBoard, pvMood, pvMap, pvSong, yt, bg };
 })();

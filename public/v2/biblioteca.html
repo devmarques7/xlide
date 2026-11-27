@@ -158,6 +158,7 @@ const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 function newDeck() {
   const sh = UI.sheet(`<div class="stack"><div class="row between"><h2>Nova apresentação</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${UI.I.x}</button></div>
     <div class="create-list"><a class="create-row" href="/slides?novo=branco">${UI.I.plus}<span class="grow"><b>Em branco</b><span>Abre o editor de slides</span></span>${UI.I.arrow}</a>
+    <a class="create-row" href="/slides?novo=ia">${UI.I.spark}<span class="grow"><b>Com o Claude (MCP)</b><span>Defina cores, tipografia e referências; o Claude monta os slides</span></span>${UI.I.arrow}</a>
     ${DECK_TPL.map(([id, n, d]) => `<a class="create-row" href="/slides?novo=${id}">${UI.I.slides}<span class="grow"><b>Modelo: ${n}</b><span>${d}</span></span>${UI.I.arrow}</a>`).join("")}
     <a class="create-row" href="/slides?importar=1">${UI.I.doc}<span class="grow"><b>Importar JSON</b><span>Cole ou envie o JSON de um deck</span></span>${UI.I.arrow}</a>
     <a class="create-row" href="#" data-pdf2>${UI.I.doc}<span class="grow"><b>Importar PDF</b><span>Cada página vira um slide</span></span>${UI.I.arrow}</a></div></div>`);

@@ -1,4 +1,4 @@
-import { Copy, FileJson, FileText, LayoutTemplate, MoreHorizontal, Music2, Pencil, Play, Plus, Search, Trash2, X } from "lucide-react";
+import { Bot, Copy, FileJson, FileText, LayoutTemplate, MoreHorizontal, Music2, Pencil, Play, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -47,6 +47,23 @@ export default function Dashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // "Com o Claude (MCP)": deck novo que abre na Identidade (cores, tipografia, referências e o pedido para a IA)
+  const createWithAi = () => {
+    const p = createBlank();
+    p.identity = { apply: true };
+    savePresentation(p);
+    navigate(`/p/${p.id}?tab=identidade`);
+  };
+  const createBlank = (): Presentation => ({
+    id: uid("p_"),
+    title: { [locale]: t("common.untitled") },
+    languages: [locale],
+    defaultLanguage: locale,
+    tags: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    slides: [{ id: uid("s_"), layout: "cover", title: { [locale]: "Title" }, eyebrow: "XLIDE" }],
+  });
   const createNew = () => {
     const p: Presentation = {
       id: uid("p_"),
@@ -70,6 +87,7 @@ export default function Dashboard() {
       setImportOpen(true);
       setParams({}, { replace: true });
     } else if (novo === "branco") createNew();
+    else if (novo === "ia") createWithAi();
     else if (novo && TEMPLATE_LIST.some((x) => x.id === novo)) {
       const p = savePresentation(fromTemplate(novo as (typeof TEMPLATE_LIST)[number]["id"]));
       navigate(`/p/${p.id}`, { replace: true });
@@ -124,6 +142,9 @@ export default function Dashboard() {
               <DropdownMenuContent align="center">
                 <DropdownMenuItem onSelect={createNew}>
                   <FileText /> {t("dash.blank")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={createWithAi}>
+                  <Bot /> {t("dash.ai")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>{t("dash.fromTemplate")}</DropdownMenuLabel>

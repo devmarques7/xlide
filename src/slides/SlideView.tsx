@@ -37,14 +37,17 @@ export function SlideView({ slide, lang, fallback, live, scale = 1, animate, cla
   const brand = slide.layout.startsWith("brand-");
   const tone = slide.tone ?? (slide.layout === "pitch-cover" ? "dark" : BRAND_DEFAULT_TONE[slide.layout]);
   const theme = brand ? look.theme : undefined;
+  const idf = look.fonts;
   useEffect(() => {
     loadFont(theme?.heading);
     loadFont(theme?.body);
-  }, [theme?.heading, theme?.body]);
+    loadFont(idf?.heading);
+    loadFont(idf?.body);
+  }, [theme?.heading, theme?.body, idf?.heading, idf?.body]);
   const onAcc = onAccent(look.accent);
   return (
     <div
-      className={cn("xs", slide.inverse && "inverse", pitch && "tpl-pitch", brand && "tpl-brand", className)}
+      className={cn("xs", slide.inverse && "inverse", pitch && "tpl-pitch", brand && "tpl-brand", (idf?.heading || idf?.body) && "has-idf", className)}
       data-layout={slide.layout}
       data-tone={tone}
       data-live={live ? "" : undefined}
@@ -55,6 +58,8 @@ export function SlideView({ slide, lang, fallback, live, scale = 1, animate, cla
           "--accent": look.accent,
           // brand decks: dark text on a light accent uses the deck's own dark colour
           "--on-accent": theme?.dark && onAcc !== "#ffffff" ? theme.dark : onAcc,
+          ...(idf?.heading && { "--idf-head": `"${idf.heading}"` }),
+          ...(idf?.body && { "--idf-body": `"${idf.body}"` }),
           ...(theme && {
             "--br-light": theme.light,
             "--br-dark": theme.dark,

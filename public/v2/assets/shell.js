@@ -249,11 +249,12 @@
     ["board", "Moodboard", "Tela livre: imagens, notas, cores, tarefas", "board.html?v=mood&novo=1"],
     ["map", "Mapa mental", "A ideia no centro e as etapas em volta", "board.html?v=map&novo=1"],
     ["slides", "Deck de slides", "Apresentação, avisos ou sermão", "deck.html?novo=avisos"],
+    ["spark", "Deck com o Claude (MCP)", "Identidade primeiro; o Claude monta os slides", "/slides?novo=ia"],
     ["doc", "Importar PDF", "Slides do pastor: cada página vira um slide", "#pdf"],
     ["music", "Música", "Letra que vira slides, com o tempo da música", "musica.html"],
     ["list", "Programa do culto", "A linha do tempo do sábado", "programa.html"],
   ];
-  if (CLOUD) CREATE.forEach((c) => { if (c[0] === "board") c[3] = "/boards"; if (c[0] === "map") c[3] = "/boards"; if (c[0] === "music") c[3] = "/music"; });
+  if (CLOUD) CREATE.forEach((c) => { if (c[0] === "board") c[3] = "/boards"; if (c[0] === "map") c[3] = "/boards"; if (c[0] === "music") c[3] = "/music"; if (c[0] === "slides") c[3] = "/slides?novo=branco"; });
   function createSheet() {
     sheet(`<div class="stack"><div class="row between"><h2>Criar</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${I.x}</button></div>
       <div class="create-list">${CREATE.map(([ic, n, d, f]) => `<a class="create-row" href="${f === "#pdf" ? "#" : f}" ${f === "#pdf" ? "data-pdf" : ""}>${I[ic]}<span class="grow"><b>${n}</b><span>${d}</span></span>${I.arrow}</a>`).join("")}</div></div>`);

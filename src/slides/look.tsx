@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { DEFAULT_ACCENT, tx, type BrandTheme, type Locale, type MusicTrack, type Presentation, type Template } from "@/lib/types";
+import { DEFAULT_ACCENT, tx, type BrandTheme, type DeckIdentity, type Locale, type MusicTrack, type Presentation, type Template } from "@/lib/types";
 
 /** Deck-level look shared by every slide: template, attention colour, meta line. */
 export interface Look {
@@ -12,6 +12,8 @@ export interface Look {
   /** Music decks: lyric colours and section labels. */
   music?: MusicTrack;
   lang?: Locale;
+  /** Fontes da identidade do deck (valem em todos os modelos). */
+  fonts?: DeckIdentity["fonts"];
 }
 
 const LookCtx = createContext<Look>({ template: "editorial", accent: DEFAULT_ACCENT });
@@ -26,6 +28,7 @@ export function lookOf(deck: Presentation | undefined, lang?: Locale): Look {
     deckTitle: deck ? tx(deck.title, lang ?? deck.defaultLanguage, deck.defaultLanguage) : undefined,
     music: deck?.music,
     lang: lang ?? deck?.defaultLanguage,
+    fonts: deck?.identity && deck.identity.apply !== false ? deck.identity.fonts : undefined,
   };
 }
 

@@ -63,6 +63,8 @@ export interface SlideItem {
 export interface Slide {
   id: string;
   layout: Layout;
+  /** Pedido aberto para a IA (MCP) sobre este slide. */
+  ai?: AiRequest;
   inverse?: boolean;
   eyebrow?: LText;
   title?: LText;
@@ -122,6 +124,31 @@ export interface BrandTheme {
   logoDark?: string;
 }
 
+/** Identidade do deck, definida antes de montar os slides: cores, tipografia, referências e tom.
+ *  Com `apply` (padrão), a cor principal vira o destaque e as fontes valem em todos os slides.
+ *  O MCP lê tudo (get_deck_identity) para construir slides coerentes. */
+export interface DeckIdentity {
+  palette?: { hex: string; name?: string; role?: "primary" | "background" | "text" | "accent" | "support" }[];
+  fonts?: { heading?: string; body?: string };
+  references?: { url: string; note?: string }[];
+  /** Tom e estilo em poucas palavras (ex.: "editorial, sóbrio, muito respiro"). */
+  mood?: string;
+  /** Regras e o que evitar. */
+  notes?: string;
+  /** Board (mapa mental + moodboard) que organiza a identidade. */
+  board?: string;
+  apply?: boolean;
+}
+
+/** Pedido para a IA pelo MCP: o deck inteiro ou um slide. */
+export interface AiRequest {
+  text: string;
+  at: number;
+  status: "pedido" | "feito";
+  /** Resposta curta da IA quando termina. */
+  done?: string;
+}
+
 export interface Presentation {
   id: string;
   title: LText;
@@ -138,6 +165,9 @@ export interface Presentation {
   logo?: string;
   /** Brand template: deck colours and typefaces (white label). */
   theme?: BrandTheme;
+  identity?: DeckIdentity;
+  /** Pedido aberto para a IA (MCP) sobre o deck inteiro. */
+  ai?: AiRequest;
   slides: Slide[];
   /** Lyrics decks: the YouTube song played in Play mode. */
   music?: MusicTrack;
