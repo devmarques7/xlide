@@ -207,7 +207,7 @@ export async function getLyrics(input, lang, opts = {}) {
       if (!best || a.matched > best.matched) { best = a; source = "video"; }
     }
     if (!(best?.matched >= 0.4) && title) {
-      const synced = await findLyrics(title, author, { synced: true }).catch(() => null);
+      const synced = await findLyrics(title, author, { synced: true, duration: Number(data?.videoDetails?.lengthSeconds) || 0 }).catch(() => null);
       if (synced?.times) {
         // cada linha da letra sincronizada vira uma "legenda" (início e duração até a próxima)
         const cues = synced.lines.map((l, i) => ({ start: synced.times[i], dur: (synced.times[i + 1] ?? synced.times[i] + 4) - synced.times[i], text: String(l) })).filter((c) => c.start != null && c.text.trim());
@@ -247,7 +247,7 @@ export async function getLyrics(input, lang, opts = {}) {
     };
 
     // 1. Lyrics synced to the song (LRCLIB), so slides can follow the music.
-    const synced = title ? await findLyrics(title, author, { synced: true }).catch(() => null) : null;
+    const synced = title ? await findLyrics(title, author, { synced: true, duration: Number(data?.videoDetails?.lengthSeconds) || 0 }).catch(() => null) : null;
     if (synced) return done(synced);
     // 2. The lyrics YouTube Music has for this very video.
     const own = await musicLyrics(id).catch(() => null);
@@ -411,7 +411,14 @@ export function songAndArtist(title, author) {
   const parts = song.split(/\s+[-–—]\s+/);
   if (parts.length === 2) {
     const [a, b] = parts;
-    const isArtist = (x) => artist && (norm(x).includes(norm(artist)) || norm(artist).includes(norm(x)));
+    // "Bethel Music & Jenn Johnson" é o canal "Bethel Music and Jenn Johnson": compara palavra a palavra
+    const words = (x) => norm(x).split(" ").filter((w) => w.length > 2 && !["and", "the", "feat", "com"].includes(w));
+    const isArtist = (x) => {
+      if (!artist) return false;
+      if (norm(x).includes(norm(artist)) || norm(artist).includes(norm(x))) return true;
+      const a = new Set(words(artist)), w = words(x);
+      return w.length > 0 && w.filter((k) => a.has(k)).length / w.length >= 0.6;
+    };
     if (isArtist(b)) song = a;
     else {
       song = b;
@@ -426,7 +433,7 @@ export function songAndArtist(title, author) {
  * LRCLIB first, then lyrics.ovh (whose suggestions also find the real artist
  * when the channel is a label or a church). Returns null when neither knows it.
  */
-export async function findLyrics(title, author, { synced = false } = {}) {
+export async function findLyrics(title, author, { synced = false, duration = 0 } = {}) {
   const { song, artist } = songAndArtist(title, author);
   if (!song) return null;
   const matches = (name) => norm(name).includes(norm(song)) || norm(song).includes(norm(name));
@@ -434,9 +441,11 @@ export async function findLyrics(title, author, { synced = false } = {}) {
   try {
     const hits = await getJson(`https://lrclib.net/api/search?${new URLSearchParams({ q: `${song} ${artist}`.trim() })}`);
     const byArtist = (h) => Number(norm(h.artistName).includes(norm(artist)));
+    // gravações de verdade (1,5–15 min), do artista, e com a duração mais perto da do vídeo
+    const near = (h) => (duration > 0 && h.duration ? -Math.abs(h.duration - duration) : 0);
     const hit = (hits ?? [])
-      .filter((h) => (synced ? h.syncedLyrics : h.plainLyrics) && matches(h.trackName))
-      .sort((a, b) => byArtist(b) - byArtist(a))[0];
+      .filter((h) => (synced ? h.syncedLyrics : h.plainLyrics) && matches(h.trackName) && !(h.duration > 900 || (h.duration && h.duration < 60)))
+      .sort((a, b) => byArtist(b) - byArtist(a) || near(b) - near(a))[0];
     if (hit && synced) {
       const rows = lrcRows(hit.syncedLyrics);
       if (rows.lines.length) return { ...rows, song, artist: artist || hit.artistName, source: "LRCLIB", duration: hit.duration };

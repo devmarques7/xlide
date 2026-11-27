@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIDE · Brand kits</title>
+<link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script>
+<style>
+  .b-head { display: grid; gap: var(--s4); padding: var(--s5) 0 var(--s4); border-bottom: 1px solid var(--fg); }
+  @media (min-width: 900px) { .b-head { grid-template-columns: minmax(0, 1fr) 360px; align-items: end; } }
+  .kits { display: grid; gap: var(--s3); }
+  @media (min-width: 640px) { .kits { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1100px) { .kits { grid-template-columns: repeat(3, 1fr); } }
+  .kit { display: grid; gap: var(--s3); padding: var(--s3); border: 1px solid var(--line); background: var(--surface); text-align: left; color: inherit; }
+  .kit:hover, .kit.on { border-color: var(--fg); }
+  .kit h3 { font-size: var(--t-lg); }
+  .sw { display: flex; height: 44px; border: 1px solid var(--line); }
+  .sw i { flex: 1; }
+  .kit small { color: var(--fg-2); font-size: var(--t-xs); }
+  .kit-new { display: grid; place-content: center; gap: var(--s2); min-height: 160px; border: 1px dashed var(--line); background: transparent; color: var(--fg-2); text-align: center; }
+  .kit-new:hover { border-color: var(--fg); color: var(--fg); }
+
+  .ed { display: grid; gap: var(--s5); margin-top: var(--s5); }
+  @media (min-width: 1100px) { .ed { grid-template-columns: minmax(0, 1fr) 420px; align-items: start; } .ed-side { position: sticky; top: var(--s4); } }
+  .card { border: 1px solid var(--line); background: var(--surface); padding: var(--s4); display: grid; gap: var(--s3); }
+  .card > h3 { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); }
+  .card > h3 small { font: 400 var(--t-xs) var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .two { display: grid; gap: var(--s3); }
+  @media (min-width: 700px) { .two { grid-template-columns: 1fr 1fr; } }
+  textarea.input { min-height: 84px; padding-top: 10px; resize: vertical; font: inherit; }
+  .pal-row { display: grid; grid-template-columns: 44px 96px minmax(0, 1fr) 120px 32px; gap: var(--s2); align-items: center; }
+  .pal-row .use { grid-column: 2 / -1; }
+  .pal-row input[type=color] { width: 44px; height: 40px; padding: 0; border: 1px solid var(--line); background: none; }
+  .x { width: 32px; height: 32px; border: 1px solid var(--line); background: none; color: var(--fg-2); }
+  .x:hover { color: var(--fg); border-color: var(--fg); }
+  .url-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) minmax(0, .7fr) 32px; gap: var(--s2); align-items: center; }
+  .url-row .th { width: 56px; height: 40px; border: 1px solid var(--line); background: var(--bg) center / cover no-repeat; }
+  .add { justify-self: start; }
+  .pv { position: relative; aspect-ratio: 16 / 9; overflow: hidden; container-type: inline-size; border: 1px solid var(--line); background: #000; }
+  .pv .xw-media, .pv .xw { position: absolute; inset: 0; }
+  .pv .t { position: absolute; inset: 0; display: grid; place-content: center; gap: 1.2cqw; padding: 6cqw; text-align: center; }
+  .pv .t small { font-size: 2.2cqw; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+  .pv .t b { font-size: 6.4cqw; line-height: 1.02; font-weight: 700; letter-spacing: -.02em; }
+  .pv .t span { font-size: 2.6cqw; opacity: .85; }
+  .pv .t i { font-style: normal; }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
+  .used a { display: flex; justify-content: space-between; gap: var(--s3); padding: var(--s2) 0; border-top: 1px solid var(--line); font-size: var(--t-sm); }
+  .bar { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+  .note { font-size: var(--t-sm); color: var(--fg-2); }
+  .empty { padding: var(--s5); border: 1px dashed var(--line); color: var(--fg-2); }
+  .toast { position: fixed; left: 50%; bottom: 24px; z-index: 90; padding: var(--s3) var(--s4); background: var(--invert-bg); color: var(--invert-fg); font-size: var(--t-sm); opacity: 0; transform: translate(-50%, 8px); transition: opacity .2s, transform .2s; pointer-events: none; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body data-tab="marcas">
+<main class="app home">
+  <header class="b-head">
+    <h1 class="disp">Brand kits</h1>
+    <p class="muted">A identidade de cada ministério, evento ou série num lugar só: quem é, tom de voz, cores, fontes, logos, referências e o visual padrão dos slides. Decks, músicas e programas usam o kit, e o Claude (MCP) lê o kit antes de criar.</p>
+  </header>
+
+  <header class="sec-x"><span class="n">01</span><h2>Kits</h2><span class="lbl" id="count"></span></header>
+  <div class="kits" id="kits"></div>
+
+  <div id="editor"></div>
+</main>
+<script>
+(function () {
+  const C = window.XCLOUD && XCLOUD.on ? XCLOUD.client : null;
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const ROLES = [["primary", "Principal"], ["background", "Fundo"], ["text", "Texto"], ["accent", "Destaque"], ["support", "Apoio"]];
+  const SFONTS = [["grotesk", "Grotesk"], ["serif", "Serif"], ["condensed", "Condensed"], ["mono", "Mono"]];
+  const me = XL.people[UI.me()] || {};
+  const canEdit = !C || !["operator", "reader"].includes(me.role);
+  let kits = [], cur = null, dirty = false;
+  const toast = (m) => { const t = document.querySelector(".toast") || Object.assign(document.body.appendChild(document.createElement("div")), { className: "toast" }); t.textContent = m; t.classList.add("on"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("on"), 2600); };
+
+  async function load() {
+    if (!C) { kits = JSON.parse(localStorage.getItem("xlide.v2.brands") || "[]"); return; }
+    const { data, error } = await C.from("xlide_brands").select("id,title,doc,updated_at").order("updated_at", { ascending: false });
+    if (error) { toast("Não deu para ler os brand kits: " + error.message); kits = []; return; }
+    kits = (data || []).map((r) => ({ id: r.id, name: r.title, updated: r.updated_at, ...(r.doc || {}) }));
+  }
+  async function persist(k) {
+    const { id, name, updated, ...doc } = k;
+    if (!C) { const L = kits.filter((x) => x.id !== id); L.unshift(k); localStorage.setItem("xlide.v2.brands", JSON.stringify(L)); return; }
+    const { error } = await C.from("xlide_brands").upsert({ id, title: name || "Brand kit", doc, owner_id: XCLOUD.uid });
+    if (error) throw error;
+  }
+
+  /* fontes do kit no navegador (Google Fonts), para a prévia usar as letras de verdade */
+  const loaded = new Set();
+  function useFont(f) {
+    f = String(f || "").trim(); if (!f || loaded.has(f) || /^(grotesk|serif|mono|condensed)$/i.test(f)) return; loaded.add(f);
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(f).replace(/%20/g, "+")}:wght@400;600;700&display=swap`; document.head.append(l);
+  }
+  const hexOf = (k, role) => ((k.palette || []).find((c) => c.role === role) || {}).hex;
+
+  function card(k) {
+    const pal = (k.palette || []).slice(0, 8);
+    return `<button class="kit${cur && cur.id === k.id ? " on" : ""}" data-k="${esc(k.id)}"><div class="sw">${pal.map((c) => `<i style="background:${esc(c.hex)}" title="${esc(c.name)} ${esc(c.hex)}"></i>`).join("") || '<i style="background:var(--bg)"></i>'}</div>
+      <h3 style="font-family:'${esc(k.fonts?.heading || "")}', var(--font)">${esc(k.name)}</h3><small>${esc((k.about || "").slice(0, 110))}</small>
+      <small>${[k.fonts?.heading, k.fonts?.body].filter(Boolean).map(esc).join(" + ") || "Sem fontes"} · ${(k.references || []).length + (k.logos || []).length} referências</small></button>`;
+  }
+  function renderList() {
+    (kits || []).forEach((k) => { useFont(k.fonts?.heading); });
+    UI.qs("#count").textContent = `${kits.length} ${kits.length === 1 ? "kit" : "kits"}`;
+    UI.qs("#kits").innerHTML = (canEdit ? `<button class="kit-new" id="new">${UI.I.plus}<b>Novo brand kit</b><span class="note">Ministério, evento, série de sermões…</span></button>` : "") + kits.map(card).join("");
+    UI.qsa("[data-k]").forEach((b) => (b.onclick = () => open(b.dataset.k)));
+    UI.qs("#new") && (UI.qs("#new").onclick = () => { const k = { id: "br_" + Date.now().toString(36), name: "Novo kit", palette: [], fonts: {}, logos: [], references: [], images: [], rules: { do: [], dont: [] }, slides: { bg: "plain:tinta", font: "grotesk", tone: "dark" } }; kits.unshift(k); open(k.id, true); });
+  }
+
+  function open(id, isNew) {
+    if (dirty && !confirm("Há mudanças não salvas neste kit. Trocar mesmo assim?")) return;
+    cur = JSON.parse(JSON.stringify(kits.find((x) => x.id === id))); dirty = !!isNew;
+    const u = new URL(location.href); u.searchParams.set("b", id); history.replaceState(null, "", u);
+    renderList(); renderEditor(); UI.qs("#editor").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const urlRows = (key, label) => `<div class="card"><h3>${label}<small>${(cur[key] || []).length}</small></h3>
+    ${(cur[key] || []).map((x, i) => `<div class="url-row"><span class="th" style="background-image:url('${esc(x.url)}')"></span><input class="input" data-u="${key}:${i}:url" value="${esc(x.url)}" placeholder="https://" ${canEdit ? "" : "disabled"}><input class="input" data-u="${key}:${i}:note" value="${esc(x.note || "")}" placeholder="Nota (ex. versão branca)" ${canEdit ? "" : "disabled"}>${canEdit ? `<button class="x" data-del="${key}:${i}" aria-label="Tirar">×</button>` : ""}</div>`).join("") || `<p class="note">Nenhum ainda.</p>`}
+    ${canEdit ? `<button class="btn add" data-addurl="${key}">+ Adicionar link</button>` : ""}</div>`;
+
+  function preview() {
+    const k = cur, sl = k.slides || {}, accent = hexOf(k, "accent") || hexOf(k, "primary") || "#f5c26b";
+    const ink = sl.tone === "light" ? (hexOf(k, "background") && sl.bg?.startsWith("plain:papel") ? hexOf(k, "background") : "#161615") : hexOf(k, "text") || "#f7f6f3";
+    useFont(k.fonts?.heading); useFont(k.fonts?.body);
+    const back = window.XLOOK ? XLOOK.backdrop(sl.bg || "plain:tinta") : "";
+    return `<div class="pv">${back}<div class="t" style="color:${esc(ink)}"><small style="font-family:'${esc(k.fonts?.body || "")}',var(--font)">${esc(k.tagline || k.name)}</small><b style="font-family:'${esc(k.fonts?.heading || "")}',var(--font)">${esc(k.name)} <i style="color:${esc(accent)}">●</i></b><span style="font-family:'${esc(k.fonts?.body || "")}',var(--font)">${esc((k.about || "Quem é, em uma frase.").slice(0, 90))}</span></div></div>`;
+  }
+
+  async function usedBy() {
+    if (!C) return [];
+    const [d, p] = await Promise.all([
+      C.from("xlide_decks").select("id,title,kind").eq("doc->>brand_id", cur.id).limit(60),
+      C.from("xlide_programs").select("id,title").eq("doc->>brand_id", cur.id).limit(30),
+    ]);
+    return [...(d.data || []).map((x) => ({ ...x, href: x.kind === "song" ? `estudio.html?song=${x.id}` : `/p/${x.id}`, what: x.kind === "song" ? "Música" : "Deck" })), ...(p.data || []).map((x) => ({ ...x, href: `programa.html?p=${x.id}`, what: "Programa" }))];
+  }
+
+  function renderEditor() {
+    const k = cur, dis = canEdit ? "" : "disabled", sl = k.slides || (k.slides = {});
+    const boards = Object.entries(XL.boards || {});
+    const bgOpts = [["", "—"], ...(window.XLOOK ? [...XLOOK.PLAIN.map((p) => ["plain:" + p.id, "Plano · " + p.name]), ...XLOOK.WASHES.map((w) => ["wash:" + w.id, "Wash · " + w.name]), ...XLOOK.LOOPS.map((l) => ["loop:" + l.id, "Vídeo · " + l.name])] : [])];
+    if (sl.bg && !bgOpts.some(([v]) => v === sl.bg)) bgOpts.push([sl.bg, sl.bg]);
+    UI.qs("#editor").innerHTML = `
+    <header class="sec-x"><span class="n">02</span><h2>${esc(k.name)}</h2><span class="lbl">${canEdit ? (dirty ? "Não salvo" : "Salvo") : "Só ver"}</span></header>
+    <div class="ed">
+      <div class="stack">
+        <div class="card"><h3>Quem é</h3>
+          <div class="two"><label class="field"><span class="lbl">Nome</span><input class="input" data-f="name" value="${esc(k.name)}" ${dis}></label>
+          <label class="field"><span class="lbl">Frase / tagline</span><input class="input" data-f="tagline" value="${esc(k.tagline || "")}" placeholder="Ex.: Worship Young · último sábado do mês" ${dis}></label></div>
+          <label class="field"><span class="lbl">Sobre</span><textarea class="input" data-f="about" placeholder="O que é, para quem, quando acontece" ${dis}>${esc(k.about || "")}</textarea></label>
+          <div class="two"><label class="field"><span class="lbl">Público</span><input class="input" data-f="audience" value="${esc(k.audience || "")}" placeholder="Ex.: jovens 16–30, visitantes" ${dis}></label>
+          <label class="field"><span class="lbl">Tom de voz</span><input class="input" data-f="voice" value="${esc(k.voice || "")}" placeholder="Ex.: acolhedor, direto, jovem" ${dis}></label></div>
+        </div>
+
+        <div class="card"><h3>Paleta<small>${(k.palette || []).length} cores</small></h3>
+          ${(k.palette || []).map((c, i) => `<div class="pal-row"><input type="color" data-p="${i}:hex" value="${esc(c.hex)}" ${dis}><input class="input" data-p="${i}:hexT" value="${esc(c.hex)}" ${dis}><input class="input" data-p="${i}:name" value="${esc(c.name || "")}" placeholder="Nome (ex. Sol)" ${dis}>
+            <select class="select" data-p="${i}:role" ${dis}>${ROLES.map(([r, n]) => `<option value="${r}" ${c.role === r ? "selected" : ""}>${n}</option>`).join("")}</select>${canEdit ? `<button class="x" data-delp="${i}" aria-label="Tirar cor">×</button>` : "<span></span>"}
+            <input class="input use" data-p="${i}:use" value="${esc(c.use || "")}" placeholder="Onde usar (ex. fundo dos slides, só destaque)" ${dis}></div>`).join("") || `<p class="note">Sem cores ainda.</p>`}
+          ${canEdit ? `<button class="btn add" data-addp>+ Cor</button>` : ""}
+          <p class="note">Principal e Destaque viram a cor de destaque dos slides; Fundo e Texto definem o tom claro/escuro.</p>
+        </div>
+
+        <div class="card"><h3>Fontes</h3>
+          <div class="two"><label class="field"><span class="lbl">Títulos</span><input class="input" data-ff="heading" value="${esc(k.fonts?.heading || "")}" placeholder="Ex.: Lexend (Google Fonts)" ${dis}></label>
+          <label class="field"><span class="lbl">Texto</span><input class="input" data-ff="body" value="${esc(k.fonts?.body || "")}" placeholder="Ex.: Literata" ${dis}></label></div>
+          <label class="field"><span class="lbl">Notas de tipografia</span><input class="input" data-ff="notes" value="${esc(k.fonts?.notes || "")}" placeholder="Ex.: títulos em caixa-baixa, peso 600" ${dis}></label>
+          <p style="font:600 28px '${esc(k.fonts?.heading || "")}', var(--font)">${esc(k.name)} Aa</p><p style="font:400 16px '${esc(k.fonts?.body || "")}', var(--font)">Um texto de exemplo na fonte do corpo, para ver o par.</p>
+        </div>
+
+        ${urlRows("logos", "Logos")}
+        ${urlRows("references", "Referências")}
+        ${urlRows("images", "Imagens da marca")}
+
+        <div class="card"><h3>Regras</h3>
+          <div class="two"><label class="field"><span class="lbl">Fazer (uma por linha)</span><textarea class="input" data-r="do" ${dis}>${esc((k.rules?.do || []).join("\n"))}</textarea></label>
+          <label class="field"><span class="lbl">Evitar (uma por linha)</span><textarea class="input" data-r="dont" ${dis}>${esc((k.rules?.dont || []).join("\n"))}</textarea></label></div>
+          <label class="field"><span class="lbl">Notas</span><textarea class="input" data-f="notes" ${dis}>${esc(k.notes || "")}</textarea></label>
+          <label class="field"><span class="lbl">Board da marca (mapa e moodboard)</span><select class="select" data-f="board_id" ${dis}><option value="">—</option>${boards.map(([id, b]) => `<option value="${esc(id)}" ${k.board_id === id ? "selected" : ""}>${esc(b.title)}</option>`).join("")}</select></label>
+        </div>
+      </div>
+
+      <aside class="ed-side stack">
+        <div class="card"><h3>Slides com este kit</h3>
+          <div id="pv">${preview()}</div>
+          <label class="field"><span class="lbl">Fundo padrão</span><select class="select" data-s="bg" ${dis}>${bgOpts.map(([v, n]) => `<option value="${esc(v)}" ${sl.bg === v ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
+          <div class="two"><label class="field"><span class="lbl">Fonte do slide</span><select class="select" data-s="font" ${dis}>${SFONTS.map(([v, n]) => `<option value="${v}" ${sl.font === v ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+          <label class="field"><span class="lbl">Tom</span><select class="select" data-s="tone" ${dis}><option value="dark" ${sl.tone !== "light" ? "selected" : ""}>Escuro (texto claro)</option><option value="light" ${sl.tone === "light" ? "selected" : ""}>Claro (texto escuro)</option></select></label></div>
+          <p class="note">Decks e músicas criados com este kit saem com esse fundo, fonte e tom; as fontes do kit (títulos/texto) e a cor de destaque valem nos decks.</p>
+          ${canEdit ? `<div class="bar"><button class="btn primary" id="save">Salvar kit</button><button class="btn" id="copy">Copiar pedido para o Claude</button>${kits.some((x) => x.id === k.id && x.updated) ? `<button class="btn danger" id="del">Apagar</button>` : ""}</div>` : ""}
+        </div>
+        <div class="card used"><h3>Usado em<small id="used-n"></small></h3><div id="used"><p class="note">…</p></div>
+          <p class="note">Para aplicar: peça ao Claude “aplica o kit ${esc(k.name)} na pasta de músicas X / no deck Y / no programa de sábado” (apply_brand), ou crie já com o kit.</p></div>
+      </aside>
+    </div>`;
+    bind();
+    usedBy().then((L) => { const el = UI.qs("#used"); if (!el) return; UI.qs("#used-n").textContent = L.length || ""; el.innerHTML = L.map((x) => `<a href="${x.href}"><span>${esc(x.title || x.id)}</span><span class="lbl">${x.what}</span></a>`).join("") || `<p class="note">Nada usa este kit ainda.</p>`; });
+  }
+
+  function touch(rerender) { dirty = true; const l = UI.qs("#editor .sec-x .lbl"); if (l) l.textContent = "Não salvo"; UI.qs("#pv") && (UI.qs("#pv").innerHTML = preview()); if (rerender) renderEditor(); }
+  function bind() {
+    const ed = UI.qs("#editor");
+    UI.qsa("[data-f]", ed).forEach((el) => (el.oninput = el.onchange = () => { cur[el.dataset.f] = el.value; touch(); }));
+    UI.qsa("[data-ff]", ed).forEach((el) => (el.oninput = () => { cur.fonts = { ...(cur.fonts || {}), [el.dataset.ff]: el.value }; touch(); }));
+    UI.qsa("[data-ff]", ed).forEach((el) => (el.onchange = () => touch(true)));
+    UI.qsa("[data-r]", ed).forEach((el) => (el.oninput = () => { cur.rules = { ...(cur.rules || {}), [el.dataset.r]: el.value.split("\n").map((x) => x.trim()).filter(Boolean) }; touch(); }));
+    UI.qsa("[data-s]", ed).forEach((el) => (el.onchange = () => { cur.slides = { ...(cur.slides || {}), [el.dataset.s]: el.value || undefined }; touch(); }));
+    UI.qsa("[data-p]", ed).forEach((el) => (el.oninput = () => {
+      const [i, f] = el.dataset.p.split(":"), c = cur.palette[+i];
+      if (f === "hex") { c.hex = el.value.toUpperCase(); const t = ed.querySelector(`[data-p="${i}:hexT"]`); t && (t.value = c.hex); }
+      else if (f === "hexT") { if (/^#[0-9a-f]{6}$/i.test(el.value)) { c.hex = el.value.toUpperCase(); const p = ed.querySelector(`[data-p="${i}:hex"]`); p && (p.value = c.hex.toLowerCase()); } else return; }
+      else c[f] = el.value;
+      touch();
+    }));
+    UI.qsa("[data-delp]", ed).forEach((b) => (b.onclick = () => { cur.palette.splice(+b.dataset.delp, 1); touch(true); }));
+    UI.qs("[data-addp]", ed) && (UI.qs("[data-addp]", ed).onclick = () => { (cur.palette ||= []).push({ hex: "#888888", name: "", role: cur.palette.length ? "support" : "primary" }); touch(true); });
+    UI.qsa("[data-u]", ed).forEach((el) => (el.oninput = () => { const [k, i, f] = el.dataset.u.split(":"); cur[k][+i][f] = el.value; touch(); }));
+    UI.qsa("[data-u$=':url']", ed).forEach((el) => (el.onchange = () => touch(true)));
+    UI.qsa("[data-del]", ed).forEach((b) => (b.onclick = () => { const [k, i] = b.dataset.del.split(":"); cur[k].splice(+i, 1); touch(true); }));
+    UI.qsa("[data-addurl]", ed).forEach((b) => (b.onclick = () => { (cur[b.dataset.addurl] ||= []).push({ url: "", note: "" }); touch(true); }));
+    UI.qs("#save") && (UI.qs("#save").onclick = save);
+    UI.qs("#copy") && (UI.qs("#copy").onclick = () => { navigator.clipboard?.writeText(`Use o brand kit "${cur.name}" do XLIDE (get_brand) para criar: `); toast("Pedido copiado. Cole no Claude e diga o que criar."); });
+    UI.qs("#del") && (UI.qs("#del").onclick = async () => {
+      if (!confirm(`Apagar o kit “${cur.name}”? Decks e músicas continuam com as cores que já têm.`)) return;
+      try { if (C) { const { error } = await C.from("xlide_brands").delete().eq("id", cur.id); if (error) throw error; } kits = kits.filter((x) => x.id !== cur.id); cur = null; dirty = false; UI.qs("#editor").innerHTML = ""; renderList(); toast("Kit apagado."); }
+      catch (e) { toast("Não apagou: " + e.message); }
+    });
+  }
+  async function save() {
+    const k = cur;
+    k.name = String(k.name || "").trim() || "Brand kit";
+    for (const key of ["logos", "references", "images"]) k[key] = (k[key] || []).filter((x) => /^https?:\/\//.test(x.url || ""));
+    k.palette = (k.palette || []).filter((c) => /^#[0-9A-F]{6}$/i.test(c.hex));
+    try {
+      await persist(k); dirty = false; k.updated = new Date().toISOString();
+      const i = kits.findIndex((x) => x.id === k.id); if (i >= 0) kits[i] = JSON.parse(JSON.stringify(k)); else kits.unshift(JSON.parse(JSON.stringify(k)));
+      renderList(); renderEditor(); toast("Kit salvo. O Claude já usa esta versão.");
+    } catch (e) { toast("Não salvou: " + (e.message || e)); }
+  }
+  addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+  load().then(() => {
+    renderList();
+    const want = new URLSearchParams(location.search).get("b");
+    if (want && kits.some((x) => x.id === want)) open(want);
+    else if (!kits.length) UI.qs("#editor").innerHTML = `<p class="empty" style="margin-top:var(--s5)">Nenhum brand kit ainda. Crie o primeiro, ou peça ao Claude: “cria o brand kit do Cafofo com estas cores e fontes”.</p>`;
+  });
+})();
+</script>
+</body>
+</html>

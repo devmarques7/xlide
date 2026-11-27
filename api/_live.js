@@ -25,6 +25,38 @@ async function saveDeck(d) { d.updatedAt = Date.now(); await upsert("xlide_decks
 async function loadProg(id) { const r = await getRow("xlide_programs", id); return { ...r, doc: r.doc || {} }; }
 async function saveProg(p) { const { created_at, updated_at, ...row } = p; await upsert("xlide_programs", row); return p; }
 
+/* ── brand kits (xlide_brands): a identidade de um ministério, evento ou série, reusada em tudo ── */
+async function findBrand(ref) {
+  if (!ref) throw new Error("Diga qual brand kit (brand_id ou o nome, ex. Cafofo).");
+  const byId = await rest(`xlide_brands?select=*&id=eq.${enc(ref)}`);
+  if (byId[0]) return byId[0];
+  const byName = await rest(`xlide_brands?select=*&title=ilike.*${enc(String(ref).trim())}*&order=updated_at.desc&limit=1`);
+  if (byName[0]) return byName[0];
+  throw new Error(`Brand kit não encontrado: ${ref}. Veja list_brands.`);
+}
+const brandOut = (r) => ({ id: r.id, name: r.title, ...r.doc, updated_at: r.updated_at });
+/* identidade de deck a partir do kit (mesmos campos de set_deck_identity) */
+function identityFromBrand(b, keepBoard) {
+  const refs = [...(b.logos || []).map((x) => ({ url: x.url, note: "Logo" + (x.note ? " · " + x.note : "") })), ...(b.references || []), ...(b.images || []).map((x) => ({ url: x.url, note: x.note || "Imagem da marca" }))].filter((x) => x && x.url);
+  const rules = [b.voice && "Tom de voz: " + b.voice, b.rules?.do?.length && "Fazer: " + b.rules.do.join("; "), b.rules?.dont?.length && "Evitar: " + b.rules.dont.join("; ")].filter(Boolean).join("\n");
+  return { palette: (b.palette || []).map((c) => ({ hex: c.hex, name: c.name, role: ROLES.includes(c.role) ? c.role : "support" })), fonts: b.fonts ? { heading: b.fonts.heading, body: b.fonts.body } : undefined,
+    references: refs.slice(0, 24), mood: b.about || b.voice || undefined, notes: rules || undefined, board: b.board_id || keepBoard, brand_id: b.id, apply: true };
+}
+/* aplica o kit num deck: identidade + (opcional) fundo/fonte/tom padrão em todos os slides */
+function brandDeck(d, b, restyle) {
+  const keep = d.identity && d.identity.board;
+  d.identity = { ...(d.identity || {}), ...Object.fromEntries(Object.entries(identityFromBrand(b, keep)).filter(([, v]) => v !== undefined)) };
+  d.brand_id = b.id;
+  applyIdentity(d);
+  const sl = b.slides || {};
+  // restyle: true = todos os slides; "fill" = só os que não trouxeram fundo/fonte próprios
+  const fill = restyle === "fill";
+  if (restyle) d.slides.forEach((x) => { if (sl.bg && !x.image && !(fill && x.bg)) x.bg = sl.bg; if (sl.font && !(fill && x.font)) x.font = sl.font; if (sl.tone && !(fill && x.tone)) x.tone = sl.tone; });
+  return d;
+}
+const brandOf = async (ref) => { const r = await findBrand(ref); return { id: r.id, name: r.title, ...r.doc }; };
+const BRAND_GUIDE = "Use o kit em tudo o que criar: fundo e fonte dos slides (slides.bg / slides.font / slides.tone), a cor accent só para destaque, o tom de voz nos textos, as regras (rules.do / rules.dont) e só imagens das references/images (URLs reais). Ao criar deck, música ou programa, passe brand_id.";
+
 /* ── textos multilíngues (LText: string ou { pt, en, nl }) ── */
 const txt = (v, l = "pt") => (v == null ? "" : typeof v === "string" ? v : v[l] ?? Object.values(v).find(Boolean) ?? "");
 const setText = (v, l, text) => (v == null || typeof v === "string" ? (v && l !== "pt" ? { pt: v, [l]: text } : { [l]: text }) : { ...v, [l]: text });
@@ -119,10 +151,22 @@ const slideProps = { bg: { type: "string", description: "Fundo: wash:<ember|ambe
 const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media (o vídeo toca no projetor)" }, mute: { type: "boolean", description: "Só para vídeo (item media): true = toca SEM o áudio original do vídeo; o som da tela vem de `track` (a trilha que a pessoa escolheu). false volta o áudio do vídeo." }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela (toca no computador do console → mesa de som): off, mix1, mix2, ou link/id do YouTube de uma faixa. Com mute: true, é ela que toca por cima do vídeo sem som." }, track_volume: { type: "number" } };
 
 export const LIVE_TOOLS = [
+  { name: "list_brands", description: "Lista os brand kits (identidade de um ministério, evento ou série, ex. Cafofo): nome, sobre, cores e fontes. Quando a pessoa citar um ministério/evento, procure o kit dele aqui antes de criar.", inputSchema: S({}) },
+  { name: "get_brand", description: "Lê um brand kit inteiro (por id ou nome): sobre, público, tom de voz, paleta com o uso de cada cor, fontes, logos, referências, imagens, regras (fazer/evitar) e o visual padrão dos slides (bg, font, tone). Leia antes de criar deck, música ou programa para aquele ministério.", inputSchema: S({ brand_id: { type: "string" }, name: { type: "string" } }) },
+  { name: "save_brand", description: "Cria (sem brand_id) ou atualiza um brand kit. Só os campos enviados mudam; listas enviadas substituem as antigas. Nunca invente cores, fontes, logos ou URLs: use o que a pessoa deu ou o que veio de uma fonte (outro app, site da marca).", inputSchema: S({
+    brand_id: { type: "string" }, name: { type: "string" }, about: { type: "string", description: "Quem é / o que é" }, audience: { type: "string" }, voice: { type: "string", description: "Tom de voz" }, tagline: { type: "string" },
+    palette: { type: "array", items: S({ hex: { type: "string" }, name: { type: "string" }, role: { type: "string", enum: ROLES }, use: { type: "string", description: "Onde usar (ex. fundo dos slides, destaque)" } }, ["hex"]) },
+    fonts: S({ heading: { type: "string" }, body: { type: "string" }, accent: { type: "string" }, notes: { type: "string" } }),
+    logos: { type: "array", items: S({ url: { type: "string" }, note: { type: "string" } }, ["url"]) }, references: { type: "array", items: S({ url: { type: "string" }, note: { type: "string" } }, ["url"]) }, images: { type: "array", items: S({ url: { type: "string" }, note: { type: "string" } }, ["url"]) },
+    rules: S({ do: { type: "array", items: { type: "string" } }, dont: { type: "array", items: { type: "string" } } }),
+    slides: S({ bg: { type: "string", description: "Fundo padrão: wash:<ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold>, plain:<papel|tinta|grade|coluna|sabado|brasa>, loop:<id YouTube> ou URL de imagem" }, font: { type: "string", enum: ["grotesk", "serif", "condensed", "mono"] }, tone: { type: "string", enum: ["dark", "light"] } }),
+    board_id: { type: "string", description: "Board com o moodboard/mapa da marca" }, links: { type: "object" }, notes: { type: "string" } }) },
+  { name: "apply_brand", description: "Aplica um brand kit: em decks/músicas (deck_id, deck_ids ou uma pasta de músicas inteira com folder) grava a identidade (cores, fontes, referências) e, com restyle (padrão), o fundo/fonte/tom do kit em todos os slides; num programa (program_id) liga o kit e põe o fundo/fonte do kit nos itens que não são música nem vídeo.", inputSchema: S({ brand_id: { type: "string" }, name: { type: "string" }, deck_id: { type: "string" }, deck_ids: { type: "array", items: { type: "string" } }, folder: { type: "string" }, program_id: { type: "string" }, restyle: { type: "boolean" } }) },
   { name: "list_decks", description: "Lista os decks e músicas do XLIDE (id, título, línguas, nº de slides, pasta, tom). Filtros: texto no título, tipo (deck ou song) e pasta de músicas (folder, ex. \"Cafofo\"). Devolve também as pastas que existem.", inputSchema: S({ query: { type: "string" }, kind: { type: "string", enum: ["deck", "song"] }, folder: { type: "string" } }) },
+  { name: "retime_song", description: "Acerta os tempos da letra de uma música que já existe, para os slides seguirem a música ao dar play (mesmo id, pasta e visual). Usa o vídeo da música ou outro youtube_url (o áudio que vai tocar passa a ser esse). offset (segundos, + atrasa, − adianta) corrige um deslocamento fixo.", inputSchema: S({ deck_id: { type: "string" }, youtube_url: { type: "string" }, offset: { type: "number" } }, ["deck_id"]) },
   { name: "update_song", description: "Ajusta uma música já criada: pasta (folder, Biblioteca → Músicas; \"\" tira da pasta), tom (key, ex. \"C\", \"A\"), notas para a banda (notes, ex. \"Am · G · F\"), título, e o look da letra em todos os slides (bg, font, tone).", inputSchema: S({ deck_id: { type: "string" }, folder: { type: "string" }, key: { type: "string" }, notes: { type: "string" }, title: { type: "string" }, bg: { type: "string" }, font: { type: "string", enum: ["grotesk", "serif", "condensed", "mono"] }, tone: { type: "string", enum: ["dark", "light"] } }, ["deck_id"]) },
   { name: "get_deck", description: "Lê um deck: cada slide com posição, id, layout e textos na língua pedida.", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS } }, ["deck_id"]) },
-  { name: "create_deck", description: "Cria um deck inteiro em uma chamada (título, línguas e todos os slides). Textos na língua `lang`; depois use add_translations para as outras. Pode já levar a identidade (mesmos campos de set_deck_identity).", inputSchema: S({ title: { type: "string" }, lang: { type: "string", enum: LANGS }, languages: { type: "array", items: { type: "string", enum: LANGS } }, slides: { type: "array", items: S(slideProps) }, identity: { type: "object", description: "palette, fonts, references, mood, notes, board_id" } }, ["title", "slides"]) },
+  { name: "create_deck", description: "Cria um deck inteiro em uma chamada (título, línguas e todos os slides). Textos na língua `lang`; depois use add_translations para as outras. Pode já levar a identidade (mesmos campos de set_deck_identity).", inputSchema: S({ brand_id: { type: "string", description: "Brand kit (id ou nome, ex. Cafofo): aplica cores, fontes e o visual padrão dos slides. Veja list_brands." }, title: { type: "string" }, lang: { type: "string", enum: LANGS }, languages: { type: "array", items: { type: "string", enum: LANGS } }, slides: { type: "array", items: S(slideProps) }, identity: { type: "object", description: "palette, fonts, references, mood, notes, board_id" } }, ["title", "slides"]) },
   { name: "get_deck_identity", description: "Lê a identidade de um deck (cores, tipografia, referências, tom, regras), o board ligado (mapa mental + moodboard) e os pedidos abertos para a IA. Leia antes de criar ou melhorar slides do deck.", inputSchema: S({ deck_id: { type: "string" } }, ["deck_id"]) },
   { name: "set_deck_identity", description: "Grava a identidade do deck (só os campos enviados): palette [{hex, name, role: primary|background|text|accent|support}], fonts {heading, body} (Google Fonts/Fontshare), references [{url, note}], mood, notes, board_id, apply. Com apply (padrão), a cor principal vira o destaque e as fontes valem nos slides.", inputSchema: S({ deck_id: { type: "string" }, palette: { type: "array", items: S({ hex: { type: "string" }, name: { type: "string" }, role: { type: "string", enum: ROLES } }, ["hex"]) }, fonts: S({ heading: { type: "string" }, body: { type: "string" } }), references: { type: "array", items: S({ url: { type: "string" }, note: { type: "string" } }, ["url"]) }, mood: { type: "string" }, notes: { type: "string" }, board_id: { type: "string" }, apply: { type: "boolean" } }, ["deck_id"]) },
   { name: "list_ai_requests", description: "Pedidos abertos para a IA feitos no editor (deck inteiro ou um slide), com o texto do pedido. Sem deck_id, lista de todos os decks.", inputSchema: S({ deck_id: { type: "string" }, include_done: { type: "boolean" } }) },
@@ -133,7 +177,7 @@ export const LIVE_TOOLS = [
   { name: "remove_slides", description: "Remove slides (ids ou posições).", inputSchema: S({ deck_id: { type: "string" }, slides: { type: "array", items: { type: ["string", "number"] } } }, ["deck_id", "slides"]) },
   { name: "missing_translations", description: "Lista os textos de um deck que ainda não têm a língua `lang`, com o texto de origem para traduzir.", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS }, from: { type: "string", enum: LANGS } }, ["deck_id", "lang"]) },
   { name: "add_translations", description: "Grava traduções de uma vez (slide + campo + texto) e acrescenta a língua ao deck. Use depois de missing_translations.", inputSchema: S({ deck_id: { type: "string" }, lang: { type: "string", enum: LANGS }, title: { type: "string", description: "Título do deck nessa língua" }, items: { type: "array", items: S({ slide: { type: ["string", "number"] }, field: { type: "string", enum: TEXT_FIELDS }, text: { type: "string" } }, ["slide", "field", "text"]) } }, ["deck_id", "lang", "items"]) },
-  { name: "create_song", description: "Cria uma música (deck de letra) como no editor de música: do link do YouTube (letra e tempos das legendas) e/ou da letra colada ([Verso], [Refrão] marcam seções; linha em branco separa slides). Pode traduzir para outra língua. Já pode entrar numa pasta de músicas (folder, ex. \"Cafofo\") com o tom (key) e notas para a banda (notes).", inputSchema: S({ title: { type: "string" }, artist: { type: "string" }, youtube_url: { type: "string" }, lyrics: { type: "string" }, folder: { type: "string", description: "Pasta em Biblioteca → Músicas (nome livre; cria a pasta se não existir)" }, key: { type: "string", description: "Tom, ex. C, A, Am" }, notes: { type: "string", description: "Notas/acordes para a banda, ex. Am · G · F" }, lang: { type: "string", enum: LANGS }, translate_to: { type: "string", enum: LANGS }, lines_per_slide: { type: "number" }, bg: { type: "string" }, font: { type: "string", enum: ["grotesk", "serif", "condensed", "mono"] } }) },
+  { name: "create_song", description: "Cria uma música (deck de letra) como no editor de música: do link do YouTube (letra e tempos das legendas) e/ou da letra colada ([Verso], [Refrão] marcam seções; linha em branco separa slides). Pode traduzir para outra língua. Já pode entrar numa pasta de músicas (folder, ex. \"Cafofo\") com o tom (key) e notas para a banda (notes).", inputSchema: S({ brand_id: { type: "string", description: "Brand kit (id ou nome, ex. Cafofo): aplica cores, fontes e o visual padrão dos slides. Veja list_brands." }, title: { type: "string" }, artist: { type: "string" }, youtube_url: { type: "string" }, lyrics: { type: "string" }, folder: { type: "string", description: "Pasta em Biblioteca → Músicas (nome livre; cria a pasta se não existir)" }, key: { type: "string", description: "Tom, ex. C, A, Am" }, notes: { type: "string", description: "Notas/acordes para a banda, ex. Am · G · F" }, lang: { type: "string", enum: LANGS }, translate_to: { type: "string", enum: LANGS }, lines_per_slide: { type: "number" }, bg: { type: "string" }, font: { type: "string", enum: ["grotesk", "serif", "condensed", "mono"] } }) },
   { name: "deck_links", description: "Links de um deck: editar, apresentar, tocar (música), controle remoto e a página do público.", inputSchema: S({ deck_id: { type: "string" } }, ["deck_id"]) },
   { name: "list_files", description: "Meus arquivos: lista por pasta (avisos, pregacao, inicio, oracao, versiculo) e estado (ativo, padrao, arquivado, lixeira).", inputSchema: S({ folder: { type: "string", enum: FOLDERS }, status: { type: "string", enum: FILE_STATUS } }) },
   { name: "save_file", description: "Cria ou atualiza um arquivo em Meus arquivos (ligado a um deck).", inputSchema: S({ id: { type: "string" }, name: { type: "string" }, folder: { type: "string", enum: FOLDERS }, deck_id: { type: "string" }, starred: { type: "boolean" } }, ["name"]) },
@@ -141,7 +185,7 @@ export const LIVE_TOOLS = [
   { name: "set_program_settings", description: "Ajustes do programa para o ao vivo: transição entre telas (fade padrão, corte, slide, sobrepor) e piloto automático.", inputSchema: S({ program_id: { type: "string" }, transition: { type: "string", enum: TRANSITIONS }, autopilot: { type: "boolean" } }, ["program_id"]) },
   { name: "list_programs", description: "Lista os programas do culto (Programa Estúdio) com estado: rascunho, salvo, feito, arquivado, lixeira.", inputSchema: S({ status: { type: "string", enum: PROG_STATUS } }) },
   { name: "get_program", description: "Lê um programa com todos os itens na ordem (horário de cada um calculado).", inputSchema: S({ program_id: { type: "string" } }, ["program_id"]) },
-  { name: "create_program", description: "Cria um programa inteiro (rascunho) com todos os itens em ordem. Itens podem apontar para decks (deck_id), músicas (song_id) ou links de vídeo/áudio (media). Vídeo do YouTube sem o áudio original e com outra trilha: type media + media (link do vídeo) + mute: true + track (link da trilha) + track_volume (0–100; com o vídeo mudo use 60–80).", inputSchema: S({ title: { type: "string" }, date: { type: "string", description: "AAAA-MM-DD" }, starts: { type: "string", description: "HH:MM" }, target_min: { type: "number" }, items: { type: "array", items: S(itemProps, ["type", "title"]) } }, ["title", "items"]) },
+  { name: "create_program", description: "Cria um programa inteiro (rascunho) com todos os itens em ordem. Itens podem apontar para decks (deck_id), músicas (song_id) ou links de vídeo/áudio (media). Vídeo do YouTube sem o áudio original e com outra trilha: type media + media (link do vídeo) + mute: true + track (link da trilha) + track_volume (0–100; com o vídeo mudo use 60–80).", inputSchema: S({ brand_id: { type: "string", description: "Brand kit (id ou nome, ex. Cafofo): aplica cores, fontes e o visual padrão dos slides. Veja list_brands." }, title: { type: "string" }, date: { type: "string", description: "AAAA-MM-DD" }, starts: { type: "string", description: "HH:MM" }, target_min: { type: "number" }, items: { type: "array", items: S(itemProps, ["type", "title"]) } }, ["title", "items"]) },
   { name: "add_program_items", description: "Acrescenta itens a um programa (no fim ou depois da posição `after`).", inputSchema: S({ program_id: { type: "string" }, after: { type: "number" }, items: { type: "array", items: S(itemProps, ["type", "title"]) } }, ["program_id", "items"]) },
   { name: "update_program_item", description: "Edita um item do programa (id ou posição): título, tipo, minutos, texto, responsável, deck, música, mídia, avanço, público, oculto, mute (tirar/voltar o áudio original do vídeo) e track/track_volume (a trilha que toca nesta tela).", inputSchema: S({ program_id: { type: "string" }, item: { type: ["string", "number"] }, hidden: { type: "boolean" }, ...itemProps }, ["program_id", "item"]) },
   { name: "move_program_item", description: "Muda um item de posição (os horários seguintes se recalculam).", inputSchema: S({ program_id: { type: "string" }, item: { type: ["string", "number"] }, to: { type: "number" } }, ["program_id", "item", "to"]) },
@@ -159,6 +203,48 @@ export async function callLiveTool(name, a = {}, origin = "") {
   if (!hasSupabase && name !== "read_skill") throw new Error("Supabase não configurado (SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY). As ferramentas de decks, programas e auditoria precisam dele.");
   const lang = LANGS.includes(a.lang) ? a.lang : "pt";
   switch (name) {
+    case "list_brands": {
+      const rows = await rest(`xlide_brands?select=id,title,doc,updated_at&order=updated_at.desc&limit=100`);
+      return { brands: rows.map((r) => ({ id: r.id, name: r.title, about: r.doc?.about ? String(r.doc.about).slice(0, 160) : undefined, colors: (r.doc?.palette || []).map((c) => c.hex), fonts: r.doc?.fonts, updated_at: r.updated_at })) };
+    }
+    case "get_brand": {
+      const r = await findBrand(a.brand_id || a.name);
+      const used = await rest(`xlide_decks?select=id,title,kind&doc->>brand_id=eq.${enc(r.id)}&limit=100`).catch(() => []);
+      return { ...brandOut(r), used_by: used, how_to_use: BRAND_GUIDE };
+    }
+    case "save_brand": {
+      // cria ou atualiza (só os campos enviados); listas enviadas substituem as antigas
+      let row = null;
+      if (a.brand_id) row = await findBrand(a.brand_id);
+      const doc = { ...(row?.doc || {}) };
+      for (const k of ["about", "audience", "voice", "tagline", "notes", "board_id", "links"]) if (a[k] !== undefined) doc[k] = a[k];
+      if (a.palette) doc.palette = a.palette.map((c) => ({ hex: String(c.hex || "").toUpperCase(), name: c.name || "", role: ROLES.includes(c.role) ? c.role : "support", ...(c.use ? { use: c.use } : {}) })).filter((c) => /^#[0-9A-F]{6}$/.test(c.hex));
+      if (a.fonts) doc.fonts = { ...(doc.fonts || {}), ...a.fonts };
+      for (const k of ["logos", "references", "images"]) if (a[k]) doc[k] = a[k].filter((x) => x && /^https?:\/\//.test(x.url || ""));
+      if (a.rules) doc.rules = { ...(doc.rules || {}), ...a.rules };
+      if (a.slides) doc.slides = { ...(doc.slides || {}), ...a.slides };
+      const id = row?.id || rid("br_"), name = a.name || row?.title || "Brand kit";
+      await upsert("xlide_brands", { id, title: name, doc, ...(row ? {} : { source: "mcp" }) });
+      return { ...brandOut({ id, title: name, doc }), link: `${origin || ""}/v2/marcas.html?b=${id}` };
+    }
+    case "apply_brand": {
+      const r = await findBrand(a.brand_id || a.name), b = { id: r.id, name: r.title, ...r.doc };
+      const out = { brand: r.title, decks: [], programs: [] };
+      for (const id of [a.deck_id, ...(a.deck_ids || [])].filter(Boolean)) {
+        const d = brandDeck(await loadDeck(id), b, a.restyle !== false); await saveDeck(d); out.decks.push({ id, title: txt(d.title, d.defaultLanguage) });
+      }
+      if (a.folder) {
+        const rows = await rest(`xlide_decks?select=doc&limit=200`);
+        for (const row of rows) { const d = row.doc; if (d && String(d.folder || "").toLowerCase() === String(a.folder).toLowerCase()) { brandDeck(d, b, a.restyle !== false); await saveDeck(d); out.decks.push({ id: d.id, title: txt(d.title, d.defaultLanguage) }); } }
+      }
+      if (a.program_id) {
+        const p = await loadProg(a.program_id); p.doc.brand_id = b.id;
+        const sl = b.slides || {};
+        if (a.restyle !== false) (p.doc.items || []).forEach((it) => { if (["song", "media"].includes(it.type)) return; if (sl.bg) it.bg = sl.bg; if (sl.font) it.font = sl.font; });
+        await saveProg(p); out.programs.push({ id: p.id, title: p.title });
+      }
+      return out;
+    }
     case "list_decks": {
       const rows = await rest(`xlide_decks?select=doc&order=updated_at.desc&limit=200${a.query ? `&title=ilike.*${enc(a.query)}*` : ""}${a.kind ? `&kind=eq.${a.kind}` : ""}`);
       const f = a.folder && folderName(a.folder).toLowerCase();
@@ -201,6 +287,7 @@ export async function callLiveTool(name, a = {}, origin = "") {
       const d = { id: rid("p_"), title: { [lang]: String(a.title) }, languages, defaultLanguage: lang, template: "editorial", slides: (a.slides || []).map((s) => cleanSlide(s, lang)), createdAt: now, updatedAt: now };
       if (!d.slides.length) throw new Error("Mande pelo menos um slide.");
       if (a.identity) { d.identity = cleanIdentity(a.identity, { apply: true }); applyIdentity(d); }
+      if (a.brand_id) brandDeck(d, await brandOf(a.brand_id), "fill");
       await saveDeck(d); return { ...deckSummary(d), slides: slideOutline(d, lang) };
     }
     case "add_slides": {
@@ -248,6 +335,7 @@ export async function callLiveTool(name, a = {}, origin = "") {
     }
     case "create_program": {
       const p = { id: rid("pg_"), title: String(a.title), service_date: a.date || null, starts_at: a.starts || "10:00", target_min: a.target_min || null, status: "rascunho", is_live: false, doc: { items: (a.items || []).map(cleanItem), archived: [], trash: [] } };
+      if (a.brand_id) { const b = await brandOf(a.brand_id), sl = b.slides || {}; p.doc.brand_id = b.id; p.doc.items.forEach((it) => { if (["song", "media"].includes(it.type)) return; if (sl.bg && !it.bg) it.bg = sl.bg; if (sl.font && !it.font) it.font = sl.font; }); }
       await saveProg(p); return progSummary(p);
     }
     case "add_program_items": {
@@ -332,9 +420,28 @@ export async function callLiveTool(name, a = {}, origin = "") {
         { id: rid("s_"), layout: "lyrics", tone: "dark", title: "", bg, font }];
       const d = { id: rid("p_"), title: { [lang]: title || "Música" }, languages: langs, defaultLanguage: lang, template: "editorial", slides, music: video ? { video, sections: true } : undefined, createdAt: now, updatedAt: now,
         ...(a.folder ? { folder: folderName(a.folder) } : {}), ...(a.key ? { key: String(a.key).slice(0, 20) } : {}), ...(a.notes ? { notes: String(a.notes).slice(0, 300) } : {}) };
+      if (a.brand_id) brandDeck(d, await brandOf(a.brand_id), a.bg ? false : true);
       await saveDeck(d);
       const dur = times ? Math.round((times.filter((x) => x != null).pop() || 0) + 20) : null;
       return { ...deckSummary(d), video, timed: !!times, timing, matched, seconds: dur, translated: !!trans, slides: slideOutline(d, lang) };
+    }
+    case "retime_song": {
+      // acerta os tempos da letra de uma música que já existe (mesmo id, pasta e visual):
+      // alinha cada slide nas palavras do vídeo (legendas) ou na letra sincronizada (LRCLIB)
+      const d = await loadDeck(a.deck_id), L = d.defaultLanguage || lang;
+      const vid = a.youtube_url || (d.music && d.music.video ? `https://www.youtube.com/watch?v=${d.music.video}` : null);
+      if (!vid) throw new Error("Esta música não tem vídeo. Mande youtube_url.");
+      const body = d.slides.map((x, k) => ({ x, k })).filter(({ x, k }) => x.layout === "lyrics" && k > 0 && txt(x.title, L).trim());
+      const lines = [], i0 = [];
+      body.forEach(({ x }) => { i0.push(lines.length); lines.push(...txt(x.title, L).split("\n"), ""); });
+      const r = await getLyrics(vid, L, { lines });
+      if (!r.times) throw new Error(`Não achei os tempos desta música (${r.error || "sem legenda e sem letra sincronizada"}). Tente outro youtube_url (vídeo oficial com letra).`);
+      const off = Number(a.offset) || 0;
+      let set = 0;
+      body.forEach(({ x }, j) => { const t = r.times[i0[j]]; if (t != null) { x.at = Math.max(0, Math.round((t + off) * 100) / 100); set++; } else delete x.at; });
+      if (r.id) d.music = { ...(d.music || {}), video: r.id, sections: true };
+      await saveDeck(d);
+      return { ...deckSummary(d), video: r.id, timing: r.timing, matched: r.matched, slides_timed: set, slides: body.length };
     }
     case "update_song": {
       const d = await loadDeck(a.deck_id);
@@ -388,6 +495,7 @@ function adminOnly() {
 
 export const LIVE_INSTRUCTIONS =
   " Você é o especialista do XLIDE: designer de decks, criador de programas de culto e guia de todas as rotas. Antes da primeira tarefa, chame read_skill uma vez e siga a skill (regras de design, fluxo do programa, rotas). " +
+  "Brand kits: quando a pessoa citar um ministério, evento ou série (ex. Cafofo), chame list_brands e get_brand ANTES de criar, e passe brand_id em create_deck / create_song / create_program (ou apply_brand depois) para cores, fontes e fundo dos slides saírem iguais em tudo. Novo kit: save_brand (só com dados reais). " +
   "XLIDE: também cria e edita decks e slides (create_deck com todos os slides de uma vez; update_slide para cada slide; textos por língua pt/en/nl), " +
   "com identidade por deck: antes de montar ou melhorar slides, leia get_deck_identity (cores, tipografia, referências, tom e o board ligado) e siga-a; pedidos feitos no editor aparecem em list_ai_requests e se fecham com resolve_ai_request; para definir a identidade use set_deck_identity. " +
   "replica para outras línguas (missing_translations → traduza → add_translations), monta programas do culto (create_program com todos os itens; add_program_items, update_program_item, move_program_item, set_program_status, duplicate_program) " +

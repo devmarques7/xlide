@@ -70,7 +70,7 @@
     { g: "Slides", d: "O que vai para a tela", items: [["decks", "biblioteca.html?tab=decks", "Decks", "slides", "decks"], ["painel", "/slides", "Painel de slides", "grid"], ["songs", "biblioteca.html?tab=songs", "Músicas", "music", "songs"], ["tpl", "biblioteca.html?tab=tpl", "Modelos", "doc"], ["identidade", "/identity", "Identidade", "palette"]] },
     { g: "Estúdio", d: "Visual e testes", items: [["kit", "kit.html", "Fundos e fontes", "palette"], ["testar", "kit.html#testar", "Testar um slide", "spark"], ["avisos", "kit.html#avisos", "Fundos de avisos", "present"], ["editor", "estudio.html", "Editor de música", "wave"], ["xmusic", "/music", "Importar música", "music"]] },
     { g: "Culto", d: "O sábado", items: [["agenda", "agenda.html", "Agenda", "cal"], ["programa", "programa.html", "Programas", "list"], ["console", "console.html", "Ao vivo", "live"], ["tela", "tela.html", "Tela do projetor", "screen"], ["relatorio", "relatorio.html", "Relatório", "clock"]] },
-    { g: "Ideias", d: "Antes dos slides", items: [["boards", "boards.html", "Boards", "board"]] },
+    { g: "Ideias", d: "Antes dos slides", items: [["boards", "boards.html", "Boards", "board"], ["marcas", "marcas.html", "Brand kits", "palette"]] },
     { g: "Equipe", items: [["equipe", "equipe.html", "Equipe e acesso", "team"], ["config", "/settings", "Configurações", "gear"]] },
   ];
   // Celular: 6 atalhos + Criar no meio; o resto mora no Menu.

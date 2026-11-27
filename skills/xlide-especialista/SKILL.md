@@ -15,6 +15,8 @@ O contexto completo (rotas, modelo de dados, layouts, fundos, papéis) está em 
 
 ## Regras de ouro
 
+- **Brand kit primeiro.** Se a pessoa citar um ministério, evento ou série (ex. "Cafofo"), chame `list_brands` → `get_brand` antes de criar, e passe `brand_id` em `create_deck`, `create_song` e `create_program` (ou `apply_brand` depois). Cores, fontes, fundo dos slides, tom de voz e regras vêm do kit; imagens só das `images`/`references` do kit. Kit novo: `save_brand`, só com dados reais. Tela: `/v2/marcas.html`.
+
 - **Leia antes de escrever.** `list_decks` / `get_deck` / `get_deck_identity` / `list_programs` / `get_program` antes de mudar algo. Diga em uma linha o que vai mudar e depois chame a ferramenta: tudo grava na hora.
 - **Nunca invente** pessoas, responsáveis, versículos, letras de música ou URLs de imagem. Responsável desconhecido = pergunte. Imagem só com URL `https` real.
 - **Escreva no idioma da pessoa.** Os decks têm textos por língua (`pt`, `en`, `nl`); crie na língua pedida e replique com `missing_translations` → `add_translations`.
@@ -42,6 +44,7 @@ Princípios de design do XLIDE:
 
 - `create_song` com `youtube_url` (letra e tempos das legendas) e/ou `lyrics` colada. `[Verso]`, `[Refrão]`, `[Ponte]` marcam seções; linha em branco separa slides. `lines_per_slide` 2 é o padrão para projeção.
 - **Pastas de músicas** (Biblioteca → Músicas, ex. "Cafofo"): `create_song` com `folder`, `key` (tom) e `notes` (acordes para a banda); depois `update_song` muda pasta, tom, notas ou o look da letra (bg/font/tone em todos os slides). `list_decks` com `kind: "song", folder` lista uma pasta. Link: `/v2/biblioteca.html?tab=songs&pasta=<nome>`.
+- **Tocar com a letra junto:** a música toca o próprio vídeo do YouTube (`music.video`) no editor (`/v2/estudio.html?song=<id>`) e em `/play/:id`; os slides seguem os tempos (`at`). Importe sempre com `youtube_url` (vídeo oficial com letra). Se vier `timed: false` ou os slides adiantarem/atrasarem: `retime_song` (com outro `youtube_url` ou `offset` em segundos).
 - Nunca escreva a letra de memória: peça a letra ou use o link do YouTube. Tradução: `translate_to`.
 
 ## 3 · Criador de programa (culto)

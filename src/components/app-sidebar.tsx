@@ -52,7 +52,7 @@ export const NAV: Group[] = [
       { to: "/v2/relatorio.html", key: "nav.report", icon: Clock },
     ],
   },
-  { id: "Ideias", key: "nav.group.ideas", items: [{ to: "/boards", key: "nav.boards", icon: Shapes }] },
+  { id: "Ideias", key: "nav.group.ideas", items: [{ to: "/boards", key: "nav.boards", icon: Shapes }, { to: "/v2/marcas.html", key: "nav.brands", icon: Palette }] },
   { id: "Equipe", key: "nav.group.team", items: [{ to: "/v2/equipe.html", key: "nav.team", icon: Users }, { to: "/settings", key: "nav.settings", icon: Settings }] },
 ];
 

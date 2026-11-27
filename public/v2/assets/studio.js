@@ -310,7 +310,7 @@
         ${range("r-size", "Tamanho", L.size, 0.6, 1.6, 0.05, Math.round(L.size * 100) + "%")}
         <div class="ctl"><span>Alinhar</span><div class="seg" id="align" style="grid-column:span 2">${[["left", "Esquerda"], ["center", "Centro"], ["right", "Direita"]].map(([v, n]) => `<button data-align="${v}" class="${L.align === v ? "on" : ""}">${n}</button>`).join("")}</div></div>
         <div class="ctl"><span>Cor</span><div class="inks" style="grid-column:span 2"><button class="sw auto${L.inkSet ? "" : " on"}" data-ink="auto">Auto</button>${XLOOK.INKS.map((c) => `<button class="sw${L.inkSet && L.ink === c ? " on" : ""}" data-ink="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div></div>
-        ${s.lyrics.en ? `<label class="ctl" style="cursor:pointer"><span>Tradução</span><span class="muted" style="font-size:var(--t-xs)">Inglês embaixo da letra</span><button class="toggle${L.trans ? " on" : ""}" data-act="trans" role="switch" aria-checked="${!!L.trans}" aria-label="Mostrar tradução"></button></label>` : ""}
+        ${s.langs.length > 1 ? `<label class="ctl" style="cursor:pointer"><span>Tradução</span><span class="muted" style="font-size:var(--t-xs)">${s.lyrics.pt && s.langs[0] !== "pt" ? "Português" : "Inglês"} embaixo da letra</span><button class="toggle${L.trans ? " on" : ""}" data-act="trans" role="switch" aria-checked="${!!L.trans}" aria-label="Mostrar tradução"></button></label>` : ""}
       </div>
       <div class="ig"><div class="ig-h"><h3>Posição do texto</h3><button class="link" data-act="center">Centralizar</button></div>
         <div class="pos"><div class="anchor" aria-label="Posição">${[0, 1, 2].map((r) => [0, 1, 2].map((c) => `<button data-anchor="${c},${r}" class="${c === col && r === row ? "on" : ""}" aria-label="Posição ${r * 3 + c + 1}"></button>`).join("")).join("")}</div>
@@ -380,12 +380,13 @@
   function slideChange(fade = false) { renderCanvas(fade); renderNext(); renderTimeline(); renderStyle(); renderText(); renderWhere(); if (S.lib === "bgs") renderLib(); }
   function go(i, seek = true) {
     S.i = clamp(i, 0, nOf(S.song) - 1); S.sel = null;
-    if (seek) S.t = atOf(S.song)[S.i];
+    if (seek) { S.t = atOf(S.song)[S.i]; audSeek(S.t); }
     slideChange(S.mode === "preview");
   }
   function openSong(id, j = 0) {
     if (!XL.songs[id]) return;
     S.song = id; S.i = j; S.sel = null; S.t = j ? atOf(id)[j] : 0;
+    audLoad(id);
     history.replaceState(null, "", "?song=" + id);
     renderHead(); if (S.lib === "songs") renderSongList(); renderSet(); renderTransport();
     renderCanvas(S.mode === "preview"); renderNext(); renderTimeline(); renderStyle(); renderText(); renderWhere();
@@ -396,7 +397,7 @@
     else { const p = S.set.indexOf(S.song); if (p > 0) { const s = S.set[p - 1]; openSong(s, nOf(s) - 1); } }
   }
   function seek(t) {
-    S.t = clamp(t, 0, XL.songs[S.song].dur);
+    S.t = clamp(t, 0, XL.songs[S.song].dur); audSeek(S.t);
     if (S.follow) { const ni = slideAt(S.song, S.t); if (ni !== S.i) { S.i = ni; S.sel = null; slideChange(); } }
     paintHead();
   }
@@ -405,22 +406,63 @@
     document.body.classList.toggle("is-preview", m === "preview");
     document.body.classList.toggle("is-edit", m === "edit");
     $$("#mode button").forEach((b) => b.classList.toggle("on", b.dataset.m === m));
-    if (m === "preview") { S.playing = true; S.follow = true; }
+    if (m === "preview") { S.follow = true; setPlaying(true); }
     document.activeElement?.blur?.();
     S.editing = false;
     renderTransport(); renderCanvas();
   }
 
-  // relógio da música (simulado: no app é o player do XLIDE Music)
+  /* ── áudio: o vídeo do YouTube da própria música (music.video) toca junto e vira o relógio.
+     Sem vídeo, o relógio é simulado (só os slides andam). ── */
+  const AUD = { p: null, id: null, ready: false, want: false, api: null };
+  const vidOf = (id) => XL.songs[id]?.video || null;
+  function ytApi() {
+    if (window.YT && YT.Player) return Promise.resolve();
+    return (AUD.api ||= new Promise((res) => {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { prev && prev(); res(); };
+      const sc = document.createElement("script"); sc.src = "https://www.youtube.com/iframe_api"; document.head.append(sc);
+    }));
+  }
+  function audLoad(id) {
+    const v = vidOf(id); AUD.id = v; AUD.ready = false;
+    if (!v) { AUD.p && AUD.p.pauseVideo && AUD.p.pauseVideo(); return; }
+    ytApi().then(() => {
+      if (AUD.id !== v) return;
+      const onReady = () => {
+        AUD.ready = true;
+        const d = AUD.p.getDuration && AUD.p.getDuration();
+        if (d > 1 && XL.songs[S.song] && vidOf(S.song) === v) { XL.songs[S.song].dur = Math.max(d, (atOf(S.song).slice(-1)[0] || 0) + 5); renderTimeline(); renderTransport(); }
+        if (S.t > 0) AUD.p.seekTo(S.t, true);
+        if (S.playing) AUD.p.playVideo();
+      };
+      AUD.onCue = onReady;
+      if (AUD.p && AUD.p.cueVideoById) { AUD.p.cueVideoById({ videoId: v, startSeconds: S.t || 0 }); return; }
+      let box = document.getElementById("st-audio");
+      if (!box) { box = document.createElement("div"); box.id = "st-audio"; box.style.cssText = "position:fixed;right:8px;bottom:8px;width:200px;height:113px;opacity:.01;pointer-events:none;z-index:-1"; box.innerHTML = "<div></div>"; document.body.append(box); }
+      AUD.p = new YT.Player(box.firstChild, { width: 200, height: 113, videoId: v, playerVars: { controls: 0, playsinline: 1, rel: 0, modestbranding: 1 },
+        events: { onReady: () => { AUD.onCue = null; onReady(); }, onStateChange: (e) => { if (e.data === 5 && AUD.onCue) { const f = AUD.onCue; AUD.onCue = null; f(); } if (e.data === 0 && S.playing) { S.t = XL.songs[S.song].dur; } }, onError: () => { AUD.ready = false; AUD.id = null; toast("O vídeo desta música não toca aqui. Os slides seguem o relógio sem áudio."); } } });
+    });
+  }
+  const audOn = () => AUD.ready && AUD.p && AUD.id && AUD.id === vidOf(S.song);
+  function setPlaying(v) {
+    S.playing = v;
+    if (audOn()) { if (v) { AUD.p.seekTo(S.t, true); AUD.p.playVideo(); } else AUD.p.pauseVideo(); }
+    else if (v && vidOf(S.song) && AUD.id !== vidOf(S.song)) audLoad(S.song);
+    renderTransport();
+  }
+  const audSeek = (t) => { if (audOn()) AUD.p.seekTo(t, true); };
+
   let last = performance.now();
   function tick(now) {
     const dt = Math.min(0.25, (now - last) / 1000); last = now;
     if (S.playing) {
-      S.t += dt;
+      const pt = audOn() && AUD.p.getPlayerState && AUD.p.getPlayerState() === 1 ? AUD.p.getCurrentTime() : null;
+      S.t = pt != null ? pt : audOn() ? S.t : S.t + dt;
       const dur = XL.songs[S.song].dur, p = S.set.indexOf(S.song);
       if (S.t >= dur) {
         if (p > -1 && p < S.set.length - 1) { openSong(S.set[p + 1]); toast("Próxima música: " + XL.songs[S.song].title); }
-        else { S.t = dur; S.playing = false; renderTransport(); }
+        else { S.t = dur; setPlaying(false); }
       } else if (S.follow && !S.editing && !drag) {
         const ni = slideAt(S.song, S.t);
         if (ni !== S.i) { S.i = ni; S.sel = null; slideChange(S.mode === "preview"); }
@@ -655,7 +697,7 @@
   $("#libbody").addEventListener("dragover", (e) => { if (S.lib === "imgs" && e.dataTransfer.types.includes("Files")) { e.preventDefault(); $("#up")?.classList.add("drop"); } });
   $("#libbody").addEventListener("drop", async (e) => { if (S.lib !== "imgs") return; e.preventDefault(); $("#up")?.classList.remove("drop"); await storeFiles(e.dataTransfer.files); toast("Imagem na biblioteca"); });
 
-  $("#play").onclick = () => { if (!S.playing && S.t >= XL.songs[S.song].dur - 0.5) S.t = 0; S.playing = !S.playing; renderTransport(); };
+  $("#play").onclick = () => { if (!S.playing && S.t >= XL.songs[S.song].dur - 0.5) S.t = 0; setPlaying(!S.playing); };
   $("#prev").onclick = () => step(-1);
   $("#nextb").onclick = () => step(1);
   $("#follow").onclick = (e) => { e.preventDefault(); S.follow = !S.follow; renderTransport(); };
@@ -682,5 +724,6 @@
   $("#prev").innerHTML = I.prev;
   $("#nextb").innerHTML = I.next;
   renderAll();
+  audLoad(S.song);
   requestAnimationFrame(tick);
 })();

@@ -58,6 +58,7 @@ Cada membro tem a **sua chave do MCP** (`xl_…`). Tudo o que o Claude faz com e
 | `biblioteca.html?tab=decks|songs|tpl` | Decks, músicas e modelos. Músicas têm pastas (ex. Cafofo): `?tab=songs&pasta=Cafofo` |
 | `arquivos.html` | Meus arquivos por pasta: avisos, pregação, início do culto, oração, versículos |
 | `kit.html` | Fundos e fontes (`#testar`, `#avisos`) |
+| `marcas.html` | **Brand kits**: identidade de cada ministério/evento/série (ex. Cafofo) — sobre, tom de voz, paleta com uso, fontes, logos, referências, imagens, regras e o visual padrão dos slides. `?b=<id>` abre um |
 | `estudio.html` | Editor de música (trilha, seções, tempos) |
 | `agenda.html` | Agenda dos cultos |
 | `programa.html` | Programas como arquivos; `?p=<id>` abre um; `?novo=<modelo>` cria |
@@ -70,6 +71,7 @@ Cada membro tem a **sua chave do MCP** (`xl_…`). Tudo o que o Claude faz com e
 ## Modelo de dados (Supabase)
 
 - `xlide_decks` — deck inteiro em `doc` (título por língua, slides, identidade, pedidos `ai`). Músicas são decks com slides `lyrics`.
+- `xlide_brands` — brand kits (`doc`: about, audience, voice, tagline, palette [{hex,name,role,use}], fonts {heading, body, notes}, logos, references, images, rules {do, dont}, slides {bg, font, tone}, board_id, links). Decks, músicas e programas guardam `brand_id`.
 - `xlide_boards` — boards (nós, ligações, itens do moodboard, etapas).
 - `xlide_programs` — programas do culto (itens em ordem, data, início, minutos, estado).
 - `xlide_files` — Meus arquivos (pasta, estado, estrela, deck ligado).
@@ -117,7 +119,8 @@ Estados: `rascunho` → `salvo` → `feito` · `arquivado` · `lixeira`. Transi�
 - **Decks:** `list_decks`, `get_deck`, `create_deck`, `add_slides`, `update_slide`, `move_slide`, `remove_slides`, `deck_links`
 - **Identidade e pedidos:** `get_deck_identity`, `set_deck_identity`, `list_ai_requests`, `resolve_ai_request`
 - **Línguas:** `missing_translations`, `add_translations`
-- **Música:** `create_song` (com `folder`, `key`, `notes`), `update_song`
+- **Brand kits:** `list_brands`, `get_brand`, `save_brand`, `apply_brand`
+- **Música:** `create_song` (com `folder`, `key`, `notes`, `brand_id`), `update_song`, `retime_song`
 - **Arquivos:** `list_files`, `save_file`, `set_file_status`
 - **Programas:** `list_programs`, `get_program`, `create_program`, `add_program_items`, `update_program_item`, `move_program_item`, `remove_program_items`, `set_program_status`, `set_program_settings`, `duplicate_program`
 - **Boards:** `list_boards`, `get_board`, `create_board`, `add_nodes`, `update_node`, `connect_nodes`, `remove_items`, `add_mood_items`, `update_mood_item`, `brand_sheet`, `arrange`, `draw`, `preview_board`, `share_link`, `update_board`

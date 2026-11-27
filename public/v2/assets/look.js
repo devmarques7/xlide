@@ -96,7 +96,9 @@
     const F = FONTS.find((f) => f.id === L.font) || FONTS[0];
     const text = L.text ?? sl.text;
     const n = text.split("\n").length;
-    const tr = L.trans && lang === "pt" && XL.songs[songId].lyrics.en ? XL.songSlides(songId, "en")[i]?.text : "";
+    // tradução embaixo só quando existe OUTRA língua de verdade (música só em inglês não repete o inglês)
+    const ly = XL.songs[songId].lyrics, shown = ly[lang] ? lang : Object.keys(ly)[0], other = shown === "en" ? "pt" : "en";
+    const tr = L.trans && other !== shown && ly[other] && ly[other] !== ly[shown] ? XL.songSlides(songId, other)[i]?.text : "";
     const fs = Math.min(6.4, 26 / Math.max(2, n)) * F.k * L.size;
     return `${backdrop(L.bg, L.image)}<div class="xw-grain"></div>
       ${section && sl.section ? `<div class="xw-sec" style="color:${inkFor(L)}">${esc(sl.section)}</div>` : ""}
