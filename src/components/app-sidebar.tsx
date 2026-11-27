@@ -1,6 +1,6 @@
 import {
   ArrowUpRight, AudioLines, CalendarDays, ChevronDown, Clock, FileText, Folder, Home, LayoutGrid, ListOrdered, type LucideIcon, Map as MapIcon,
-  Monitor, Moon, Music2, PaintBucket, Palette, Plus, Presentation, Radio, Shapes, SlidersHorizontal, Sun, Users,
+  Monitor, Moon, Music2, PaintBucket, Palette, Plus, Presentation, Radio, Settings, Shapes, SlidersHorizontal, Sun, Users,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -53,7 +53,7 @@ export const NAV: Group[] = [
     ],
   },
   { id: "Ideias", key: "nav.group.ideas", items: [{ to: "/boards", key: "nav.boards", icon: Shapes }] },
-  { id: "Equipe", key: "nav.group.team", items: [{ to: "/v2/equipe.html", key: "nav.team", icon: Users }] },
+  { id: "Equipe", key: "nav.group.team", items: [{ to: "/v2/equipe.html", key: "nav.team", icon: Users }, { to: "/settings", key: "nav.settings", icon: Settings }] },
 ];
 
 /* Folha "Criar": as mesmas opções do v2 (shell.js, CREATE) */

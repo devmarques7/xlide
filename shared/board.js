@@ -985,7 +985,7 @@ export async function handleMcpMessage(msg, store, origin, ctx = {}) {
       const asked = msg.params?.protocolVersion;
       return reply({
         protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
-        capabilities: { tools: { listChanged: false } },
+        capabilities: { tools: { listChanged: false }, ...(ctx.resources?.length ? { resources: {}, prompts: {} } : {}) },
         serverInfo: { name: "xlide-boards", title: "XLIDE Boards", version: "2.0.0" },
         instructions: MCP_INSTRUCTIONS_FULL + MCP_INSTRUCTIONS + (ctx.extraInstructions || ""),
       });
@@ -1010,9 +1010,19 @@ export async function handleMcpMessage(msg, store, origin, ctx = {}) {
       }
     }
     case "resources/list":
-      return reply({ resources: [] });
+      return reply({ resources: (ctx.resources || []).map(({ text, ...r }) => r) });
+    case "resources/read": {
+      const r = (ctx.resources || []).find((x) => x.uri === msg.params?.uri);
+      if (!r) return fail(-32002, "Resource not found");
+      return reply({ contents: [{ uri: r.uri, mimeType: r.mimeType, text: r.text }] });
+    }
     case "prompts/list":
-      return reply({ prompts: [] });
+      return reply({ prompts: (ctx.prompts || []).map(({ text, ...p }) => p) });
+    case "prompts/get": {
+      const p = (ctx.prompts || []).find((x) => x.name === msg.params?.name);
+      if (!p) return fail(-32602, "Prompt not found");
+      return reply({ description: p.description, messages: [{ role: "user", content: { type: "text", text: p.text } }] });
+    }
     default:
       return fail(-32601, `Method not found: ${msg.method}`);
   }

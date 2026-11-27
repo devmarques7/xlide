@@ -9,6 +9,7 @@ import { syncFromServer } from "@/lib/store";
 import { startUpdateCheck } from "@/lib/update-check";
 import { startTracking, trackPage } from "@/lib/track";
 import Audit from "@/pages/Audit";
+import Settings from "@/pages/Settings";
 import { LOCALES, type Locale } from "@/lib/types";
 import BoardPage, { BoardViewPage } from "@/pages/Board";
 import Boards from "@/pages/Boards";
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/p/:id" element={<RequireCode><Editor /></RequireCode>} />
           <Route path="/present/:id" element={<RequireCode><Present /></RequireCode>} />
           <Route path="/audit" element={<RequireCode><Audit /></RequireCode>} />
+          <Route path="/settings" element={<RequireCode><Settings /></RequireCode>} />
           <Route path="/music" element={<RequireCode><Music /></RequireCode>} />
           <Route path="/play/:id" element={<RequireCode><Play /></RequireCode>} />
           <Route path="/print/:id" element={<RequireCode><Print /></RequireCode>} />

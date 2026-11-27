@@ -15,6 +15,17 @@ function keyOf(headers, query) {
   return /^Bearer\s+(.+)$/i.exec(auth)?.[1]?.trim() || (typeof query?.key === "string" ? query.key.trim() : "");
 }
 
+/** O servidor não consegue falar com o Supabase (chave secreta errada na Vercel, por exemplo): não é culpa da chave da pessoa. */
+export class ServerDown extends Error {}
+function serverDown(e) {
+  const m = String(e?.message ?? e);
+  throw new ServerDown(/401|Invalid API key/i.test(m) ? "server_key_invalid" : "supabase_unreachable");
+}
+export const SERVER_DOWN_HINT = {
+  server_key_invalid: "O servidor do XLIDE está com a chave secreta do Supabase errada (SUPABASE_SERVICE_ROLE_KEY na Vercel). Sua chave do MCP está certa; o admin precisa colar a Secret key de novo e fazer redeploy.",
+  supabase_unreachable: "O servidor do XLIDE não conseguiu falar com o Supabase agora. Tente de novo em um minuto.",
+};
+
 const cache = new Map(); // chave → { actor, at } por 60 s (cada função da Vercel tem o seu)
 const EDIT = new Set(["admin", "editor"]);
 
@@ -28,7 +39,7 @@ export async function actorFrom(headers, query) {
   if (hit && Date.now() - hit.at < 60_000) return hit.actor;
   let actor = null;
   if (/^xl_[0-9a-f]{48}$/.test(key)) {
-    const rows = await rest(`xlide_tokens?select=user_id,profiles(role)&token=eq.${key}`).catch(() => []);
+    const rows = await rest(`xlide_tokens?select=user_id,profiles(role)&token=eq.${key}`).catch(serverDown);
     const r = rows?.[0];
     if (r?.profiles?.role) {
       actor = { id: r.user_id, role: r.profiles.role, via: "token" };
@@ -37,7 +48,7 @@ export async function actorFrom(headers, query) {
   } else if (key.split(".").length === 3) {
     const uid = await userFromToken(key);
     if (uid) {
-      const rows = await rest(`profiles?select=role&id=eq.${uid}`).catch(() => []);
+      const rows = await rest(`profiles?select=role&id=eq.${uid}`).catch(serverDown);
       if (rows?.[0]?.role) actor = { id: uid, role: rows[0].role, via: "app" };
     }
   }
@@ -49,8 +60,18 @@ export async function actorFrom(headers, query) {
 
 /** Para as rotas: devolve o membro ou responde 401/403 e devolve null. need = "member" | "edit" | "admin". */
 export async function requireActor(req, res, need = "member") {
-  const a = await actorFrom(req.headers, req.query);
-  if (!a) { res.status(401).json({ error: "unauthorized" }); return null; }
+  let a;
+  try {
+    a = await actorFrom(req.headers, req.query);
+  } catch (e) {
+    if (!(e instanceof ServerDown)) throw e;
+    res.status(503).json({ error: e.message, message: SERVER_DOWN_HINT[e.message] });
+    return null;
+  }
+  if (!a) {
+    res.status(401).json({ error: "unauthorized", message: keyOf(req.headers, req.query) ? "Chave do MCP inválida ou trocada. Copie o link novo em XLIDE → Configurações → Conectar ao Claude." : "Falta a chave. Use o link de XLIDE → Configurações → Conectar ao Claude (…/api/mcp?key=xl_…)." });
+    return null;
+  }
   if ((need === "edit" && !a.canEdit) || (need === "admin" && a.role !== "admin")) { res.status(403).json({ error: "forbidden", role: a.role }); return null; }
   return a;
 }

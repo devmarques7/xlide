@@ -11,7 +11,7 @@
     "Músicas": ["Songs", "Liederen"], "Decks": ["Decks", "Decks"], "Fundos de avisos": ["Announcement backgrounds", "Mededelingsachtergronden"], "Modelos": ["Templates", "Sjablonen"],
     "Fundos e fontes": ["Backgrounds & fonts", "Achtergronden & lettertypes"], "Testar um slide": ["Try a slide", "Dia uitproberen"], "Editor de música": ["Song editor", "Liededitor"],
     "Agenda": ["Calendar", "Agenda"], "Programa": ["Run sheet", "Programma"], "Ao vivo": ["Live", "Live"], "Tela do projetor": ["Projector screen", "Beamerscherm"], "Relatório": ["Report", "Rapport"],
-    "Boards": ["Boards", "Borden"], "Equipe e acesso": ["Team & access", "Team & toegang"], "Criar": ["Create", "Maken"], "Menu": ["Menu", "Menu"],
+    "Boards": ["Boards", "Borden"], "Equipe e acesso": ["Team & access", "Team & toegang"], "Configurações": ["Settings", "Instellingen"], "Criar": ["Create", "Maken"], "Menu": ["Menu", "Menu"],
     "Avisos": ["Announcements", "Mededelingen"], "Pregação": ["Sermons", "Preken"], "Início do culto": ["Service opening", "Begin dienst"], "Oração": ["Prayer", "Gebed"], "Versículos": ["Verses", "Verzen"],
     "Padrão": ["Defaults", "Standaard"], "Arquivados": ["Archived", "Gearchiveerd"], "Lixeira": ["Trash", "Prullenbak"], "Tudo": ["All", "Alles"], "Todos": ["All", "Alle"],
     "Rascunhos": ["Drafts", "Concepten"], "Salvos": ["Saved", "Opgeslagen"], "Já feitos": ["Done", "Gehouden"],

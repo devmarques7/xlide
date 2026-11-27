@@ -12,6 +12,7 @@ export const hasSupabase = !!(URL_ && KEY);
 // Quem fez a chamada (dono da chave do MCP): vai no cabeçalho x-xlide-user e a auditoria grava no nome da pessoa.
 const actorStore = new AsyncLocalStorage();
 export const currentActorId = () => actorStore.getStore()?.id || null;
+export const currentActor = () => actorStore.getStore() || null;
 export const runAs = (actor, fn) => actorStore.run(actor || {}, fn);
 
 const headers = (extra = {}) => {
@@ -56,6 +57,15 @@ export async function insertEvents(rows) {
 }
 export async function auditReport(days = 30) {
   return rest("rpc/xlide_audit_report", { method: "POST", body: JSON.stringify({ days }) });
+}
+export async function auditFeed(days = 7, person = null, lim = 300) {
+  return rest("rpc/xlide_audit_feed", { method: "POST", body: JSON.stringify({ days, person, lim }) });
+}
+/** O servidor consegue falar com o Supabase? "ok" | "server_key_invalid" | "unreachable" | "off". */
+export async function supabaseHealth() {
+  if (!hasSupabase) return "off";
+  try { await rest("profiles?select=id&limit=1"); return "ok"; }
+  catch (e) { return /401|Invalid API key/i.test(String(e?.message)) ? "server_key_invalid" : "unreachable"; }
 }
 /** Confere o token do usuário (Authorization: Bearer <jwt> do supabase-js) e devolve o id, ou null. */
 export async function userFromToken(token) {

@@ -1,7 +1,8 @@
 // MCP do XLIDE: decks e slides, textos em várias línguas, programas do culto e o relatório de auditoria.
 // Tudo no Supabase (xlide_decks, xlide_programs), com a chave de serviço; cada mudança entra em xlide_audit com via = 'mcp'.
 // Somado às ferramentas de boards em shared/board.js (ctx.extraTools / ctx.extraCall).
-import { auditReport, hasSupabase, rest } from "./_supabase.js";
+import { auditFeed, auditReport, currentActor, hasSupabase, rest } from "./_supabase.js";
+import { CONTEXT_MD, SKILL_MD } from "../shared/skill.js";
 import { getLyrics, translateLines } from "./_music.js";
 
 const LANGS = ["pt", "en", "nl"];
@@ -141,13 +142,15 @@ export const LIVE_TOOLS = [
   { name: "remove_program_items", description: "Tira itens do programa: arquivar (padrão) ou mandar para a lixeira do programa.", inputSchema: S({ program_id: { type: "string" }, items: { type: "array", items: { type: ["string", "number"] } }, to: { type: "string", enum: ["arquivo", "lixeira"] } }, ["program_id", "items"]) },
   { name: "set_program_status", description: "Muda o estado (rascunho, salvo, feito, arquivado, lixeira) e/ou põe o programa no ao vivo.", inputSchema: S({ program_id: { type: "string" }, status: { type: "string", enum: PROG_STATUS }, live: { type: "boolean" } }, ["program_id"]) },
   { name: "duplicate_program", description: "Duplica um programa (por exemplo um culto já feito) como novo rascunho, com outra data.", inputSchema: S({ program_id: { type: "string" }, title: { type: "string" }, date: { type: "string" } }, ["program_id"]) },
-  { name: "get_audit_report", description: "Relatório de uso e auditoria: páginas mais abertas, onde as pessoas têm dificuldade (erros, tentativas, buscas vazias), de onde saem, o que não encontram, e quem mudou o quê (app ou MCP).", inputSchema: S({ days: { type: "number" } }) },
+  { name: "read_skill", description: "A skill XLIDE · especialista: como ser o designer de decks, o criador de programas de culto e o guia das rotas do XLIDE, mais o documento de contexto (rotas, dados, layouts, papéis). Leia no começo da conversa, antes da primeira tarefa no XLIDE.", inputSchema: S({ part: { type: "string", enum: ["skill", "context", "all"], description: "Padrão: all" } }) },
+  { name: "get_audit_report", description: "Só admin. Relatório de uso e auditoria: páginas mais abertas, onde as pessoas têm dificuldade (erros, tentativas, buscas vazias), de onde saem, o que não encontram, jornadas (de qual página para qual), ações mais usadas, páginas lentas, cada pessoa e quem mudou o quê (app ou MCP).", inputSchema: S({ days: { type: "number" } }) },
+  { name: "get_audit_feed", description: "Só admin. Linha do tempo do que as pessoas fizeram (páginas, ações, buscas, erros e mudanças), mais novo primeiro. Filtre por pessoa com person_id (id de get_audit_report → people).", inputSchema: S({ days: { type: "number" }, person_id: { type: "string" }, limit: { type: "number" } }) },
 ];
 const NAMES = new Set(LIVE_TOOLS.map((t) => t.name));
 export const isLiveTool = (n) => NAMES.has(n);
 
 export async function callLiveTool(name, a = {}, origin = "") {
-  if (!hasSupabase) throw new Error("Supabase não configurado (SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY). As ferramentas de decks, programas e auditoria precisam dele.");
+  if (!hasSupabase && name !== "read_skill") throw new Error("Supabase não configurado (SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY). As ferramentas de decks, programas e auditoria precisam dele.");
   const lang = LANGS.includes(a.lang) ? a.lang : "pt";
   switch (name) {
     case "list_decks": {
@@ -341,13 +344,30 @@ export async function callLiveTool(name, a = {}, origin = "") {
       if (a.autopilot != null) p.doc.autopilot = !!a.autopilot;
       await saveProg(p); return { ...progSummary(p), transition: p.doc.transition || "fade", autopilot: !!p.doc.autopilot };
     }
-    case "get_audit_report": return auditReport(Math.min(365, Math.max(1, Number(a.days) || 30)));
+    case "read_skill": {
+      const part = a.part || "all";
+      const text = part === "skill" ? SKILL_MD : part === "context" ? CONTEXT_MD : `${SKILL_MD}\n\n---\n\n${CONTEXT_MD}`;
+      return { __content: [{ type: "text", text }], part };
+    }
+    case "get_audit_report": adminOnly(); return auditReport(Math.min(365, Math.max(1, Number(a.days) || 30)));
+    case "get_audit_feed": {
+      adminOnly();
+      const person = /^[0-9a-f-]{36}$/.test(String(a.person_id || "")) ? String(a.person_id) : null;
+      return auditFeed(Math.min(365, Math.max(1, Number(a.days) || 7)), person, Math.min(1000, Math.max(20, Number(a.limit) || 200)));
+    }
   }
   throw new Error(`Ferramenta desconhecida: ${name}`);
 }
 
+/** Auditoria só para admin (a chave de serviço XLIDE_MCP_KEY conta como admin). */
+function adminOnly() {
+  const who = currentActor();
+  if (who && who.role && who.role !== "admin") throw new Error("Só o admin vê a auditoria.");
+}
+
 export const LIVE_INSTRUCTIONS =
-  " XLIDE: também cria e edita decks e slides (create_deck com todos os slides de uma vez; update_slide para cada slide; textos por língua pt/en/nl), " +
+  " Você é o especialista do XLIDE: designer de decks, criador de programas de culto e guia de todas as rotas. Antes da primeira tarefa, chame read_skill uma vez e siga a skill (regras de design, fluxo do programa, rotas). " +
+  "XLIDE: também cria e edita decks e slides (create_deck com todos os slides de uma vez; update_slide para cada slide; textos por língua pt/en/nl), " +
   "com identidade por deck: antes de montar ou melhorar slides, leia get_deck_identity (cores, tipografia, referências, tom e o board ligado) e siga-a; pedidos feitos no editor aparecem em list_ai_requests e se fecham com resolve_ai_request; para definir a identidade use set_deck_identity. " +
   "replica para outras línguas (missing_translations → traduza → add_translations), monta programas do culto (create_program com todos os itens; add_program_items, update_program_item, move_program_item, set_program_status, duplicate_program) " +
-  "e lê o relatório de uso e auditoria (get_audit_report). Escreva no idioma do usuário.";
+  "e, para admin, lê o relatório de uso e auditoria (get_audit_report, get_audit_feed). Escreva no idioma do usuário.";

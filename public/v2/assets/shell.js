@@ -6,6 +6,7 @@
     list: P('<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>'),
     lib: P('<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="m16 5 4 1-3 14-4-1z"/>'),
     live: P('<circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>'),
+    gear: P('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'),
     team: P('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/>'),
     play: P('<path d="M7 4v16l13-8z" fill="currentColor"/>'),
     pause: P('<path d="M7 4h3v16H7zM14 4h3v16h-3z" fill="currentColor"/>'),
@@ -70,7 +71,7 @@
     { g: "Estúdio", d: "Visual e testes", items: [["kit", "kit.html", "Fundos e fontes", "palette"], ["testar", "kit.html#testar", "Testar um slide", "spark"], ["avisos", "kit.html#avisos", "Fundos de avisos", "present"], ["editor", "estudio.html", "Editor de música", "wave"], ["xmusic", "/music", "Importar música", "music"]] },
     { g: "Culto", d: "O sábado", items: [["agenda", "agenda.html", "Agenda", "cal"], ["programa", "programa.html", "Programas", "list"], ["console", "console.html", "Ao vivo", "live"], ["tela", "tela.html", "Tela do projetor", "screen"], ["relatorio", "relatorio.html", "Relatório", "clock"]] },
     { g: "Ideias", d: "Antes dos slides", items: [["boards", "boards.html", "Boards", "board"]] },
-    { g: "Equipe", items: [["equipe", "equipe.html", "Equipe e acesso", "team"]] },
+    { g: "Equipe", items: [["equipe", "equipe.html", "Equipe e acesso", "team"], ["config", "/settings", "Configurações", "gear"]] },
   ];
   // Celular: 6 atalhos + Criar no meio; o resto mora no Menu.
   const BAR = [["inicio", "inicio.html", "Início", "home"], ["songs", "biblioteca.html", "Slides", "slides"], ["arquivos", "arquivos.html", "Arquivos", "folder"], null, ["programa", "programa.html", "Programa", "list"], ["console", "console.html", "Ao vivo", "live"], ["menu", "#", "Menu", "menu"]];
@@ -380,5 +381,32 @@
     });
   }
 
-  document.addEventListener("DOMContentLoaded", () => { mkBar(); tabbar(); pip(); });
+  /* Uso → /api/events (Configurações → Auditoria): página aberta, tempo, botões, buscas sem resultado e erros.
+     Só o caminho e o nome do botão; nada do conteúdo. Mesmo formato do app (src/lib/track.ts). */
+  function tracking() {
+    if (!CLOUD || tracking.on) return; tracking.on = true;
+    let sess; try { sess = sessionStorage.getItem("xlide.session"); if (!sess) { sess = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("xlide.session", sess); } } catch { sess = "nostorage"; }
+    const path = location.pathname + (location.search.match(/[?&]tab=[\w-]+/) || [""])[0].replace(/^&/, "?");
+    const q = []; let tm; const last = new Map(); const t0 = Date.now();
+    const flush = async (beacon) => {
+      if (!q.length) return; const events = q.splice(0, 50); const body = JSON.stringify({ session: sess, events });
+      if (beacon && navigator.sendBeacon) { navigator.sendBeacon("/api/events", new Blob([body], { type: "application/json" })); return; }
+      let tok = null; try { tok = await XCLOUD.token(); } catch {}
+      fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json", ...(tok ? { Authorization: "Bearer " + tok } : {}) }, body, keepalive: true }).catch(() => {});
+    };
+    const push = (e) => { q.push({ path, ...e }); clearTimeout(tm); tm = setTimeout(() => flush(), 2000); };
+    window.XTRACK = { push, search(term, n) { const t = String(term || "").trim(); if (t.length >= 2) push({ kind: n ? "search" : "search_empty", target: t.slice(0, 120), meta: { results: n } }); } };
+    push({ kind: "page_view" });
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest("button, a, [role=button], [data-act]"); if (!b) return;
+      const name = (b.getAttribute("aria-label") || b.dataset.act || b.title || b.textContent || "").replace(/\s+/g, " ").trim().slice(0, 60); if (!name) return;
+      const now = Date.now(), prev = last.get(name) || 0; last.set(name, now);
+      push({ kind: now - prev < 4000 ? "retry" : "action", target: name });
+    }, true);
+    addEventListener("error", (e) => push({ kind: "error", target: String(e.message || "erro").slice(0, 200) }));
+    addEventListener("unhandledrejection", (e) => push({ kind: "error", target: String((e.reason && (e.reason.message || e.reason)) || "promise").slice(0, 200) }));
+    addEventListener("pagehide", () => { q.push({ path, kind: "leave", ms: Date.now() - t0 }); flush(true); });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { mkBar(); tabbar(); pip(); tracking(); });
 })();
