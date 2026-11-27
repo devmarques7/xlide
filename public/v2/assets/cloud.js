@@ -96,7 +96,7 @@
     return {
       title: tx(doc.title, langs[0]) || d.title || "Sem título", author: tx(cover && cover.eyebrow, langs[0]) || doc.author || "", key: doc.key || "—", bpm: doc.bpm || "", uses: 0, last: rel(d.updated_at),
       langs, source: doc.music && doc.music.video ? "YouTube · letra sincronizada" : "XLIDE", lyrics: Object.keys(lyrics).length ? lyrics : { pt: "" },
-      dur: (at.length ? at[at.length - 1] : 0) + 20, at, video: doc.music && doc.music.video, bg: (body[0] || first).bg, font: (body[0] || first).font, bgs: body.map((x) => x.bg), ink: doc.music && doc.music.ink, chorusInk: doc.music && doc.music.chorusInk, brand: doc.brand_id || null, real: true, folder: doc.folder || "", notes: doc.notes || "",
+      dur: (at.length ? at[at.length - 1] : 0) + 20, at, video: doc.music && doc.music.video, bg: (body[0] || first).bg, font: (body[0] || first).font, bgs: body.map((x) => x.bg), fx: (body[0] || first).fx || null, ink: doc.music && doc.music.ink, chorusInk: doc.music && doc.music.chorusInk, brand: doc.brand_id || null, real: true, folder: doc.folder || "", notes: doc.notes || "",
     };
   }
   function deck(d) {

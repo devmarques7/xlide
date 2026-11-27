@@ -56,7 +56,7 @@
       XLOOK.set(S.song, { ...patch, slides: clean });
     } else XLOOK.set(S.song, patch, i);
   }
-  const LOOK_KEYS = ["bg", "image", "font", "size", "align", "ink", "inkSet", "x", "y", "w", "trans"];
+  const LOOK_KEYS = ["bg", "image", "font", "size", "align", "ink", "inkSet", "x", "y", "w", "trans", "bri", "sat", "con", "blur"];
   const ownKeys = (i = S.i) => Object.keys(XLOOK.get(S.song).slides[i] || {}).filter((k) => LOOK_KEYS.includes(k));
   function clearSlide(i = S.i) {
     const L = XLOOK.get(S.song);
@@ -306,8 +306,14 @@
         ${own.length ? `<div class="own"><span>O slide ${S.i + 1} tem ajustes próprios.</span><button class="link" data-act="clear-slide">Seguir a música</button></div>` : ""}
       </div>
       <div class="ig"><div class="ig-h"><h3>Fundo</h3><button class="link" data-act="bgs">Ver todos</button></div>
-        <div class="bg-now"><div class="slide song">${XLOOK.backdrop(L.bg, L.image)}</div><span><b>${esc(bgName(L))}</b><span class="hint" style="margin:0">${bgKind(L)}</span></span></div>
+        <div class="bg-now"><div class="slide song">${XLOOK.backdropFx(L)}</div><span><b>${esc(bgName(L))}</b><span class="hint" style="margin:0">${bgKind(L)}</span></span></div>
         ${sgOn ? `<p class="hint">Este é o visual sugerido pela letra.</p>` : `<p class="hint">Pela letra${sg.hit.length ? ` (${sg.hit.slice(0, 3).join(", ")})` : ""}: <button class="link" data-act="suggest">${esc(bgName({ bg: sg.bg }))} com ${XLOOK.FONTS.find((f) => f.id === sg.font).name}</button></p>`}
+        <div class="ig-h" style="margin-top:var(--s3)"><h3 style="font-size:var(--t-sm)">Ajustar o fundo</h3>${(L.bri ?? 1) !== 1 || (L.sat ?? 1) !== 1 || (L.con ?? 1) !== 1 || (L.blur ?? 0) ? `<button class="link" data-act="fx-reset">Original</button>` : ""}</div>
+        ${range("r-bri", "Brilho", L.bri ?? 1, 0.2, 1.6, 0.05, Math.round((L.bri ?? 1) * 100) + "%")}
+        ${range("r-sat", "Saturação", L.sat ?? 1, 0, 2, 0.05, Math.round((L.sat ?? 1) * 100) + "%")}
+        ${range("r-con", "Contraste", L.con ?? 1, 0.5, 1.5, 0.05, Math.round((L.con ?? 1) * 100) + "%")}
+        ${range("r-blur", "Desfoque", L.blur ?? 0, 0, 12, 0.5, (L.blur ?? 0) + " px")}
+        <div class="row" style="gap:6px;flex-wrap:wrap">${[["Mais escuro", { bri: 0.6 }], ["Preto e branco", { sat: 0 }], ["Suave", { bri: 0.75, sat: 0.7, blur: 3 }], ["Vivo", { sat: 1.4, con: 1.15 }]].map(([n, v]) => `<button class="chip" data-fxp='${JSON.stringify(v)}'>${n}</button>`).join("")}</div>
       </div>
       <div class="ig"><div class="ig-h"><h3>Tipografia</h3></div>
         <div class="fonts">${[...XLOOK.FONTS, ...(XLOOK.FONTS.some((f) => f.id === L.font) || !L.font ? [] : [XLOOK.fontOf(L.font)]), ...XLOOK.library().filter((f) => f.id !== L.font).slice(0, 6)].map((f) => `<button class="font-o${f.id === L.font ? " on" : ""}" data-font="${f.id}" aria-pressed="${f.id === L.font}"><span class="aa" style="font-family:${f.family};font-weight:${f.weight}">${f.upper ? "AA" : "Aa"}</span><small>${esc(f.name)}</small></button>`).join("")}<button class="font-o" data-act="more-fonts"><span class="aa">+</span><small>Todas as fontes</small></button></div>
@@ -323,6 +329,10 @@
       </div>
       <div class="ig"><button class="btn ghost block" data-act="reset">Restaurar o visual original da música</button></div>`;
     bindRange("#r-size", (v) => applyLook({ size: v }), (v) => Math.round(v * 100) + "%");
+    bindRange("#r-bri", (v) => applyLook({ bri: v }), (v) => Math.round(v * 100) + "%");
+    bindRange("#r-sat", (v) => applyLook({ sat: v }), (v) => Math.round(v * 100) + "%");
+    bindRange("#r-con", (v) => applyLook({ con: v }), (v) => Math.round(v * 100) + "%");
+    bindRange("#r-blur", (v) => applyLook({ blur: v }), (v) => v + " px");
     bindRange("#r-w", (v) => applyLook({ w: v }), (v) => Math.round(v) + "%");
   }
   function bindRange(sel, fn, fmt) {
@@ -668,6 +678,7 @@
     if (t.id === "up") return $("#file").click();
     if (d.goS) return d.goS !== S.song ? openSong(d.goS, +d.goJ) : go(+d.goJ);
     if (d.sc) { S.scope = d.sc; return renderStyle(); }
+    if (d.fxp) { applyLook({ bri: 1, sat: 1, con: 1, blur: 0, ...JSON.parse(d.fxp) }); return renderStyle(); }
     if (d.font) return applyLook({ font: d.font });
     if (d.align) return applyLook({ align: d.align });
     if (d.ink) return applyLook(d.ink === "auto" ? { inkSet: false } : { ink: d.ink, inkSet: true });
@@ -693,6 +704,7 @@
         }).catch((e) => { const m = $("#imp-msg"); if (m) m.textContent = e.message; });
         return;
       }
+      case "fx-reset": applyLook({ bri: 1, sat: 1, con: 1, blur: 0 }); return renderStyle();
       case "more-fonts": return XLOOK.pickFont(XLOOK.resolve(S.song, S.i).font, (f) => applyLook({ font: f }));
       case "suggest": { const sg = suggest(S.song); applyLook({ bg: sg.bg, font: sg.font, image: null }); return toast("Visual sugerido aplicado"); }
       case "trans": return applyLook({ trans: !XLOOK.resolve(S.song, S.i).trans });

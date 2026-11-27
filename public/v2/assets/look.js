@@ -131,6 +131,7 @@
     const b = {};
     if (sg.bg) b.bg = sg.bg; if (sg.font) b.font = sg.font;
     if (sg.ink) { b.ink = sg.ink; b.inkSet = true; }
+    if (sg.fx) Object.assign(b, sg.fx);
     if (sg.bgs) { b.slides = {}; sg.bgs.forEach((bg, i) => { if (bg && bg !== sg.bg) b.slides[i] = { bg }; }); }
     return b;
   }
@@ -155,6 +156,13 @@
   }
 
   /* opts.loop: repetir o vídeo (padrão) ou tocar uma vez; opts.play: false = fica a imagem parada */
+  /* ajuste do fundo: brilho (bri), saturação (sat), contraste (con), desfoque (blur, px). 1/1/1/0 = original */
+  function fxStyle(L) {
+    const b = L.bri ?? 1, s = L.sat ?? 1, c = L.con ?? 1, bl = L.blur ?? 0;
+    if (b === 1 && s === 1 && c === 1 && !bl) return "";
+    return `filter:brightness(${b}) saturate(${s}) contrast(${c})${bl ? ` blur(${bl}px)` : ""};${bl ? "transform:scale(1.06);" : ""}`;
+  }
+  const backdropFx = (L, opts) => { const fx = fxStyle(L); const b = backdrop(L.bg, L.image, opts); return fx ? `<div class="xw-fx" style="position:absolute;inset:0;${fx}">${b}</div>` : b; };
   function backdrop(bg, image, opts = {}) {
     if (image) return `<img class="xw-media" src="${image}" alt="">`;
     if (bg?.startsWith("loop:")) { const id = bg.slice(5); return `<div class="xw-media xw-yt" data-yt="${id}" data-loop="${opts.loop === false ? 0 : 1}" data-play="${opts.play === false ? 0 : 1}" aria-hidden="true"><img src="${thumb(id)}" alt=""></div>`; }
@@ -184,7 +192,7 @@
     const ly = XL.songs[songId].lyrics, shown = ly[lang] ? lang : Object.keys(ly)[0], other = shown === "en" ? "pt" : "en";
     const tr = L.trans && other !== shown && ly[other] && ly[other] !== ly[shown] ? XL.songSlides(songId, other)[i]?.text : "";
     const fs = Math.min(6.4, 26 / Math.max(2, n)) * F.k * L.size;
-    return `${backdrop(L.bg, L.image)}<div class="xw-grain"></div>
+    return `${backdropFx(L)}<div class="xw-grain"></div>
       ${section && sl.section ? `<div class="xw-sec" style="color:${inkFor(L)}">${esc(sl.section)}</div>` : ""}
       <div class="tb" data-i="${i}" style="left:${L.x}%;top:${L.y}%;width:${L.w}%;text-align:${L.align};color:${inkFor(L)};--ff:${F.family};--fw:${F.weight};--tr:${F.track};--lh:${F.lh};--fs:${fs}cqw;${F.upper ? "text-transform:uppercase;" : ""}">
         <div class="tb-lines" ${editable ? 'contenteditable="plaintext-only" spellcheck="false"' : ""}>${esc(text)}</div>
@@ -220,5 +228,5 @@
     hydrate(el);
   }
 
-  window.XLOOK = { embed, hydrate, mount, WASHES, LOOPS, PLAIN, FONTS, fontOf, fontChoices, loadFont, bgLib, importBg, bgThumb, library, pickFont, useFontInLibrary, INKS, inkOf, thumb, get, set, reset, resolve, backdrop, songSlide, on: (f) => (subs.add(f), () => subs.delete(f)) };
+  window.XLOOK = { embed, hydrate, mount, WASHES, LOOPS, PLAIN, FONTS, fontOf, fontChoices, loadFont, bgLib, importBg, bgThumb, library, pickFont, useFontInLibrary, INKS, inkOf, thumb, get, set, reset, resolve, backdrop, backdropFx, fxStyle, songSlide, on: (f) => (subs.add(f), () => subs.delete(f)) };
 })();

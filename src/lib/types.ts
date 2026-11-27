@@ -82,6 +82,8 @@ export interface Slide {
   bg?: string;
   /** Lyrics slides: grotesk | serif | condensed | mono. */
   font?: string;
+  /** Background adjustment: brightness, saturation, contrast (1 = original) and blur in px. */
+  fx?: { bri?: number; sat?: number; con?: number; blur?: number };
   /** Music decks: second of the song at which this slide appears. */
   at?: number;
   /** Music decks: part of the song (verse, chorus…), shown and coloured on screen. */

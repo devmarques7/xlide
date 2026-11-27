@@ -67,6 +67,14 @@ export const washOf = (bg?: string) => (bg?.startsWith("wash:") ? WASHES.find((w
 const isVideo = (url: string) => /\.(mp4|webm|mov)(\?|#|$)/i.test(url) || url.includes("videos.pexels.com");
 
 /** Wash, looping video or still image filling the slide. */
+/** CSS filter for a slide's background adjustment (undefined when it is the original). */
+export function fxFilter(fx?: Slide["fx"]): CSSProperties | undefined {
+  if (!fx) return undefined;
+  const b = fx.bri ?? 1, sa = fx.sat ?? 1, c = fx.con ?? 1, bl = fx.blur ?? 0;
+  if (b === 1 && sa === 1 && c === 1 && !bl) return undefined;
+  return { filter: `brightness(${b}) saturate(${sa}) contrast(${c})${bl ? ` blur(${bl}px)` : ""}`, transform: bl ? "scale(1.06)" : undefined };
+}
+
 export function Backdrop({ bg }: { bg?: string }) {
   const value = bg || DEFAULT_BG;
   const wash = washOf(value);
@@ -161,7 +169,13 @@ export function Lyrics({ s, T }: { s: Slide; T: (v: LText | undefined) => string
       className={cn("xs-lyrics", `font-${font.id}`, s.section && `is-${s.section}`)}
       style={{ "--ly-font": font.family, "--ly-ink": ink, "--ly-trans": music?.transInk } as CSSProperties}
     >
-      <Backdrop bg={s.bg} />
+      {fxFilter(s.fx) ? (
+        <div className="absolute inset-0" style={fxFilter(s.fx)}>
+          <Backdrop bg={s.bg} />
+        </div>
+      ) : (
+        <Backdrop bg={s.bg} />
+      )}
       <div className="xs-ly-grain" aria-hidden />
       <div className="xs-pad xs-ly-content">
         <span className="xs-label xs-ly-top">{top}</span>
