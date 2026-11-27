@@ -11,6 +11,10 @@
   const font = (id) => XLOOK.fontOf(id);
   const fontSeg = (cur, attrs = "") => `${XLOOK.fontChoices(cur).map((f) => `<button data-f="${f.id.replace(/"/g, "&quot;")}" class="${f.id === cur ? "on" : ""}" style="font-family:${f.family.replace(/"/g, "'")};text-transform:none;letter-spacing:0;font-size:15px">${f.name}</button>`).join("")}<button data-f="__more" style="text-transform:none;letter-spacing:0;font-size:15px" title="Todas as fontes (Google Fonts, Fontshare, importadas)">+ Todas</button>`;
   const clone = (o) => JSON.parse(JSON.stringify(o));
+  /* ajuste do fundo (brilho, saturação, contraste, desfoque) em volta do fundo do slide */
+  const fxWrap = (fx, html) => { const f = fx && XLOOK.fxStyle ? XLOOK.fxStyle(fx) : ""; return f ? `<div class="xw-fx" style="position:absolute;inset:0;${f}">${html}</div>` : html; };
+  const fxRanges = (fx = {}) => [["bri", "Brilho", 0.2, 1.6, 0.05, 1, "%"], ["sat", "Saturação", 0, 2, 0.05, 1, "%"], ["con", "Contraste", 0.5, 1.5, 0.05, 1, "%"], ["blur", "Desfoque", 0, 12, 0.5, 0, " px"]]
+    .map(([k, n, a, b, st, d, u]) => { const v = fx[k] ?? d; return `<label class="ctl dw-fx"><span>${n}</span><input type="range" data-fx="${k}" min="${a}" max="${b}" step="${st}" value="${v}"><output>${u === "%" ? Math.round(v * 100) + "%" : v + u}</output></label>`; }).join("");
   const IC_EXPAND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>`;
 
   /* ── layout por blocos ── x/y = centro em %, w = largura em %, s = tamanho em cqw */
@@ -42,7 +46,7 @@
     const tw = T.bo === false ? FT.weight : Math.max(FT.weight, 600);
     const md = o.media && window.MEDIA ? MEDIA.parse(o.media) : null;
     if (md && o.mediaOnly) return MEDIA.html(md); // item de vídeo/áudio do programa: só a mídia, sem fonte nem estilo
-    return `${md ? MEDIA.html(md) : ""}${md && md.kind === "video" ? "" : XLOOK.backdrop(o.bg || "solid:#0e0e0d", o.image, { loop: o.vloop !== false, play: o.vplay !== false })}<div class="xw-grain"></div>
+    return `${md ? MEDIA.html(md) : ""}${md && md.kind === "video" ? "" : fxWrap(o.fx, XLOOK.backdrop(o.bg || "solid:#0e0e0d", o.image, { loop: o.vloop !== false, play: o.vplay !== false }))}<div class="xw-grain"></div>
       <div class="tpl2" style="color:${ink};font-family:${F.family}">
         ${blk("eb", o.eyebrow || edit ? `<span class="tx" data-ph="Rótulo">${esc(o.eyebrow)}</span>` : "")}
         ${blk("t", o.title || edit ? `<span class="tx" data-ph="Título" style="font-weight:${tw};letter-spacing:${FT.track};${FT.upper ? "text-transform:uppercase;" : ""}">${esc(o.title)}</span>` : "")}
@@ -65,7 +69,9 @@
       <button class="btn ${o.editor ? "primary" : "ghost"} block" data-expand>${IC_EXPAND.replace("<svg", '<svg width="18" height="18"')} ${o.editor ? "Abrir no editor (tela cheia)" : "Expandir e editar o layout"}</button>
       ${o.slides ? `<div class="dw-strip" id="dw-strip"></div>` : ""}
       ${o.seconds ? `<div class="dw-timer"><button class="icon-btn" id="dw-play" aria-label="Testar o timer">${UI.I.play}</button><b class="num" id="dw-left"></b><span class="grow muted" style="font-size:var(--t-sm)">Timer na tela</span><div class="stepper" style="width:150px"><button data-d="-30" aria-label="Menos 30 segundos">−</button><b class="num" id="dw-dur" style="font-size:var(--t-md)"></b><button data-d="30" aria-label="Mais 30 segundos">+</button></div></div>` : ""}
-      <div class="field"><span class="lbl">Fundo</span><div class="dw-bgs" id="dw-bgs"></div></div>
+      <div class="field"><span class="lbl">Fundo</span><div class="dw-bgs" id="dw-bgs"></div>
+        <div class="row" style="gap:6px"><input class="input" id="dw-imp" placeholder="Importar: link do Pinterest, YouTube ou .mp4/.jpg" style="flex:1"><button class="btn" data-imp>Importar</button></div><span class="muted" id="dw-imp-msg" style="font-size:var(--t-xs)"></span>
+        <details class="dw-fxbox"${o.fx ? " open" : ""}><summary class="lbl" style="cursor:pointer">Ajustar o fundo · brilho, saturação, contraste, desfoque</summary><div id="dw-fx" style="display:grid;gap:4px;margin-top:6px">${fxRanges(o.fx)}</div><button class="link" data-fxreset style="justify-self:start">Original</button></details></div>
       <div class="field"><span class="lbl">Fonte</span><div class="seg" id="dw-font">${fontSeg(o.font || "grotesk")}</div></div>
       <label class="field"><span class="lbl">Título na tela</span><input class="input" id="dw-title"></label>
       <label class="field"><span class="lbl">Texto</span><textarea class="textarea" id="dw-text" style="min-height:96px" placeholder="Escreva e veja como fica no template"></textarea></label>
@@ -84,7 +90,7 @@
     function paint() {
       cv.render();
       if (o.seconds) { $("#dw-left").textContent = mmss(st.left); $("#dw-dur").textContent = mmss(st.seconds); $("#dw-play").innerHTML = st.run ? UI.I.pause : UI.I.play; }
-      $("#dw-bgs").innerHTML = BGS().map(([bg, n]) => `<button class="dw-bg${bg === st.bg ? " on" : ""}" data-bg="${bg}" title="${n}" aria-label="Fundo ${n}" aria-pressed="${bg === st.bg}"><span class="slide song">${XLOOK.backdrop(bg)}</span></button>`).join("");
+      $("#dw-bgs").innerHTML = [...(BGS().some(([bg]) => bg === st.bg) ? [] : [[st.bg, "Atual"]]), ...BGS()].map(([bg, n]) => `<button class="dw-bg${bg === st.bg ? " on" : ""}" data-bg="${bg}" title="${n}" aria-label="Fundo ${n}" aria-pressed="${bg === st.bg}"><span class="slide song">${XLOOK.backdrop(bg)}</span></button>`).join("");
       sh.querySelectorAll("#dw-font button").forEach((b) => b.classList.toggle("on", b.dataset.f === st.font));
       paintStrip();
     }
@@ -105,13 +111,25 @@
       if (b.dataset.expand != null && o.editor) { clearInterval(timer); location.href = o.editor(st); return; }
       if (b.dataset.expand != null) { clearInterval(timer); st.run = false; expand(st, o, () => { fields(); paint(); }, { view: cur, text: setText }); }
       else if (b.dataset.bg) { st.bg = b.dataset.bg; paint(); }
+      else if (b.dataset.imp != null) {
+        const u = $("#dw-imp").value.trim(), m = $("#dw-imp-msg"); if (!/^https?:\/\//.test(u)) { m.textContent = "Cole um link."; return; }
+        m.textContent = "Importando…";
+        XLOOK.importBg([u]).then((j) => { if (j.imported[0]) { st.bg = j.imported[0].bg; $("#dw-imp").value = ""; m.textContent = `Importado: ${j.imported[0].name}. Fica na biblioteca da equipe.`; paint(); } else m.textContent = (j.errors[0] || {}).error || "Não importou."; }).catch((e) => (m.textContent = e.message));
+      }
+      else if (b.dataset.fxreset != null) { st.fx = null; $("#dw-fx").innerHTML = fxRanges({}); paint(); }
       else if (b.dataset.f === "__more") XLOOK.pickFont(st.font, (f) => { st.font = f; const seg = sh.querySelector("#dw-font"); if (seg) seg.innerHTML = fontSeg(f); paint(); });
       else if (b.dataset.f) { st.font = b.dataset.f; paint(); }
       else if (b.dataset.s) { st.slide = +b.dataset.s; fields(); paint(); }
       else if (b.dataset.d) { st.seconds = Math.max(30, st.seconds + +b.dataset.d); st.left = st.seconds; paint(); }
       else if (b.id === "dw-play") { st.run = !st.run; clearInterval(timer); if (st.run) { if (st.left <= 0) st.left = st.seconds; timer = setInterval(tickTimer, 1000); } paint(); }
-      else if (b.dataset.save != null) { clearInterval(timer); o.onSave({ eyebrow: st.eyebrow, title: st.title, text: st.text, bg: st.bg, font: st.font, planned: st.seconds, layout: st.layout, per: st.per, ink: st.ink }); UI.closeSheet(); }
+      else if (b.dataset.save != null) { clearInterval(timer); o.onSave({ eyebrow: st.eyebrow, title: st.title, text: st.text, bg: st.bg, font: st.font, planned: st.seconds, layout: st.layout, per: st.per, ink: st.ink, fx: st.fx || null }); UI.closeSheet(); }
       else if (b.dataset.close != null) { clearInterval(timer); UI.closeSheet(); }
+    });
+    $("#dw-fx").addEventListener("input", (e) => {
+      const r = e.target.closest("[data-fx]"); if (!r) return;
+      const k = r.dataset.fx, v = +r.value; st.fx = { ...(st.fx || {}), [k]: v };
+      r.nextElementSibling.textContent = k === "blur" ? v + " px" : Math.round(v * 100) + "%";
+      paint();
     });
     $("#dw-title").oninput = (e) => { setText("title", e.target.value.replace(/ \/ /g, "\n")); paint(); };
     $("#dw-text").oninput = (e) => { setText("text", e.target.value); paint(); };

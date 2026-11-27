@@ -80,7 +80,8 @@ function findSlide(d, ref) {
 function cleanSlide(raw, lang) {
   const s = { id: raw.id || rid("s_"), layout: LAYOUTS.includes(raw.layout) ? raw.layout : "statement" };
   for (const f of TEXT_FIELDS) if (raw[f] != null) s[f] = toLText(raw[f], lang);
-  for (const k of ["image", "tone", "variant", "inverse", "items", "images", "bg", "font", "section", "repeat", "at"]) if (raw[k] != null) s[k] = raw[k];
+  for (const k of ["image", "tone", "variant", "inverse", "items", "images", "bg", "font", "section", "repeat", "at", "fx"]) if (raw[k] != null) s[k] = raw[k];
+  const fx = fxOf(raw, s.fx); if (fx) s.fx = fx;
   if (raw.notes != null) s.notes = toLText(raw.notes, lang);
   return s;
 }
@@ -128,11 +129,16 @@ async function boardBrief(bid) {
 }
 const IDENTITY_GUIDE = "Use a identidade em todo slide: cores da paleta (accent = destaque; background/text para tom claro/escuro), fontes de títulos/texto (o app já aplica), imagens com a mesma luz, cor e assunto das referências (só URLs https reais), e o tom descrito. Uma ideia por slide, pouco texto. Ao terminar, chame resolve_ai_request.";
 
+/* ajuste do fundo (brilho, saturação, contraste: 1 = original; desfoque em px) a partir dos campos do MCP */
+const fxOf = (a, base) => { const fx = Object.fromEntries([["bri", a.brightness], ["sat", a.saturation], ["con", a.contrast], ["blur", a.blur]].filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, Number(v)])); return Object.keys(fx).length ? { ...(base || {}), ...fx } : base; };
+const FX_PROPS = { brightness: { type: "number", description: "Brilho do fundo (1 = original; 0.6 = mais escuro)" }, saturation: { type: "number", description: "Saturação (1 = original; 0 = preto e branco)" }, contrast: { type: "number" }, blur: { type: "number", description: "Desfoque do fundo em px (0–12)" } };
+
 /* ── programa ── */
 function cleanItem(raw) {
   const type = ITEM_TYPES.includes(raw.type) ? raw.type : "notice";
   const it = { id: raw.id || rid("i_"), type, title: String(raw.title || type), planned: Math.max(10, Math.round((Number(raw.minutes) || Number(raw.planned) / 60 || 3) * 60)), advance: raw.advance || (["wait", "notice", "video", "media"].includes(type) ? "auto" : "manual"), public: raw.public !== false };
-  for (const k of ["text", "owner", "area", "deck", "song", "media", "eyebrow", "bg", "font", "hidden"]) if (raw[k] != null) it[k] = raw[k];
+  for (const k of ["text", "owner", "area", "deck", "song", "media", "eyebrow", "bg", "font", "hidden", "ink"]) if (raw[k] != null) it[k] = raw[k];
+  const fx = fxOf(raw); if (fx) it.fx = fx;
   // vídeo por link (YouTube…) é um item media: é ele que toca o link no projetor
   if (type === "video" && raw.media) it.type = "media";
   if (raw.mute) it.mute = true;
@@ -158,8 +164,8 @@ function trackOf(t, vol) {
 const progSummary = (p) => ({ id: p.id, title: p.title, date: p.service_date, starts: p.starts_at, status: p.status, live: p.is_live, items: (p.doc.items || []).length, minutes: Math.round((p.doc.items || []).reduce((a, b) => a + (b.planned || 0), 0) / 60) });
 
 const S = (props, required = []) => ({ type: "object", properties: props, required });
-const slideProps = { bg: { type: "string", description: "Fundo: wash:<ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold>, loop:<id YouTube>, plain:<papel|tinta|grade|coluna|sabado|brasa>, ou URL de imagem/vídeo" }, font: { type: "string", description: "Fonte: grotesk, serif, condensed, mono (as 4 da casa) ou o nome de QUALQUER família do catálogo (Google Fonts, Fontshare, Fontsource, ~2100) ou importada pela equipe, ex. \"Lexend\". Use search_fonts para achar." }, tone: { type: "string", enum: ["dark", "light"] }, section: { type: "string", enum: ["intro", "verse", "prechorus", "chorus", "bridge", "tag", "instrumental", "outro"] }, repeat: { type: "number" }, at: { type: "number", description: "Segundo da música em que o slide entra" }, notes: { type: "string", description: "Notas do apresentador" }, layout: { type: "string", enum: LAYOUTS }, eyebrow: { type: "string" }, title: { type: "string" }, subtitle: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, image: { type: "string", description: "URL https real de imagem" } };
-const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media (o vídeo toca no projetor)" }, mute: { type: "boolean", description: "Só para vídeo (item media): true = toca SEM o áudio original do vídeo; o som da tela vem de `track` (a trilha que a pessoa escolheu). false volta o áudio do vídeo." }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela (toca no computador do console → mesa de som): off, mix1, mix2, ou link/id do YouTube de uma faixa. Com mute: true, é ela que toca por cima do vídeo sem som." }, track_volume: { type: "number" } };
+const slideProps = { ...FX_PROPS, bg: { type: "string", description: "Fundo: wash:<ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold>, loop:<id YouTube>, plain:<papel|tinta|grade|coluna|sabado|brasa>, ou URL de imagem/vídeo (inclusive fundos importados do Pinterest: list_backgrounds / import_background)" }, font: { type: "string", description: "Fonte: grotesk, serif, condensed, mono (as 4 da casa) ou o nome de QUALQUER família do catálogo (Google Fonts, Fontshare, Fontsource, ~2100) ou importada pela equipe, ex. \"Lexend\". Use search_fonts para achar." }, tone: { type: "string", enum: ["dark", "light"] }, section: { type: "string", enum: ["intro", "verse", "prechorus", "chorus", "bridge", "tag", "instrumental", "outro"] }, repeat: { type: "number" }, at: { type: "number", description: "Segundo da música em que o slide entra" }, notes: { type: "string", description: "Notas do apresentador" }, layout: { type: "string", enum: LAYOUTS }, eyebrow: { type: "string" }, title: { type: "string" }, subtitle: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, image: { type: "string", description: "URL https real de imagem" } };
+const itemProps = { ...FX_PROPS, bg: { type: "string", description: "Fundo do item na tela: wash:/plain:/loop:<id YouTube>, ou link de imagem/vídeo (inclusive os importados: list_backgrounds / import_background, ex. pins do Pinterest)" }, font: { type: "string", description: "Fonte: grotesk, serif, condensed, mono ou qualquer família (search_fonts / fontes do brand kit)" }, eyebrow: { type: "string", description: "Rótulo pequeno acima do título" }, ink: { type: "string", description: "Cor do texto (#hex)" }, type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media (o vídeo toca no projetor)" }, mute: { type: "boolean", description: "Só para vídeo (item media): true = toca SEM o áudio original do vídeo; o som da tela vem de `track` (a trilha que a pessoa escolheu). false volta o áudio do vídeo." }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela (toca no computador do console → mesa de som): off, mix1, mix2, ou link/id do YouTube de uma faixa. Com mute: true, é ela que toca por cima do vídeo sem som." }, track_volume: { type: "number" } };
 
 export const LIVE_TOOLS = [
   { name: "search_fonts", description: "Busca fontes no catálogo do XLIDE (Google Fonts, Fontshare, Fontsource: ~2100 famílias) e nas importadas pela equipe. Filtros: nome (q), categoria (sans, serif, display, script, mono) e origem. O nome que voltar pode ir direto em font (slides, músicas, brand kit).", inputSchema: S({ q: { type: "string" }, category: { type: "string", enum: ["sans", "serif", "display", "script", "mono"] }, source: { type: "string", enum: ["google", "fontshare", "fontsource", "custom"] }, limit: { type: "number" } }) },
@@ -330,6 +336,7 @@ export async function callLiveTool(name, a = {}, origin = "") {
       if (a.image != null) a.image ? (s.image = a.image) : delete s.image;
       for (const f of TEXT_FIELDS) if (a[f] != null) s[f] = setText(s[f], lang, a[f]);
       for (const f of STYLE_FIELDS) if (a[f] != null) s[f] = f === "notes" ? setText(s[f], lang, a[f]) : a[f] === "" ? undefined : a[f];
+      { const fx = fxOf(a, s.fx); if (fx) s.fx = fx; }
       if (!d.languages.includes(lang)) d.languages.push(lang);
       await saveDeck(d); return { n: i + 1, ...slideOutline(d, lang)[i] };
     }
@@ -374,7 +381,8 @@ export async function callLiveTool(name, a = {}, origin = "") {
     }
     case "update_program_item": {
       const p = await loadProg(a.program_id), i = findItem(p, a.item), it = p.doc.items[i];
-      const { program_id, item, minutes, deck_id, song_id, ...patch } = a;
+      const { program_id, item, minutes, deck_id, song_id, brightness, saturation, contrast, blur, ...patch } = a;
+      const fx2 = fxOf(a, it.fx); if (fx2) it.fx = fx2;
       Object.assign(it, Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)));
       if (minutes != null) it.planned = Math.round(minutes * 60);
       if (deck_id != null) it.deck = deck_id; if (song_id != null) it.song = song_id;

@@ -29,6 +29,24 @@ window.renderSlide = function (it, slide, T, lang = "pt", status = "live") {
       return { html: `<div><div class="s-eyebrow">${XL.types[it.type].name}</div><div class="s-title">${it.title}</div></div>` };
   }
 };
+/* Visual de um item do programa (o mesmo da gaveta do Programa): fundo, fonte, layout, cor, ajuste do fundo.
+   Programa, console e projetor usam este; música e vídeo/áudio têm os próprios. */
+window.ITEMLOOK = (function () {
+  const DEFAULT_BG = { song: null, wait: "wash:midnight", notice: "wash:amber", prayer: "loop:CQ0keZI1gds", sermon: "wash:gold", video: "solid:#0e0e0d", pause: "solid:#0e0e0d" };
+  const look = (it) => ({ bg: it.bg || DEFAULT_BG[it.type] || "loop:5djr6ofyLLY", font: it.font || (it.type === "sermon" ? "serif" : "grotesk") });
+  const name = (it) => (window.XL && XL.types && XL.types[it.type] ? XL.types[it.type].name : it.type);
+  /* template do item (sem música e sem vídeo/áudio); slide k usa os textos/fundo próprios daquele slide, se houver */
+  function tpl(it, k = 0) {
+    const s = (it.slides && it.slides[k]) || {};
+    const base = { kind: name(it), eyebrow: it.eyebrow || name(it), title: it.title, text: it.type === "wait" ? it.text || "" : (it.text || "").replace(/ · /g, "\n"), seconds: it.type === "wait" ? it.planned : 0, layout: (it.per && it.per[k]) || it.layout, ink: it.ink, fx: it.fx || null, ...look(it) };
+    if (k > 0 && (s.title || s.text || s.bg || s.image)) Object.assign(base, { title: s.title ?? base.title, text: s.text ?? "", ...(s.bg ? { bg: s.bg } : {}), ...(s.image ? { image: s.image } : {}) });
+    return base;
+  }
+  /* o item tem visual próprio para desenhar com o template? (fundo, layout, fonte, ajuste) */
+  const designed = (it) => it && !["song", "media"].includes(it.type);
+  return { DEFAULT_BG, look, tpl, designed };
+})();
+
 window.paintSlide = function (el, it, slide, T, lang, status) {
   // Música com o look do Estúdio (fundo, fonte, posição), quando look.js está na página.
   if (window.XLOOK && it && it.type === "song" && status !== "idle" && status !== "done") {
@@ -37,6 +55,19 @@ window.paintSlide = function (el, it, slide, T, lang, status) {
     el._k = key; el._c = "song";
     el.className = "slide song";
     XLOOK.mount(el, XLOOK.songSlide(it.song, slide, { lang }));
+    return;
+  }
+  // aviso, oração, sermão, espera, pausa…: o mesmo template da gaveta do Programa (fundo importado, fonte, layout, ajuste)
+  const pg = it && window.LIVE && it.type !== "song" ? LIVE.slidesOf(it)[slide] : null;
+  if (window.DRAWER && ITEMLOOK.designed(it) && status !== "idle" && status !== "done" && !(pg && pg.image)) {
+    const o = ITEMLOOK.tpl(it, slide), left = o.seconds ? Math.max(0, Math.round((T && T.remaining) || 0)) : 0;
+    const key = "tpl|" + JSON.stringify({ ...o, seconds: !!o.seconds }) + "|" + slide;
+    if (el._k === key) { const tm = el.querySelector(".tpl-timer"); if (tm && tm.firstChild) tm.firstChild.nodeValue = DRAWER.mmss(left); return; }
+    el._k = key; el._c = "tpl";
+    el.className = "slide song";
+    const html = DRAWER.template({ ...o, left });
+    if (window.XLOOK && XLOOK.mount) XLOOK.mount(el, html); else el.innerHTML = html;
+    window.MEDIA && MEDIA.hydrate(el);
     return;
   }
   const r = renderSlide(it, slide, T, lang, status);

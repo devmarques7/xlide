@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIDE · Programa</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
-<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script><script src="assets/trilha.js"></script><script src="assets/files.js"></script><script src="assets/media.js"></script>
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/render.js"></script><script src="assets/drawer.js"></script><script src="assets/canvas.js"></script><script src="assets/trilha.js"></script><script src="assets/files.js"></script><script src="assets/media.js"></script>
 <style>
   .ti { grid-template-columns: 28px 52px minmax(0, 1fr) auto; cursor: pointer; }
   .ti .thumb-s { display: none; }
@@ -272,11 +272,10 @@ const START_ = () => { const [h, m] = String(P.starts || "10:00").split(":").map
 const startsMin = () => { let c = START_(); return items.map((it) => { const s = c; c += it.planned / 60; return s; }); };
 let was = {};      // horário anterior de cada item depois de mover (id → "10:00")
 let moved = null;  // id do último item movido
-const DEFAULT_BG = { song: null, wait: "wash:midnight", notice: "wash:amber", prayer: "loop:CQ0keZI1gds", sermon: "wash:gold", video: "solid:#0e0e0d", pause: "solid:#0e0e0d" };
-const look = (it) => ({ bg: it.bg || DEFAULT_BG[it.type] || "loop:5djr6ofyLLY", font: it.font || (it.type === "sermon" ? "serif" : "grotesk") });
+const DEFAULT_BG = ITEMLOOK.DEFAULT_BG, look = ITEMLOOK.look; // o mesmo visual que o projetor usa
 const tplOf = (it) => it.type === "media" ? { kind: "Vídeo / áudio", media: it.media, mediaOnly: true, title: it.title, bg: "solid:#000" } : it.type === "song"
   ? { eyebrow: XL.songs[it.song].title, title: XL.songSlides(it.song)[0].text, ...look({ ...it, bg: it.bg || XLOOK.resolve(it.song, 0).bg, font: it.font || XLOOK.resolve(it.song, 0).font }) }
-  : { kind: XL.types[it.type].name, eyebrow: it.eyebrow || XL.types[it.type].name, title: it.title, text: it.type === "wait" ? (it.text || "") : (it.text || "").replace(/ · /g, "\n"), seconds: it.type === "wait" ? it.planned : 0, layout: it.layout, ink: it.ink, ...look(it) };
+  : ITEMLOOK.tpl(it);
 
 function render() {
   const st = startsMin();
@@ -453,8 +452,8 @@ function edit(i) {
     kind: XL.types[it.type].name, meta: `item ${i + 1} de ${items.length}, ${hm(startsMin()[i])}`,
     // o botão de expandir abre o editor em tela cheia (o mesmo dos decks); música vai para o editor de música
     editor: it.type === "media" ? null : () => { prog.items = PROGS.clone(items); PROGS.put(prog); return it.type === "song" ? `estudio.html?song=${it.song}` : `deck.html?p=${prog.id}&item=${it.id}`; },
-    eyebrow: tp.eyebrow, title: it.type === "song" ? tp.title : it.title, text: tp.text, bg: tp.bg, font: tp.font, seconds: it.planned, layout: it.layout, ink: it.ink, extra,
-    onSave: (p) => { if (it.type !== "song") { it.title = p.title; it.text = p.text; } it.bg = p.bg; it.font = p.font; it.planned = p.planned; it.layout = p.layout; it.ink = p.ink; if (p.eyebrow != null) it.eyebrow = p.eyebrow; it.owner = sh.querySelector('[data-f="owner"]').value; render(); toastMsg("Item salvo. Os horários seguintes foram ajustados."); },
+    eyebrow: tp.eyebrow, title: it.type === "song" ? tp.title : it.title, text: tp.text, bg: tp.bg, font: tp.font, fx: it.fx || null, seconds: it.planned, layout: it.layout, ink: it.ink, extra,
+    onSave: (p) => { if (it.type !== "song") { it.title = p.title; it.text = p.text; } it.bg = p.bg; it.font = p.font; if (p.fx) it.fx = p.fx; else delete it.fx; it.planned = p.planned; it.layout = p.layout; it.ink = p.ink; if (p.eyebrow != null) it.eyebrow = p.eyebrow; it.owner = sh.querySelector('[data-f="owner"]').value; render(); toastMsg("Item salvo. Os horários seguintes foram ajustados."); },
   });
   TRILHA.bindPicker(sh, it, (m) => { render(); m && toastMsg(m); });
   const mf = sh.querySelector('[data-f="media"]');

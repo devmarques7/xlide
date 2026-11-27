@@ -195,7 +195,7 @@ if (q.get("f") && FILES.get(q.get("f"))) {
 doc.slides.forEach((s) => (s.layout = s.layout || clone(DRAWER.PRESETS.centro)));
 let cur = 0, saved = JSON.stringify(doc), panel = null, bgTab = "wash", bgScope = "one";
 const S = () => doc.slides[cur];
-const view = (i = cur) => { const s = doc.slides[i]; return { ...s, bg: s.image ? null : s.bg || doc.bg, image: s.image || null, font: s.font || doc.font, ink: s.ink || doc.ink, seconds: doc.seconds || 0 }; };
+const view = (i = cur) => { const s = doc.slides[i]; return { ...s, bg: s.image ? null : s.bg || doc.bg, image: s.image || null, font: s.font || doc.font, ink: s.ink || doc.ink, fx: s.fx || doc.fx || null, seconds: doc.seconds || 0 }; };
 /* Trilha: cada slide pode ter a sua (slide.tr); a do deck (doc.tr) vale para os outros e se estende
    (a mesma faixa continua tocando de um slide para o outro). Sem nada: sem trilha. */
 const trOf = (i = cur) => { const s = doc.slides[i]; const t = s.tr || doc.tr || { mode: "off" }; return { ...t, own: !!s.tr, deck: !s.tr && !!doc.tr }; };
@@ -273,12 +273,16 @@ function openPanel(k, keep) {
   let h = "";
   if (k === "bg") {
     const isLoop = (v.bg || "").startsWith("loop:");
-    const L = bgTab === "wash" ? XLOOK.WASHES.map((w) => ["wash:" + w.id, w.name]) : bgTab === "loop" ? XLOOK.LOOPS.map((l) => ["loop:" + l.id, l.name]) : bgTab === "plain" ? XLOOK.PLAIN.map((p) => ["plain:" + p.id, p.name]) : [];
+    const L = bgTab === "wash" ? XLOOK.WASHES.map((w) => ["wash:" + w.id, w.name]) : bgTab === "loop" ? XLOOK.LOOPS.map((l) => ["loop:" + l.id, l.name]) : bgTab === "plain" ? XLOOK.PLAIN.map((p) => ["plain:" + p.id, p.name]) : bgTab === "imp" ? XLOOK.bgLib().map((it) => [it.bg, it.name]) : [];
     h = `<h3>Fundo</h3>
       <div class="seg"><button data-scope="one" class="${bgScope === "one" ? "on" : ""}">Este slide</button><button data-scope="all" class="${bgScope === "all" ? "on" : ""}">Todos os slides</button></div>
-      <div class="seg"><button data-tab="wash" class="${bgTab === "wash" ? "on" : ""}">Cores</button><button data-tab="loop" class="${bgTab === "loop" ? "on" : ""}">Vídeos</button><button data-tab="plain" class="${bgTab === "plain" ? "on" : ""}">Avisos</button><button data-tab="img" class="${bgTab === "img" ? "on" : ""}">Imagens</button></div>
+      <div class="seg"><button data-tab="wash" class="${bgTab === "wash" ? "on" : ""}">Cores</button><button data-tab="loop" class="${bgTab === "loop" ? "on" : ""}">Vídeos</button><button data-tab="plain" class="${bgTab === "plain" ? "on" : ""}">Avisos</button><button data-tab="img" class="${bgTab === "img" ? "on" : ""}">Imagens</button><button data-tab="imp" class="${bgTab === "imp" ? "on" : ""}">Importados</button></div>
+      ${bgTab === "imp" ? `<div class="row" style="gap:6px"><input class="input" id="dk-imp" placeholder="Link do Pinterest, YouTube ou .mp4/.jpg" style="flex:1"><button class="btn" data-impbg>Importar</button></div><p class="muted" id="dk-imp-msg" style="font-size:var(--t-xs)">${XLOOK.bgLib().length ? "" : "A biblioteca de fundos da equipe ainda está vazia. Cole um link para começar."}</p>` : ""}
       ${isLoop && bgTab === "loop" || isLoop ? `<div class="vopt"><span class="lbl">Vídeo deste slide</span><div class="row"><span>Reprodução</span><button class="toggle${s.vplay !== false ? " on" : ""}" data-vplay role="switch" aria-checked="${s.vplay !== false}" aria-label="Reprodução do vídeo"></button></div><div class="seg"><button data-vloop="1" class="${s.vloop !== false ? "on" : ""}">Em loop</button><button data-vloop="0" class="${s.vloop === false ? "on" : ""}">Uma vez</button></div><span class="muted" style="font-size:var(--t-xs)">Desligado, fica a imagem parada do vídeo.</span></div>` : ""}
-      ${bgTab === "img" ? `<div class="bg-g"><button class="up" data-import>${IC.img}Importar imagem</button>${doc.images.map((src, i) => `<button class="${s.image === src ? "on" : ""}" data-img="${i}"><span class="slide song"><img class="xw-media" src="${src}" alt=""></span>Imagem ${i + 1}</button>`).join("")}</div>${s.image ? `<button class="btn ghost block" data-noimg>Tirar a imagem de fundo</button>` : ""}<p class="muted" style="font-size:var(--t-xs)">A imagem fica atrás do texto. Para pôr uma imagem como bloco solto, use Imagem.</p>` : `<div class="bg-g">${L.map(([bg, n]) => tile(bg, n, !s.image && (s.bg || doc.bg) === bg)).join("")}</div>`}`;
+      ${bgTab === "img" ? `<div class="bg-g"><button class="up" data-import>${IC.img}Importar imagem</button>${doc.images.map((src, i) => `<button class="${s.image === src ? "on" : ""}" data-img="${i}"><span class="slide song"><img class="xw-media" src="${src}" alt=""></span>Imagem ${i + 1}</button>`).join("")}</div>${s.image ? `<button class="btn ghost block" data-noimg>Tirar a imagem de fundo</button>` : ""}<p class="muted" style="font-size:var(--t-xs)">A imagem fica atrás do texto. Para pôr uma imagem como bloco solto, use Imagem.</p>` : `<div class="bg-g">${L.map(([bg, n]) => tile(bg, n, !s.image && (s.bg || doc.bg) === bg)).join("")}</div>`}
+      <span class="lbl" style="margin-top:var(--s3);display:block">Ajustar o fundo ${bgScope === "all" ? "(todos os slides)" : "(este slide)"}</span>
+      ${[["bri", "Brilho", 0.2, 1.6, 0.05, 1], ["sat", "Saturação", 0, 2, 0.05, 1], ["con", "Contraste", 0.5, 1.5, 0.05, 1], ["blur", "Desfoque", 0, 12, 0.5, 0]].map(([fk, n, a, b, st, d]) => { const fv = (v.fx || {})[fk] ?? d; return `<label class="ctl"><span>${n}</span><input type="range" data-dkfx="${fk}" min="${a}" max="${b}" step="${st}" value="${fv}"><output>${fk === "blur" ? fv + " px" : Math.round(fv * 100) + "%"}</output></label>`; }).join("")}
+      <button class="link" data-dkfxreset>Original</button>`;
   } else if (k === "layout") {
     h = `<h3>Layout</h3><p class="muted" style="font-size:var(--t-xs)">A estrutura do slide. Escolha e depois ajuste arrastando no slide.</p>
       <div class="ly-g">${Object.entries(DRAWER.PRESETS).map(([pk, p]) => `<button data-ly="${pk}">${DRAWER.mini({ ...v, layout: { ...clone(p), name: undefined }, seconds: pk === "contagem" ? 300 : 0 })}${p.name}</button>`).join("")}</div>
@@ -324,6 +328,13 @@ function openPanel(k, keep) {
       <kbd>⌫ / Delete</kbd><span>Com um bloco selecionado: oculta o bloco. Sem seleção: apaga o slide (com Desfazer)</span><kbd>Enter</kbd><span>Escrever no bloco selecionado</span><kbd>Setas</kbd><span>Com bloco selecionado: move 1% (Shift, 5%)</span><kbd>Esc</kbd><span>Solta a seleção</span><kbd>⌘S</kbd><span>Salvar</span><kbd>P</kbd><span>Apresentar</span></div>`;
   }
   el.innerHTML = `<div class="dk-pi">${h}</div>`;
+  // ajuste do fundo: arrastar atualiza o slide sem redesenhar o painel (o controle não perde o arraste)
+  el.querySelectorAll("[data-dkfx]").forEach((r) => (r.oninput = () => {
+    const fk = r.dataset.dkfx, fv = +r.value, s2 = S();
+    if (bgScope === "all") { doc.fx = { ...(doc.fx || {}), [fk]: fv }; doc.slides.forEach((x) => delete x.fx); } else s2.fx = { ...(s2.fx || doc.fx || {}), [fk]: fv };
+    r.nextElementSibling.textContent = fk === "blur" ? fv + " px" : Math.round(fv * 100) + "%";
+    cv.render(); thumbs(); meta();
+  }));
   if (k === "media") el.querySelector("[data-md]").oninput = (e) => { const m = MEDIA.parse(e.target.value); el.querySelector("[data-md-l]").textContent = e.target.value.trim() ? (m ? MEDIA.label(m) + " · reconhecido" : "Link não reconhecido") : ""; };
   if (k === "trilha") {
     const qi = el.querySelector("[data-trq]"); qi && (qi.oninput = (e) => { trQ = e.target.value.toLowerCase(); const pos = e.target.selectionStart; openPanel("trilha", true); const n = UI.qs("[data-trq]"); n.focus(); n.setSelectionRange(pos, pos); });
@@ -350,6 +361,13 @@ UI.qs("#panel").addEventListener("click", (e) => {
   if (d.trPlay) return preview(d.trPlay);
   if (d.scope) { bgScope = d.scope; return openPanel("bg", true); }
   if (d.tab) { bgTab = d.tab; return openPanel("bg", true); }
+  if (d.impbg != null) {
+    const u = (UI.qs("#dk-imp") || {}).value?.trim(), m = UI.qs("#dk-imp-msg");
+    if (!/^https?:\/\//.test(u || "")) { if (m) m.textContent = "Cole um link."; return; }
+    if (m) m.textContent = "Importando…";
+    return XLOOK.importBg([u]).then((j) => { const it = j.imported[0]; if (!it) { if (m) m.textContent = (j.errors[0] || {}).error || "Não importou."; return; } if (bgScope === "all") { doc.bg = it.bg; doc.slides.forEach((x) => { delete x.bg; delete x.image; }); } else { s.bg = it.bg; delete s.image; } render(); openPanel("bg", true); toast(`Fundo importado: ${it.name}`); }).catch((e) => m && (m.textContent = e.message));
+  }
+  if (d.dkfxreset != null) { if (bgScope === "all") { delete doc.fx; doc.slides.forEach((x) => delete x.fx); } else delete s.fx; render(); return openPanel("bg", true); }
   if (d.bg) { if (bgScope === "all") { doc.bg = d.bg; doc.slides.forEach((x) => { delete x.bg; delete x.image; }); } else { s.bg = d.bg; delete s.image; } return render(); }
   if (d.vplay != null) { s.vplay = s.vplay === false; return render(); }
   if (d.vloop) { s.vloop = d.vloop === "1"; return render(); }
