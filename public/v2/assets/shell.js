@@ -222,7 +222,9 @@
       const p = XL.people[me()];
       sheet(`<div class="stack"><div class="row between"><h2>Sua conta</h2><button class="icon-btn" onclick="UI.closeSheet()" aria-label="Fechar">${I.x}</button></div>
         <div class="create-row" style="width:100%"><span class="avatar">${p.ini}</span><span class="grow"><b>${p.name}</b><span>${p.email || ""} · ${p.title}</span></span></div>
-        <div class="create-list"><a class="create-row" href="/"><span class="grow"><b>XLIDE clássico</b><span>Editor de decks, músicas e boards</span></span></a>
+        <div class="create-list"><a class="create-row" href="/settings">${I.gear}<span class="grow"><b>Configurações</b><span>Conectar ao Claude (MCP), skill especialista${p.title === "Administrador" ? ", auditoria" : ""}</span></span></a>
+        ${p.title === "Administrador" ? `<a class="create-row" href="/settings?tab=audit"><span class="grow"><b>Auditoria</b><span>Tudo o que a equipe faz no sistema</span></span></a>` : ""}
+        <a class="create-row" href="/"><span class="grow"><b>XLIDE clássico</b><span>Editor de decks, músicas e boards</span></span></a>
         <a class="create-row" href="equipe.html"><span class="grow"><b>Equipe e acesso</b><span>Papéis e áreas</span></span></a>
         <button class="create-row" data-out style="text-align:left;width:100%"><span class="grow"><b>Sair</b><span>Encerrar a sessão neste aparelho</span></span></button></div></div>`);
       qsa("[data-out]").forEach((b) => (b.onclick = () => XCLOUD.signOut()));

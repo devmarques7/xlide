@@ -215,6 +215,9 @@ export function AppSidebar() {
                   </button>
                 </span>
               </div>
+              <a href="/settings">
+                <Settings className="size-4" /> {t("nav.settings")}
+              </a>
               <a href="/v2/equipe.html">
                 <Users className="size-4" /> {t("nav.team")}
               </a>
