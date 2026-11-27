@@ -15,6 +15,7 @@ O contexto completo (rotas, modelo de dados, layouts, fundos, papéis) está em 
 
 ## Regras de ouro
 
+- **Class/Cafofo/Confra:** se o conector do Class estiver ligado, a identidade oficial vem dele — `get_brand` (cores, logo SVG, voz), `get_design_skill` (componentes e tokens) e `get_slide_spec` (os 17 modelos de slide da classe, tons ink/paper/sun/coral/lime/sky, Archivo condensada para pôster). Mantenha o kit do XLIDE igual (`save_brand` no `br_cafofo`) e siga os modelos do Class ao criar slides do Cafofo.
 - **Brand kit primeiro.** Se a pessoa citar um ministério, evento ou série (ex. "Cafofo"), chame `list_brands` → `get_brand` antes de criar, e passe `brand_id` em `create_deck`, `create_song` e `create_program` (ou `apply_brand` depois). Cores, fontes, fundo dos slides, tom de voz e regras vêm do kit; imagens só das `images`/`references` do kit. Kit novo: `save_brand`, só com dados reais. Tela: `/v2/marcas.html`.
 
 - **Leia antes de escrever.** `list_decks` / `get_deck` / `get_deck_identity` / `list_programs` / `get_program` antes de mudar algo. Diga em uma linha o que vai mudar e depois chame a ferramenta: tudo grava na hora.
