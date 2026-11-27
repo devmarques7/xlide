@@ -58,7 +58,7 @@
       return `<a class="rc" href="${d.real ? "deck.html?d=" + id : "estudio.html"}"><span class="rc-top"><span>${String(d.updated || "").split(",")[0]}</span><span>Deck</span></span><h3>${esc(d.title)}</h3>${pvDeck(d)}<span class="rc-foot"><span>${d.slides} slides</span><span>${esc(d.updated)}</span></span></a>`;
     }
     const s = XL.songs[id];
-    return `<a class="rc" href="estudio.html?song=${id}"><span class="rc-top"><span>${s.last}</span><span>Música</span></span><h3>${esc(s.title)}</h3>${pvSong(id)}<span class="rc-foot"><span>Tom ${s.key}, ${s.langs.join(" ").toUpperCase()}</span><span>usada ${s.uses}×</span></span></a>`;
+    return `<a class="rc" href="estudio.html?song=${id}"><span class="rc-top"><span>${s.last}</span><span>${s.folder ? "Pasta " + esc(s.folder) : "Música"}</span></span><h3>${esc(s.title)}</h3>${pvSong(id)}<span class="rc-foot"><span>Tom ${esc(s.key)}${s.notes ? " · " + esc(s.notes) : ""}, ${s.langs.join(" ").toUpperCase()}</span><span>usada ${s.uses}×</span></span></a>`;
   }
 
   /* prévias vivas das células de criar */

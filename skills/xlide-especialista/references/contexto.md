@@ -55,7 +55,7 @@ Cada membro tem a **sua chave do MCP** (`xl_…`). Tudo o que o Claude faz com e
 | Rota | O que é |
 | --- | --- |
 | `inicio.html` | Visão geral: próximos cultos, recentes, atalhos, Criar |
-| `biblioteca.html?tab=decks|songs|tpl` | Decks, músicas e modelos |
+| `biblioteca.html?tab=decks|songs|tpl` | Decks, músicas e modelos. Músicas têm pastas (ex. Cafofo): `?tab=songs&pasta=Cafofo` |
 | `arquivos.html` | Meus arquivos por pasta: avisos, pregação, início do culto, oração, versículos |
 | `kit.html` | Fundos e fontes (`#testar`, `#avisos`) |
 | `estudio.html` | Editor de música (trilha, seções, tempos) |
@@ -117,7 +117,7 @@ Estados: `rascunho` → `salvo` → `feito` · `arquivado` · `lixeira`. Transi�
 - **Decks:** `list_decks`, `get_deck`, `create_deck`, `add_slides`, `update_slide`, `move_slide`, `remove_slides`, `deck_links`
 - **Identidade e pedidos:** `get_deck_identity`, `set_deck_identity`, `list_ai_requests`, `resolve_ai_request`
 - **Línguas:** `missing_translations`, `add_translations`
-- **Música:** `create_song`
+- **Música:** `create_song` (com `folder`, `key`, `notes`), `update_song`
 - **Arquivos:** `list_files`, `save_file`, `set_file_status`
 - **Programas:** `list_programs`, `get_program`, `create_program`, `add_program_items`, `update_program_item`, `move_program_item`, `remove_program_items`, `set_program_status`, `set_program_settings`, `duplicate_program`
 - **Boards:** `list_boards`, `get_board`, `create_board`, `add_nodes`, `update_node`, `connect_nodes`, `remove_items`, `add_mood_items`, `update_mood_item`, `brand_sheet`, `arrange`, `draw`, `preview_board`, `share_link`, `update_board`

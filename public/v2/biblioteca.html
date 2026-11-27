@@ -51,6 +51,7 @@
     </div>
     <p class="perm-note" id="song-perm"></p>
     <header class="sec-x"><span class="n">01</span><h2>Músicas</h2><span class="lbl" id="song-n"></span></header>
+    <div class="scroll-x" id="song-folders" style="margin-bottom:var(--s3)"></div>
     <div class="rc-grid" id="song-list"></div>
   </section>
 
@@ -89,6 +90,7 @@ if (CLOUD) ROLES.pr = { ...ROLES.pr, n: "Editor", why: "Editor: cria e edita sli
 const DECK_TPL = [["editorial", "Editorial", "Capa, capítulos, citação, imagem e fechamento"], ["pitch", "Investor Pitch", "Dez slides: problema, solução, produto, mercado, tração"], ["brand", "Brand Guidelines", "Capa, índice, introdução, cores, tipografia, logo"]];
 let tab = params.get("tab") || "songs";
 let q = "";
+let songFolder = params.get("pasta") || "";
 const can = (what) => ROLES[me][what] === "edit";
 const lock = UI.I.lock;
 
@@ -114,7 +116,13 @@ function render() {
     <button class="act" data-new ${dis}>${UI.I.music}<span><b>Nova faixa</b><span>Cole a letra. Linha em branco separa os slides.</span></span></button>
     <a class="act" href="kit.html">${UI.I.palette}<span><b>Estúdio</b><span>Todos os fundos e fontes, e um lugar para testar.</span></span></a>`;
   UI.qs("#song-perm").innerHTML = `${can("song") ? UI.I.check : lock}<span>${ROLES[me].why}</span>`;
-  const sl = songs.filter(([, s]) => !q || (s.title + s.author + Object.values(s.lyrics).join(" ")).toLowerCase().includes(q));
+  // pastas de músicas (ex. "Cafofo"): nome livre gravado na música; ?pasta= abre direto numa
+  const folders = [...new Set(songs.map(([, s]) => s.folder).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt"));
+  if (songFolder && songFolder !== "-" && !folders.includes(songFolder)) songFolder = "";
+  const fcount = (f) => songs.filter(([, s]) => (f === "-" ? !s.folder : s.folder === f)).length;
+  UI.qs("#song-folders").innerHTML = folders.length ? [["", `Todas · ${songs.length}`], ...folders.map((f) => [f, `${f} · ${fcount(f)}`]), ["-", `Sem pasta · ${fcount("-")}`]].map(([k, n]) => `<button class="chip ${songFolder === k ? "solid" : ""}" data-sfolder="${k.replace(/"/g, "&quot;")}">${n}</button>`).join("") : "";
+  UI.qsa("[data-sfolder]").forEach((b) => (b.onclick = () => { songFolder = b.dataset.sfolder; const u = new URL(location.href); songFolder ? u.searchParams.set("pasta", songFolder) : u.searchParams.delete("pasta"); history.replaceState(null, "", u); render(); }));
+  const sl = songs.filter(([, s]) => (!songFolder || (songFolder === "-" ? !s.folder : s.folder === songFolder)) && (!q || (s.title + s.author + (s.folder || "") + Object.values(s.lyrics).join(" ")).toLowerCase().includes(q)));
   UI.qs("#song-n").textContent = `${sl.length} de ${songs.length}`;
   UI.qs("#song-list").innerHTML = sl.map(([k]) => CARDS.card("song", k)).join("") || `<p class="muted">Nenhuma música com “${q}”.</p>`;
 

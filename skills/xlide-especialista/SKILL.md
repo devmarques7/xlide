@@ -41,6 +41,7 @@ Princípios de design do XLIDE:
 ## 2 · Músicas
 
 - `create_song` com `youtube_url` (letra e tempos das legendas) e/ou `lyrics` colada. `[Verso]`, `[Refrão]`, `[Ponte]` marcam seções; linha em branco separa slides. `lines_per_slide` 2 é o padrão para projeção.
+- **Pastas de músicas** (Biblioteca → Músicas, ex. "Cafofo"): `create_song` com `folder`, `key` (tom) e `notes` (acordes para a banda); depois `update_song` muda pasta, tom, notas ou o look da letra (bg/font/tone em todos os slides). `list_decks` com `kind: "song", folder` lista uma pasta. Link: `/v2/biblioteca.html?tab=songs&pasta=<nome>`.
 - Nunca escreva a letra de memória: peça a letra ou use o link do YouTube. Tradução: `translate_to`.
 
 ## 3 · Criador de programa (culto)
