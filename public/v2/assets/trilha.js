@@ -117,9 +117,27 @@
     return apiP;
   }
   /* Cria o player num elemento. Devolve controles com volume suave (fade). */
-  function player(el, { onChange } = {}) {
-    const st = { ready: false, playing: false, vol: conf.service.vol, target: conf.service.vol, src: null, title: "", muted: false, videoId: null, queue: [] };
-    let p = null, fadeT = null;
+  /* preload: true → ao carregar (e a cada faixa selecionada) o player toca mudo um instante e pausa no
+     começo, para o vídeo já estar baixado; Tocar então começa na hora, sem esperar o YouTube. */
+  function player(el, { onChange, preload = false } = {}) {
+    const st = { ready: false, playing: false, vol: conf.service.vol, target: conf.service.vol, src: null, title: "", muted: false, videoId: null, queue: [], warming: false, preloaded: false };
+    let p = null, fadeT = null, warmT = null;
+    const waiting = [];
+    // termina o pré-carregamento: volta ao começo, pausado, com o volume certo, e roda o que esperava
+    function warmDone(ok) {
+      clearTimeout(warmT);
+      if (!st.warming) return;
+      st.warming = false; st.preloaded = !!ok;
+      try { p.pauseVideo(); p.seekTo(0, true); p.unMute(); p.setVolume(st.muted ? 0 : st.vol); } catch {}
+      st.playing = false; emit();
+      waiting.splice(0).forEach((f) => f());
+    }
+    function warm() {
+      if (!preload || !p || !st.ready) return;
+      st.warming = true; st.preloaded = false; emit();
+      try { p.mute(); p.playVideo(); } catch { return warmDone(false); }
+      clearTimeout(warmT); warmT = setTimeout(() => warmDone(false), 8000); // navegador bloqueou ou rede lenta: segue sem pré-carga
+    }
     const emit = () => onChange && onChange(st);
     const host = document.createElement("div"); el.append(host);
     function load(s, autoplay) {
@@ -136,15 +154,20 @@
         width: "100%", height: "100%", videoId: s.video,
         playerVars: { list: s.list || undefined, listType: s.list ? "playlist" : undefined, controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3 },
         events: {
-          onReady: () => { st.ready = true; st.src = s.id; p.setVolume(st.vol); emit(); },
+          onReady: () => { st.ready = true; st.src = s.id; p.setVolume(st.vol); emit(); preload ? warm() : waiting.splice(0).forEach((f) => f()); },
           onStateChange: (e) => {
+            if (st.warming) {
+              const d = p.getVideoData && p.getVideoData(); if (d && d.title) st.title = d.title; if (d && d.video_id) st.videoId = d.video_id;
+              if (e.data === YT.PlayerState.PLAYING) warmDone(true);
+              return;
+            }
             st.playing = e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING;
             const d = p.getVideoData && p.getVideoData(); if (d && d.title) st.title = d.title; if (d && d.video_id) st.videoId = d.video_id;
             // fim da faixa: primeiro a fila; sem fila, volta para a playlist da fonte
             if (e.data === YT.PlayerState.ENDED) { if (st.queue.length) c.playTrack(st.queue.shift()); else if (st.single) { st.single = false; load(src(st.src || conf.service.src), true); } }
             emit();
           },
-          onError: () => { st.title = "Esta faixa não toca fora do YouTube. Pulando…"; emit(); setTimeout(() => p && p.nextVideo(), 800); },
+          onError: () => { if (st.warming) warmDone(false); st.title = "Esta faixa não toca fora do YouTube. Pulando…"; emit(); setTimeout(() => p && p.nextVideo(), 800); },
         },
       });
     });
@@ -161,7 +184,10 @@
     }
     const c = {
       st,
-      play() { if (!p || !st.ready) return; p.playVideo(); },
+      play() { if (!p || !st.ready || st.warming) return c.whenReady(() => c.play()); p.playVideo(); },
+      /* roda fn assim que o player estiver pronto (e pré-carregado); na hora, se já estiver */
+      whenReady(fn) { if (p && st.ready && !st.warming) return fn(); if (!waiting.includes(fn)) waiting.push(fn); },
+      get loading() { return !st.ready || st.warming; },
       pause() { p && p.pauseVideo(); },
       toggle() { st.playing ? c.pause() : c.play(); },
       next() { p && (p.nextVideo ? p.nextVideo() : null); },
@@ -171,7 +197,7 @@
       fadeTo,
       /* Entrar numa tela: liga, troca de fonte ou desliga com fade. */
       apply(r) {
-        if (!st.ready) return;
+        if (!st.ready || st.warming) return c.whenReady(() => c.apply(r));
         if (!r.on) { if (st.playing) fadeTo(0, () => p.pauseVideo()); return; }
         if (r.track) {
           if (st.videoId === r.track) { if (!st.playing) { st.vol = 0; p.setVolume(0); p.playVideo(); } return fadeTo(r.vol); }
@@ -185,7 +211,7 @@
       load,
       /* Tocar uma faixa: dentro da playlist carregada, pula até ela; senão carrega só ela. */
       playTrack(id) {
-        if (!p || !st.ready) return;
+        if (!p || !st.ready || st.warming) return c.whenReady(() => c.playTrack(id));
         const L = (p.getPlaylist && p.getPlaylist()) || [], i = L.indexOf(id);
         if (i >= 0) { st.single = false; p.playVideoAt(i); } else { st.single = true; p.loadVideoById(id); }
         st.videoId = id; st.title = title(id); st.queue = st.queue.filter((x) => x !== id); emit();
@@ -196,6 +222,7 @@
         const L = (p.getPlaylist && p.getPlaylist()) || [], i = L.indexOf(id);
         if (i >= 0 && st.src) { st.single = false; p.cuePlaylist({ list: src(st.src).list, listType: "playlist", index: i }); } else { st.single = true; p.cueVideoById(id); }
         st.videoId = id; st.title = title(id); st.playing = false; emit();
+        setTimeout(warm, 300); // a faixa escolhida também fica pré-carregada
       },
       enqueue(id) { if (!st.queue.includes(id)) st.queue.push(id); emit(); },
       dequeue(id) { st.queue = st.queue.filter((x) => x !== id); emit(); },

@@ -213,6 +213,11 @@
   const liveP = PROGS.get(pstore.live);
   if (liveP) Object.assign(program, { id: liveP.id, title: liveP.title, date: liveP.date, starts: liveP.starts, targetMin: liveP.targetMin, items: clone(liveP.items) });
   window.PROGS = PROGS;
+  // outro aparelho/aba trocou o programa do ao vivo: a tela do projetor, a página pública e outro console recarregam
+  if (/(console|tela|ao-vivo)\.html$/.test(location.pathname)) addEventListener("storage", (e) => {
+    if (e.key !== PKEY || !e.newValue) return;
+    try { const n = JSON.parse(e.newValue); if (n && n.live !== pstore.live) location.reload(); } catch {}
+  });
   const XLd = { files, boards, people, roles, areas, types, songs, decks, program, history, lastRun, templates, songSlides, me: "bia" };
 
   /* Supabase ligado: os dados de exemplo saem e entram os reais (cópia em cloud.js). */

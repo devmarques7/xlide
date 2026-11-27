@@ -18,8 +18,12 @@
   .mv { display: grid; gap: var(--s2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .v { position: relative; display: block; width: 100%; padding: 0; text-align: left; background: #000; color: #f1f0ec; }
   .v .slide { width: 100%; display: block; }
-  .v-now { grid-column: 1 / -1; outline: 2px solid var(--live); outline-offset: 2px; }
-  .v-now .tx-host { width: 100%; aspect-ratio: 16 / 9; }
+  /* cada tela é um contêiner: o padding do slide (cqw) passa a valer pela largura da tela, não da janela */
+  .v-next, .op-sl figure { container-type: inline-size; }
+  .v-now { grid-column: 1 / -1; aspect-ratio: 16 / 9; outline: 2px solid var(--live); outline-offset: 2px; }
+  .v-now .tx-host { width: 100%; height: 100%; }
+  /* o contorno e o foco (até 5 px para fora) ficam dentro da área, sem serem cortados pelo overflow */
+  .mv { padding: 5px; }
   /* transição: a mesma célula do pad, numa linha acima; a escolhida fica branca */
   .p-song[hidden], .tr-wait[hidden] { display: none; }
   /* piloto automático: botão grande, largura do controle */
@@ -109,7 +113,7 @@
 
   .v-slot { display: grid; gap: 4px; align-content: start; min-width: 0; }
   .cx-main, .mv, .mv > * { min-width: 0; }
-  .cx-grid { overflow-x: clip; }
+  .cx-grid { overflow-x: clip; overflow-clip-margin: 6px; }
   .v-slot.drop .v-next { outline: 2px dashed var(--live); outline-offset: 3px; }
   .v-tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; padding: 3px 4px 3px 8px; background: var(--surface); border: 1px solid var(--line); font-size: var(--t-xs); min-width: 0; }
   .v-tr .t { flex: 1 1 140px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -189,9 +193,41 @@
   .tr-wait b { display: block; font-size: var(--t-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tr-wait button { width: 28px; height: 28px; border: 1px solid var(--line); }
   .tr-ctl .btn { flex: 1; }
+  .tr-ctl #tr-mute { width: auto; min-width: 64px; padding: 0 12px; font: 400 11px var(--mono); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+  .tr-ctl #tr-mute.on { background: var(--warn); border-color: var(--warn); color: #161615; }
   .pad .c.tr { font-size: clamp(16px, 1.6vw, 22px); }
   .pad .c.tr.on { color: var(--live); }
   .hud .tag.tr-on { color: #9fb4ff; }
+  /* programa no ao vivo: ‹ título › no topo; lista e confirmação na folha */
+  .pg-sw { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .pg-sw .icon-btn { width: 32px; height: 32px; }
+  .pg-sw .icon-btn svg { width: 18px; height: 18px; }
+  .pg-sw .pg-t { display: grid; gap: 4px; min-width: 0; text-align: left; padding: 2px 6px; border: 1px solid transparent; }
+  .pg-sw .pg-t:hover { border-color: var(--line); }
+  .pg-sw .pg-t b { font-size: var(--t-lg); font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-sw .pg-t.none b { color: var(--warn); }
+  .pk-list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); max-height: 60vh; overflow-y: auto; }
+  .pk-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3); background: var(--surface); text-align: left; width: 100%; }
+  .pk-row:hover, .pk-row:focus-visible { background: var(--sunken); }
+  .pk-row .d { font: 400 var(--t-sm) var(--mono); }
+  .pk-row .d small { display: block; font-size: 10px; color: var(--fg-2); text-transform: uppercase; }
+  .pk-row b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pk-row .m { font-size: var(--t-xs); color: var(--fg-2); }
+  .pk-row .st { font: 400 10px var(--mono); text-transform: uppercase; color: var(--fg-2); }
+  .pk-row.live .st { color: var(--live); }
+  .pk-ok { display: grid; gap: var(--s3); }
+  .pk-nav { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: var(--s2); align-items: stretch; }
+  .pk-nav > button { display: grid; place-items: center; border: 1px solid var(--line); }
+  .pk-nav > button:hover { border-color: var(--fg); }
+  .pk-nav > button[disabled] { opacity: .3; pointer-events: none; }
+  .pk-nav > button svg { width: 22px; height: 22px; }
+  .pk-card { padding: var(--s4); border: 1px solid var(--live); display: grid; gap: 6px; }
+  .pk-card h2 { font-size: var(--t-xl); }
+  .pk-card ol { margin: var(--s2) 0 0; padding-left: 20px; font-size: var(--t-sm); color: var(--fg-2); max-height: 26vh; overflow-y: auto; }
+  .pk-warn { padding: var(--s3); border: 1px dashed var(--late); font-size: var(--t-sm); }
+  .op-empty { display: grid; gap: var(--s3); padding: var(--s4) 0; }
+  .op-empty h3 { font-size: var(--t-lg); }
+
   /* painéis */
   .deck { display: grid; gap: var(--s2); margin-top: var(--s2); }
   .pnl { padding: var(--s3); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
@@ -208,6 +244,7 @@
   #op-post .stat b { font-size: var(--t-lg); white-space: nowrap; }
   .op-pane { display: none; padding-top: var(--s3); } .op-pane.on { display: block; }
   .op-sl { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s2); }
+  .op-sl { padding: 4px; }
   .op-sl figure { margin: 0; } .op-sl figcaption { margin-top: 4px; }
   .op-sl .now .slide { outline: 2px solid var(--live); outline-offset: 2px; }
   .chk { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: var(--s3); align-items: start; padding: var(--s3) 0; border-bottom: 1px solid var(--line); cursor: pointer; }
@@ -220,7 +257,7 @@
   .p-pad { order: -1; }
   @media (max-width: 899px) {
     .cx-stats { display: none; }
-    .cx-top .ttl { flex: 1; }
+    .cx-top .pg-sw { flex: 1; }
     .cx-top .chips { order: 5; width: 100%; }
     .v-next .hud { font-size: 9px; } .v-next .hud-bl { right: 6px !important; }
   }
@@ -228,7 +265,7 @@
   /* desktop: grande | duas próximas; embaixo item · slides · pad */
   @media (min-width: 900px) {
     .mv { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-rows: auto auto; }
-    .v-now { grid-column: 1; grid-row: 1 / span 2; align-self: stretch; display: grid; align-content: center; }
+    .v-now { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
     .v-next { align-self: start; }
     .hud { font-size: 11px; }
     .hud-tl, .hud-tr { top: 12px; } .hud-tl { left: 12px; } .hud-tr { right: 12px; }
@@ -270,7 +307,7 @@
 <body data-tab="console" class="cx">
 <main class="app">
   <header class="cx-top">
-    <div class="ttl"><span class="lbl">Console · 29/11</span><b>Culto principal</b></div>
+    <div class="pg-sw" id="pg-sw"><button class="icon-btn" id="pg-prev" aria-label="Programa anterior" title="Programa anterior"></button><button type="button" class="ttl pg-t" id="pg-t" title="Escolher o programa do ao vivo"><span class="lbl" id="pg-d">Console</span><b id="pg-n">Culto principal</b></button><button class="icon-btn" id="pg-next" aria-label="Próximo programa" title="Próximo programa"></button></div>
     <div class="chips" id="chips"></div>
     <div class="cx-stats" id="stats"></div>
     <button class="icon-btn" id="net" title="Simular queda de internet" aria-label="Simular queda de internet"></button>
@@ -418,7 +455,88 @@ function endService() {
   UI.qs('#op-tabs [data-p="post"]')?.click();
   toastTr("Culto encerrado. Telas fechadas; o relatório está pronto no Pós-culto.");
 }
-UI.qs("#play").onclick = () => (focusP ? swap() : atEnd() ? askEnd() : C.toggle());
+/* ── programa no ao vivo: sem programa, pergunta qual iniciar; ‹ › no topo vai e volta entre os programas ── */
+const PG = window.PROGS;
+const noProg = !PG || !PG.liveId || !PG.get(PG.liveId);
+const hx = (x) => TRILHA.esc(x);
+const pgList = () => { const rank = (p) => ({ feito: 1, arquivado: 2 })[p.status] || 0; return PG.all().filter((p) => p.status !== "lixeira").map((p, i) => [p, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([p]) => p); };
+const pgMin = (p) => Math.round((p.items || []).reduce((a, b) => a + (b.planned || 0), 0) / 60);
+const pgSt = (p) => (PG.STATUS.find((x) => x[0] === p.status) || [0, p.status])[1];
+const pgRow = (p) => { const on = p.id === PG.liveId; return `<button type="button" class="pk-row${on ? " live" : ""}" data-pk="${p.id}"><span class="d">${hx(p.short || "—")}<small>${hx(p.starts || "")}</small></span><span style="min-width:0"><b>${hx(p.title)}</b><span class="m">${hx(p.date || "Sem data")} · ${(p.items || []).length} itens · ${pgMin(p)} min</span></span><span class="st">${on ? "no ao vivo" : hx(pgSt(p))}</span></button>`; };
+const running = () => !noProg && (LIVE.state.status === "live" || LIVE.state.status === "paused");
+function pickProgram(startId) {
+  const L = pgList();
+  const sh = UI.sheet(`<div class="stack" id="pk"></div>`), box = sh.querySelector("#pk");
+  let cur = -1;
+  const head = (t, k) => `<div class="row between"><span><span class="lbl">${k}</span><h2>${t}</h2></span><button class="icon-btn" data-x aria-label="Fechar">${I.x}</button></div>`;
+  const list = () => {
+    cur = -1;
+    box.innerHTML = L.length
+      ? `${head("Qual programa você quer iniciar?", noProg ? "Nenhum programa no ao vivo" : "Trocar o programa do ao vivo")}<p class="muted" style="font-size:var(--t-sm)">Todos os programas. Escolha um para conferir e iniciar.</p><div class="pk-list">${L.map(pgRow).join("")}</div><a class="btn ghost block" href="programa.html">Criar ou editar programas</a>`
+      : `${head("Ainda não há programas", "Ao vivo")}<p class="muted">Crie o primeiro programa para ele aparecer aqui.</p><a class="btn primary block" href="programa.html?novo=principal">Criar programa</a>`;
+    box.querySelector(".pk-row.live, .pk-row")?.focus();
+  };
+  const confirm = (k) => {
+    cur = Math.max(0, Math.min(L.length - 1, k));
+    const p = L[cur], same = p.id === PG.liveId, its = p.items || [];
+    box.innerHTML = `${head("Você tem certeza? Vamos iniciar este?", "Iniciar programa")}
+      <div class="pk-nav"><button type="button" data-nav="-1" ${cur <= 0 ? "disabled" : ""} aria-label="Programa anterior" title="Anterior (←)">${I.back}</button>
+        <div class="pk-card"><span class="lbl">${cur + 1} de ${L.length} · ${hx(pgSt(p))}${same ? " · no ao vivo" : ""}</span><h2>${hx(p.title)}</h2><span class="muted" style="font-size:var(--t-sm)">${hx(p.date || "Sem data")} · começa ${hx(p.starts || "—")} · ${its.length} itens · ${pgMin(p)} min</span>
+        <ol>${its.slice(0, 14).map((x) => `<li>${hx(x.title)}${x.hidden ? " · oculto" : ""}</li>`).join("")}${its.length > 14 ? `<li>e mais ${its.length - 14}</li>` : ""}</ol></div>
+        <button type="button" data-nav="1" ${cur >= L.length - 1 ? "disabled" : ""} aria-label="Próximo programa" title="Próximo (→)">${I.chev}</button></div>
+      ${same ? `<p class="muted" style="font-size:var(--t-sm)">Este já é o programa do ao vivo.</p>` : running() ? `<div class="pk-warn">Tem um culto rodando agora (${hx(XL.program.title)}). Ao iniciar este, aquele é encerrado e os tempos vão para o relatório.</div>` : ""}
+      <div class="grid grid-2"><button type="button" class="btn primary block" data-go="${p.id}" ${same ? "disabled" : ""}>Sim, iniciar este</button><button type="button" class="btn ghost block" data-list>Ver todos</button></div>`;
+    (box.querySelector("[data-go]:not([disabled])") || box.querySelector("[data-list]")).focus();
+  };
+  box.onclick = (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.hasAttribute("data-x")) return UI.closeSheet();
+    if (b.dataset.pk) return confirm(L.findIndex((p) => p.id === b.dataset.pk));
+    if (b.dataset.nav) return confirm(cur + +b.dataset.nav);
+    if (b.hasAttribute("data-list")) return list();
+    if (b.dataset.go) startProgram(b.dataset.go);
+  };
+  box.onkeydown = (e) => { if (cur < 0) return; if (e.key === "ArrowLeft") { e.preventDefault(); confirm(cur - 1); } if (e.key === "ArrowRight") { e.preventDefault(); confirm(cur + 1); } };
+  const k = startId ? L.findIndex((p) => p.id === startId) : -1;
+  k >= 0 ? confirm(k) : list();
+}
+function startProgram(id) {
+  const p = PG.get(id); if (!p) return;
+  UI.closeSheet();
+  const wasRunning = running();
+  if (wasRunning) C.finish(); // o culto que estava rodando fecha e vai para o relatório
+  if (tr.st.playing) tr.fadeTo(0, () => tr.pause());
+  toastTr(`Iniciando ${p.title}…`);
+  setTimeout(() => {
+    if (p.status === "feito" || p.status === "arquivado") { p.status = "rascunho"; PG.put(p); }
+    PG.setLive(id);
+    C.reset(); // o ao vivo volta para "Pronto", com o novo programa
+    try { sessionStorage.setItem("xlide.v2.started", p.title); } catch {}
+    setTimeout(() => location.reload(), 350);
+  }, wasRunning ? 700 : 50);
+}
+function pgStep(d) {
+  const L = pgList(); if (!L.length) return pickProgram();
+  const k = noProg ? -1 : L.findIndex((p) => p.id === PG.liveId);
+  pickProgram(L[Math.max(0, Math.min(L.length - 1, k < 0 ? 0 : k + d))].id);
+}
+(function paintPg() {
+  const p = noProg ? null : PG.get(PG.liveId);
+  UI.qs("#pg-d").textContent = p ? `Console · ${p.short || "—"}` : "Console · sem programa";
+  UI.qs("#pg-n").textContent = p ? p.title : "Escolher programa";
+  UI.qs("#pg-t").classList.toggle("none", !p);
+  UI.qs("#pg-prev").innerHTML = I.back; UI.qs("#pg-next").innerHTML = I.chev;
+  const L = pgList(), k = p ? L.findIndex((x) => x.id === p.id) : -1;
+  UI.qs("#pg-prev").disabled = !L.length || (p && k <= 0);
+  UI.qs("#pg-next").disabled = !L.length || (p && k >= L.length - 1);
+})();
+UI.qs("#pg-t").onclick = () => pickProgram();
+UI.qs("#pg-prev").onclick = () => pgStep(-1);
+UI.qs("#pg-next").onclick = () => pgStep(1);
+if (noProg) { UI.qs("#finish").hidden = true; setTimeout(() => pickProgram(), 250); }
+try { const t = sessionStorage.getItem("xlide.v2.started"); if (t) { sessionStorage.removeItem("xlide.v2.started"); setTimeout(() => toastTr(`${t} está no ao vivo. Aperte Começar quando for a hora.`), 400); } } catch {}
+
+UI.qs("#play").onclick = () => (noProg ? pickProgram() : focusP ? swap() : atEnd() ? askEnd() : C.toggle());
 // abrir a tela do projetor por script, para poder fechá-la no fim
 UI.qs("#scr").onclick = (e) => { e.preventDefault(); projWin = window.open("tela.html", "xlide-tela"); };
 UI.qs("#next").onclick = () => C.next();
@@ -431,7 +549,7 @@ UI.qs("#finish").onclick = askEnd;
 UI.qs("#net").onclick = () => C.offline(!LIVE.state.offline);
 UI.qsa("[data-e]").forEach((b) => (b.onclick = () => C.extend(+b.dataset.e)));
 addEventListener("keydown", (e) => {
-  if (e.target.matches("input,textarea")) return;
+  if (e.target.matches("input,textarea") || document.body.classList.contains("sheet-open")) return;
   const k = e.key;
   if (focusP && k === "Enter") { e.preventDefault(); return swap(); }
   if (focusP && k === "Escape") return clearFocus();
@@ -447,8 +565,11 @@ addEventListener("keydown", (e) => {
 let trArmed = false, trFollow = true, trKey = "", trPicked = null;
 /* Dois players: o que toca (tr) e um de reserva. A faixa selecionada enquanto outra toca fica em espera
    na reserva; ao tocar, as duas se cruzam (a atual desce, a nova sobe) e trocam de papel. */
-let tr = TRILHA.player(UI.qs("#tr-yt"), { onChange: () => paintTr() });
-let trB = TRILHA.player(UI.qs("#tr-yt2"), { onChange: () => paintTr() });
+let tr = TRILHA.player(UI.qs("#tr-yt"), { preload: true, onChange: () => paintTr() });
+let trB = TRILHA.player(UI.qs("#tr-yt2"), { preload: true, onChange: () => paintTr() });
+let trQueued = false; // apertou Iniciar enquanto a faixa ainda carregava: começa sozinha quando ficar pronta
+// a faixa da tela atual (se ela tiver uma) já fica carregada e pré-carregada
+tr.whenReady(() => { const r = trOf(LIVE.state.status === "done" ? items.length - 1 : LIVE.state.index); if (r.on && r.track && r.track !== tr.st.videoId && !tr.st.playing) tr.cueTrack(r.track); });
 let trHostA = UI.qs("#tr-yt"), trHostB = UI.qs("#tr-yt2");
 function crossfade(id, vol) {
   const go = () => {
@@ -468,12 +589,13 @@ function paintTr() {
   if (tr.st.videoId + tr.st.playing !== lastVid || tr.st.queue.join() !== lastQ) { lastVid = tr.st.videoId + tr.st.playing; lastQ = tr.st.queue.join(); typeof libSoon === "function" && libSoon(); }
   const st = tr.st, s = LIVE.state, r = trOf(s.status === "done" ? items.length - 1 : s.index);
   const waiting = trPicked && st.playing && trPicked !== st.videoId;
-  UI.qs("#tr-play").innerHTML = waiting ? `${I.play}Trocar com fade` : st.playing ? `${I.pause}Pausar trilha` : `${I.play}${trArmed ? "Tocar trilha" : "Iniciar trilha"}`;
+  UI.qs("#tr-play").innerHTML = waiting ? `${I.play}Trocar com fade` : st.playing ? `${I.pause}Pausar trilha` : trQueued ? `${I.play}Começa em instantes…` : `${I.play}${trArmed ? "Tocar trilha" : "Iniciar trilha"}`;
   UI.qs("#tr-play").classList.toggle("xf", !!waiting);
   UI.qs("#tr-wait").hidden = !waiting;
   if (waiting) UI.qs("#tr-wait").innerHTML = `<img src="${TRILHA.thumb(trPicked)}" alt=""><span style="min-width:0"><small>Em espera · entra com fade</small><b>${TRILHA.esc(TRILHA.title(trPicked))}</b></span><button type="button" id="tr-wait-x" aria-label="Tirar da espera">✕</button>`;
   waiting && (UI.qs("#tr-wait-x").onclick = () => { trPicked = null; paintTr(); });
-  UI.qs("#tr-state").textContent = !st.ready ? "carregando…" : st.playing ? `tocando · ${Math.round(st.vol)}%` : "parada";
+  UI.qs("#tr-state").textContent = !st.ready ? "carregando…" : st.warming ? "pré-carregando…" : st.playing ? `tocando · ${Math.round(st.vol)}%` : st.preloaded ? "pronta · carregada" : "parada";
+  UI.qs("#tr-state").style.color = !st.playing && st.preloaded && !st.warming ? "var(--ok)" : "";
   UI.qs("#tr-title").textContent = st.title || (st.ready ? "Pronta para tocar" : "Carregando o player…");
   UI.qs("#tr-src").textContent = ((TRILHA.conf.lists.imp || []).includes(st.videoId) ? "Importada" : TRILHA.src(st.src || TRILHA.conf.service.src).name) + " · YouTube";
   if (document.activeElement !== UI.qs("#tr-vol")) UI.qs("#tr-vol").value = Math.round(st.target);
@@ -487,13 +609,19 @@ function paintTr() {
 }
 UI.qs("#tr-next").innerHTML = I.next;
 UI.qs("#tr-play").onclick = UI.qs("#p-tr").onclick = () => {
+  // ainda carregando: guarda o pedido e toca assim que a faixa estiver pronta (sem precisar apertar de novo)
+  if (tr.loading && !tr.st.playing) { if (trQueued) return; trArmed = true; trQueued = true; paintTr(); toastTr("Carregando a trilha… ela começa sozinha em instantes."); return tr.whenReady(() => { trQueued = false; trPress(); }); }
+  trPress();
+};
+function trPress() {
   if (tr.st.playing && trPicked && trPicked !== tr.st.videoId) { const id = trPicked; trPicked = null; const r0 = trOf(LIVE.state.index); crossfade(id, Math.round(tr.st.target) || (r0.on && r0.vol) || TRILHA.conf.service.vol); toastTr(`Trocando com fade para ${TRILHA.short(TRILHA.title(id))}.`); return; }
   if (tr.st.playing) return tr.fadeTo(0, () => tr.pause());
   trArmed = true;
   const r = trOf(LIVE.state.index);
   if (trPicked) { const v = (r.on && r.vol) || TRILHA.conf.service.vol; tr.setVol(0); tr.play(); tr.fadeTo(v); }
   else if (r.on) tr.apply(r); else { tr.setVol(0); tr.play(); tr.fadeTo(TRILHA.conf.service.vol); } // tocar por cima de uma tela sem trilha: o operador manda
-};
+  paintTr();
+}
 UI.qs("#tr-next").onclick = () => tr.next();
 UI.qs("#tr-mute").onclick = () => tr.mute();
 UI.qs("#tr-vol").oninput = (e) => tr.setVol(+e.target.value);
@@ -785,7 +913,8 @@ LIVE.loop((s, T) => {
   if (focusP) {
     const fi = items[focusP[0]], fn = LIVE.slidesOf(fi).length, fr = TRILHA.resolve(fi);
     UI.set("#play", `<span>Trocar</span>${SWAP}<small>${esc(fi.title)}${fn > 1 ? ` · ${focusP[1] + 1}/${fn}` : ""}</small><small class="ftr">${fr.on ? `♪ trilha entra · ${fr.vol}%` : "♪ off · sem trilha"}</small>`);
-  } else if (atEnd(s)) UI.set("#play", `<span>Último slide</span>${I.stop}<small>Encerrar culto</small>`);
+  } else if (noProg) UI.set("#play", `<span>Programa</span>${I.list}<small>Escolher programa</small>`);
+  else if (atEnd(s)) UI.set("#play", `<span>Último slide</span>${I.stop}<small>Encerrar culto</small>`);
   else UI.set("#play", `<span>${s.status === "live" ? "Pausar" : idle ? "Começar" : done ? "De novo" : "Retomar"}</span>${s.status === "live" ? I.pause : I.play}<small>${label[0]}</small>`);
   UI.qs("#play").classList.toggle("end", !focusP && atEnd(s));
   UI.qs("#play").classList.toggle("paused", !focusP && !atEnd(s) && s.status === "paused");
@@ -803,12 +932,14 @@ LIVE.loop((s, T) => {
   const key = `${s.index}|${s.status}|${Math.floor(LIVE.now() / 15000)}`;
   if (key !== lastList) {
     lastList = key;
-    UI.qs("#tl").innerHTML = items.map((x, i) => {
+    if (noProg) UI.qs("#tl").innerHTML = `<div class="op-empty"><span class="lbl">Nenhum programa no ao vivo</span><h3>Qual programa você quer iniciar?</h3><div class="pk-list">${pgList().map(pgRow).join("") || `<p class="muted" style="padding:var(--s3)">Ainda não há programas.</p>`}</div><a class="btn ghost block" href="programa.html">Criar ou editar programas</a></div>`;
+    else UI.qs("#tl").innerHTML = items.map((x, i) => {
       const cls = run && i === s.index ? "now" : !idle && (i < s.index || done) ? "done" : (!idle && i === s.index + 1) || (idle && i === 0) ? "next-row" : "";
       const real = s.log[i]?.end && s.log[i]?.start ? (s.log[i].end - s.log[i].start) / 1000 : null;
       return `<div class="ti ${cls}" data-go="${i}"><span class="t">${LIVE.wall(T.starts[i])}</span><span class="what"><h3>${x.title}</h3><span class="meta">${UI.ty(x.type)} · ${UI.person(x.owner).name.split(" ")[0]}${s.log[i]?.skipped ? " · pulado" : ""}</span></span><span class="dur">${real != null ? LIVE.mmss(real) : UI.min(x.planned)}</span></div>`;
     }).join("");
     UI.qsa("#tl [data-go]").forEach((r) => (r.onclick = () => focusOn([+r.dataset.go, 0])));
+    UI.qsa("#tl [data-pk]").forEach((r) => (r.onclick = () => pickProgram(r.dataset.pk)));
     paintFocus();
   }
 });
@@ -818,6 +949,7 @@ LIVE.loop((s, T) => {
 /* Painel do operador: programa, slides que vêm aí, pendências e pós-culto. */
 UI.qsa("#op-tabs button").forEach((b) => (b.onclick = () => { UI.qsa("#op-tabs button").forEach((x) => x.classList.toggle("on", x === b)); UI.qsa(".op-pane").forEach((p) => p.classList.toggle("on", p.dataset.p === b.dataset.p)); }));
 function opSlides() {
+  if (noProg) return `<div class="op-empty"><span class="lbl">Slides</span><h3>Nenhum programa no ao vivo</h3><p class="muted" style="font-size:var(--t-sm)">Os slides aparecem aqui quando um programa estiver no ao vivo.</p><button type="button" class="btn primary block" onclick="pickProgram()">Escolher programa</button></div>`;
   const s = LIVE.state, its = XL.program.items;
   const upcoming = its.map((it, i) => ({ it, i })).filter(({ i }) => i >= s.index).slice(0, 4);
   return `<p class="muted" style="font-size:var(--t-sm);margin-bottom:var(--s3)">O operador vê os slides para projetar. Quem edita é a música (letras) e o púlpito (sermão).</p>` +
