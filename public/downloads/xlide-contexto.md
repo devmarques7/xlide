@@ -57,7 +57,7 @@ Cada membro tem a **sua chave do MCP** (`xl_…`). Tudo o que o Claude faz com e
 | `inicio.html` | Visão geral: próximos cultos, recentes, atalhos, Criar |
 | `biblioteca.html?tab=decks|songs|tpl` | Decks, músicas e modelos. Músicas têm pastas (ex. Cafofo): `?tab=songs&pasta=Cafofo` |
 | `arquivos.html` | Meus arquivos por pasta: avisos, pregação, início do culto, oração, versículos |
-| `kit.html` | Fundos e fontes (`#testar`, `#avisos`) |
+| `kit.html` | Fundos e fontes (`#testar`, `#avisos`); **Importar fundos** por link do Pinterest/YouTube/.mp4 (grupo Importados) |
 | `marcas.html` | **Brand kits**: identidade de cada ministério/evento/série (ex. Cafofo) — sobre, tom de voz, paleta com uso, fontes, logos, referências, imagens, regras e o visual padrão dos slides. `?b=<id>` abre um |
 | `estudio.html` | Editor de música (trilha, seções, tempos) |
 | `agenda.html` | Agenda dos cultos |
@@ -123,6 +123,7 @@ Estados: `rascunho` → `salvo` → `feito` · `arquivado` · `lixeira`. Transi�
 - **Línguas:** `missing_translations`, `add_translations`
 - **Brand kits:** `list_brands`, `get_brand`, `save_brand`, `apply_brand`
 - **Fontes:** `search_fonts`, `add_font`
+- **Fundos:** `import_background` (Pinterest, YouTube, links), `list_backgrounds`, `search_backgrounds` (Pexels)
 - **Música:** `create_song` (com `folder`, `key`, `notes`, `brand_id`), `update_song`, `retime_song`
 - **Arquivos:** `list_files`, `save_file`, `set_file_status`
 - **Programas:** `list_programs`, `get_program`, `create_program`, `add_program_items`, `update_program_item`, `move_program_item`, `remove_program_items`, `set_program_status`, `set_program_settings`, `duplicate_program`

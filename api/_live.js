@@ -5,6 +5,8 @@ import { auditFeed, auditReport, currentActor, hasSupabase, rest } from "./_supa
 import { CONTEXT_MD, SKILL_MD } from "../shared/skill.js";
 import { getLyrics, translateLines } from "./_music.js";
 import { addFont, searchFonts } from "./_fonts.js";
+import { importBackgrounds, listBackgrounds } from "./_backgrounds.js";
+import { searchBackgrounds } from "./_music.js";
 
 const LANGS = ["pt", "en", "nl"];
 const TEXT_FIELDS = ["eyebrow", "title", "subtitle", "body", "cta"];
@@ -162,6 +164,9 @@ const itemProps = { type: { type: "string", enum: ITEM_TYPES }, title: { type: "
 export const LIVE_TOOLS = [
   { name: "search_fonts", description: "Busca fontes no catálogo do XLIDE (Google Fonts, Fontshare, Fontsource: ~2100 famílias) e nas importadas pela equipe. Filtros: nome (q), categoria (sans, serif, display, script, mono) e origem. O nome que voltar pode ir direto em font (slides, músicas, brand kit).", inputSchema: S({ q: { type: "string" }, category: { type: "string", enum: ["sans", "serif", "display", "script", "mono"] }, source: { type: "string", enum: ["google", "fontshare", "fontsource", "custom"] }, limit: { type: "number" } }) },
   { name: "add_font", description: "Importa uma fonte por link (arquivo .woff2, .woff, .ttf ou .otf em https) para toda a equipe usar nos slides. Só com fontes que a igreja tem licença para usar.", inputSchema: S({ family: { type: "string" }, url: { type: "string" }, category: { type: "string", enum: ["sans", "serif", "display", "script", "mono"] }, weight: { type: "number" } }, ["family", "url"]) },
+  { name: "import_background", description: "Importa fundos para a biblioteca do XLIDE a partir de links: pin do Pinterest (vídeo ou imagem; o vídeo 720p é copiado para o Storage do XLIDE), YouTube (vira loop:) ou link direto .mp4/.webm/.jpg/.png. Até 20 por vez. Devolve o valor `bg` para usar em slides, músicas e brand kits. Só com vídeos que a igreja pode projetar.", inputSchema: S({ urls: { type: "array", items: { type: "string" } }, name: { type: "string" }, tags: { type: "array", items: { type: "string" } } }, ["urls"]) },
+  { name: "list_backgrounds", description: "Lista os fundos da equipe: importados (Pinterest, links, YouTube) com o `bg` de cada um, mais os loops e cores da casa.", inputSchema: S({ source: { type: "string", enum: ["pinterest", "youtube", "link"] } }) },
+  { name: "search_backgrounds", description: "Busca vídeos de fundo (ex. \"worship background\", \"light rays\", \"clouds\") no Pexels, com licença livre, em 16:9. Para guardar um, chame import_background com o url que voltar. Precisa da chave PEXELS_API_KEY na Vercel.", inputSchema: S({ q: { type: "string" } }, ["q"]) },
   { name: "list_brands", description: "Lista os brand kits (identidade de um ministério, evento ou série, ex. Cafofo): nome, sobre, cores e fontes. Quando a pessoa citar um ministério/evento, procure o kit dele aqui antes de criar.", inputSchema: S({}) },
   { name: "get_brand", description: "Lê um brand kit inteiro (por id ou nome): sobre, público, tom de voz, paleta com o uso de cada cor, fontes, logos, referências, imagens, regras (fazer/evitar) e o visual padrão dos slides (bg, font, tone). Leia antes de criar deck, música ou programa para aquele ministério.", inputSchema: S({ brand_id: { type: "string" }, name: { type: "string" } }) },
   { name: "save_brand", description: "Cria (sem brand_id) ou atualiza um brand kit. Só os campos enviados mudam; listas enviadas substituem as antigas. Nunca invente cores, fontes, logos ou URLs: use o que a pessoa deu ou o que veio de uma fonte (outro app, site da marca).", inputSchema: S({
@@ -214,6 +219,16 @@ export async function callLiveTool(name, a = {}, origin = "") {
   if (!hasSupabase && name !== "read_skill" && name !== "search_fonts") throw new Error("Supabase não configurado (SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY). As ferramentas de decks, programas e auditoria precisam dele.");
   const lang = LANGS.includes(a.lang) ? a.lang : "pt";
   switch (name) {
+    case "import_background": return await importBackgrounds(a.urls || a.url, { name: a.name, tags: a.tags });
+    case "list_backgrounds": {
+      const L = (await listBackgrounds()).filter((x) => !a.source || x.source === a.source);
+      return { imported: L.map(({ id, bg, kind, name, source, from }) => ({ id, bg, kind, name, source, from })), house: { washes: ["ember", "amber", "crimson", "dusk", "ocean", "midnight", "teal", "mist", "gold"].map((w) => "wash:" + w), plain: ["papel", "tinta", "grade", "coluna", "sabado", "brasa"].map((p) => "plain:" + p) } };
+    }
+    case "search_backgrounds": {
+      const r = await searchBackgrounds(a.q, process.env.PEXELS_API_KEY);
+      if (r.error === "no_pexels_key") return { error: "no_pexels_key", message: "Falta a chave do Pexels (grátis em pexels.com/api) na Vercel: PEXELS_API_KEY. Enquanto isso, importe por link (Pinterest, YouTube) com import_background.", videos: [] };
+      return r;
+    }
     case "search_fonts": return await searchFonts(a);
     case "add_font": return await addFont(a);
     case "list_brands": {

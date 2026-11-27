@@ -262,7 +262,11 @@
       $("#q").oninput = (e) => { S.q = e.target.value; renderSongList(); };
       renderSongList();
     } else if (S.lib === "bgs") {
-      box.innerHTML = `<div class="lib-h"><h3>Loops do XLIDE</h3></div><div class="bg-grid">${XLOOK.LOOPS.map((l) => bgTile("loop:" + l.id, l.name, L)).join("")}</div>
+      const imp = XLOOK.bgLib();
+      box.innerHTML = `<div class="lib-h"><h3>Importados</h3><span class="num muted">${imp.length}</span></div>
+        <div class="imp-bg" style="display:grid;gap:6px"><textarea class="input" id="imp-urls" rows="2" placeholder="Cole links do Pinterest (pin), YouTube ou .mp4/.jpg — um por linha" style="min-height:56px;padding-top:8px;font:inherit"></textarea><button class="btn" data-act="imp-bg">Importar fundos</button><span class="hint" id="imp-msg">Ex.: https://pinterest.com/pin/… — o vídeo vem em 720p e fica guardado no XLIDE.</span></div>
+        ${imp.length ? `<div class="bg-grid">${imp.map((it) => { const on = !L.image && L.bg === it.bg; return `<button class="bg-t${on ? " on" : ""}" draggable="true" data-bg="${it.bg.replace(/"/g, "&quot;")}" aria-pressed="${on}" title="${esc(it.name)} · ${esc(it.source)}"><div class="slide song">${XLOOK.bgThumb(it)}</div><small>${esc(it.name)}</small></button>`; }).join("")}</div>` : ""}
+        <div class="lib-h"><h3>Loops do XLIDE</h3></div><div class="bg-grid">${XLOOK.LOOPS.map((l) => bgTile("loop:" + l.id, l.name, L)).join("")}</div>
         <div class="lib-h"><h3>Cores em movimento</h3></div><div class="bg-grid">${XLOOK.WASHES.map((w) => bgTile("wash:" + w.id, w.name, L)).join("")}${bgTile("solid:#000", "Preto", L)}</div>
         <p class="hint">Clique para aplicar. Arraste até o canvas, ou até um slide da trilha para trocar só aquele slide.</p>`;
     } else {
@@ -678,6 +682,17 @@
       case "add-text": return addText();
       case "add-img": return $("#file").click();
       case "bgs": S.lib = "bgs"; renderLib(); if (innerWidth < 1100) $('#tabs [data-t="lib"]').click(); return;
+      case "imp-bg": {
+        const urls = ($("#imp-urls")?.value || "").split(/\s+/).filter((u) => /^https?:\/\//.test(u));
+        const msg = $("#imp-msg"); if (!urls.length) { msg.textContent = "Cole pelo menos um link."; return; }
+        msg.textContent = `Importando ${urls.length}…`;
+        XLOOK.importBg(urls).then((j) => {
+          renderLib();
+          const m = $("#imp-msg"); if (m) m.textContent = `${j.imported.length} importado(s)${j.errors.length ? ` · ${j.errors.length} com erro: ${j.errors[0].error}` : ""}. Clique para aplicar.`;
+          if (j.imported[0]) { applyLook({ bg: j.imported[0].bg, image: null }); toast("Fundo importado aplicado"); }
+        }).catch((e) => { const m = $("#imp-msg"); if (m) m.textContent = e.message; });
+        return;
+      }
       case "more-fonts": return XLOOK.pickFont(XLOOK.resolve(S.song, S.i).font, (f) => applyLook({ font: f }));
       case "suggest": { const sg = suggest(S.song); applyLook({ bg: sg.bg, font: sg.font, image: null }); return toast("Visual sugerido aplicado"); }
       case "trans": return applyLook({ trans: !XLOOK.resolve(S.song, S.i).trans });

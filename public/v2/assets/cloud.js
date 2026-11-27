@@ -43,7 +43,7 @@
   const now = () => Date.now() + skew;
 
   /* listas que o v2 guarda inteiras no xlide_kv (chave local → chave no banco) */
-  const KV = { "xlide.v2.decks": "decks", "xlide.v2.agenda": "agenda", "xlide.v2.looks": "looks", "xlide.v2.trilha": "trilha", "xlide.v2.setlist": "setlist", "xlide.v2.tests": "tests", "xlide.v2.images": "images", "xlide.v2.fonts": "fonts" };
+  const KV = { "xlide.v2.decks": "decks", "xlide.v2.agenda": "agenda", "xlide.v2.looks": "looks", "xlide.v2.trilha": "trilha", "xlide.v2.setlist": "setlist", "xlide.v2.tests": "tests", "xlide.v2.images": "images", "xlide.v2.fonts": "fonts", "xlide.v2.bgs": "bgs" };
   const PK = "xlide.v2.programs", FK = "xlide.v2.files", DIRTY = "xlide.v2.cloud.dirty";
 
   /* ---------- formatos ---------- */

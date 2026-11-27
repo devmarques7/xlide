@@ -130,7 +130,8 @@
   <!-- 02 · fundos -->
   <section id="fundos">
     <header class="sec-x"><span class="n">02</span><h2>Fundos</h2><span class="lbl" id="bg-n"></span></header>
-    <div class="seg flt" id="flt"><button class="on" data-g="all">Tudo</button><button data-g="wash">Cores</button><button data-g="loop">Loops</button><button data-g="plain">Avisos</button></div>
+    <div class="seg flt" id="flt"><button class="on" data-g="all">Tudo</button><button data-g="wash">Cores</button><button data-g="loop">Loops</button><button data-g="plain">Avisos</button><button data-g="imp">Importados</button></div>
+    <div class="imp-bg" style="display:grid;gap:var(--s2);margin:var(--s3) 0;padding:var(--s3);border:1px solid var(--line)"><b>Importar fundos</b><textarea class="input" id="imp-urls" rows="2" placeholder="Links do Pinterest (pin), YouTube ou .mp4/.jpg — um por linha" style="min-height:64px;padding-top:8px;font:inherit"></textarea><div class="row" style="gap:var(--s2)"><button class="btn" id="imp-go">Importar</button><span class="muted" id="imp-msg" style="font-size:var(--t-sm)">O vídeo do Pinterest vem em 720p e fica guardado no XLIDE (não depende do Pinterest no culto). Use só vídeos que a igreja pode projetar.</span></div></div>
     <div id="bgs"></div>
   </section>
 
@@ -159,7 +160,9 @@ const GROUPS = [
   { g: "loop", name: "Loops de vídeo", d: "Da playlist Worship Backgrounds que o XLIDE já usa. Precisam de internet na hora do culto; o texto ganha uma sombra para ler bem.", items: L.LOOPS.map((l) => ["loop:" + l.id, l.name]) },
   { g: "plain", id: "avisos", name: "Fundos de avisos", d: "Planos e calmos, para texto longo: datas, endereços, inscrições. Os claros usam tinta escura sozinhos.", items: L.PLAIN.map((p) => ["plain:" + p.id, p.name]) },
 ];
-const ALL = GROUPS.flatMap((G) => G.items);
+/* importados pela equipe (Pinterest, links, YouTube): grupo que se atualiza sozinho */
+GROUPS.push({ g: "imp", name: "Importados", d: "Fundos que a equipe trouxe do Pinterest, de links de vídeo/imagem ou do YouTube. Ficam guardados no XLIDE.", get items() { return L.bgLib().map((it) => [it.bg, it.name]); } });
+const ALL = { find: (f) => GROUPS.flatMap((G) => G.items).find(f), map: (f) => GROUPS.flatMap((G) => G.items).map(f), get length() { return GROUPS.flatMap((G) => G.items).length; } };
 const bgName = (bg) => (ALL.find(([k]) => k === bg) || [bg, "Preto"])[1];
 
 /* Onde cada fundo já está em uso (músicas e decks do mockup). */
@@ -309,6 +312,13 @@ function bgs() {
   });
   paint();
 }
+UI.qs("#imp-go").onclick = () => {
+  const urls = UI.qs("#imp-urls").value.split(/\s+/).filter((u) => /^https?:\/\//.test(u)), msg = UI.qs("#imp-msg");
+  if (!urls.length) return (msg.textContent = "Cole pelo menos um link.");
+  msg.textContent = `Importando ${urls.length}…`;
+  L.importBg(urls).then((j) => { msg.textContent = `${j.imported.length} importado(s)${j.errors.length ? ` · ${j.errors.length} com erro: ${j.errors[0].error}` : ""}.`; UI.qs("#imp-urls").value = ""; flt = "imp"; UI.qsa("#flt button").forEach((x) => x.classList.toggle("on", x.dataset.g === "imp")); bgs(); })
+    .catch((e) => (msg.textContent = e.message));
+};
 UI.qsa("#flt button").forEach((b) => (b.onclick = () => { flt = b.dataset.g; UI.qsa("#flt button").forEach((x) => x.classList.toggle("on", x === b)); bgs(); }));
 
 /* Testar um fundo ou fonte do catálogo: aplica e sobe até a prévia. Fundo de aviso troca para o tipo Aviso. */

@@ -7,7 +7,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const mmss = (t) => `${String(Math.floor(Math.max(0, t) / 60)).padStart(2, "0")}:${String(Math.max(0, Math.round(t)) % 60).padStart(2, "0")}`;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-  const BGS = () => [["solid:#0e0e0d", "Preto"], ...XLOOK.LOOPS.slice(0, 6).map((l) => ["loop:" + l.id, l.name]), ...XLOOK.WASHES.slice(0, 7).map((w) => ["wash:" + w.id, w.name]), ...XLOOK.PLAIN.map((p) => ["plain:" + p.id, p.name])];
+  const BGS = () => [["solid:#0e0e0d", "Preto"], ...XLOOK.bgLib().slice(0, 8).map((it) => [it.bg, it.name]), ...XLOOK.LOOPS.slice(0, 6).map((l) => ["loop:" + l.id, l.name]), ...XLOOK.WASHES.slice(0, 7).map((w) => ["wash:" + w.id, w.name]), ...XLOOK.PLAIN.map((p) => ["plain:" + p.id, p.name])];
   const font = (id) => XLOOK.fontOf(id);
   const fontSeg = (cur, attrs = "") => `${XLOOK.fontChoices(cur).map((f) => `<button data-f="${f.id.replace(/"/g, "&quot;")}" class="${f.id === cur ? "on" : ""}" style="font-family:${f.family.replace(/"/g, "'")};text-transform:none;letter-spacing:0;font-size:15px">${f.name}</button>`).join("")}<button data-f="__more" style="text-transform:none;letter-spacing:0;font-size:15px" title="Todas as fontes (Google Fonts, Fontshare, importadas)">+ Todas</button>`;
   const clone = (o) => JSON.parse(JSON.stringify(o));

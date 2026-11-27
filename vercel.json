@@ -25,6 +25,10 @@
       "destination": "/api/x/fonts"
     },
     {
+      "source": "/api/backgrounds",
+      "destination": "/api/x/backgrounds"
+    },
+    {
       "source": "/v2",
       "destination": "/v2/inicio.html"
     },

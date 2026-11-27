@@ -82,6 +82,22 @@
     if (window.XFONTPICK) return go();
     const sc = document.createElement("script"); sc.src = "assets/fonts.js"; sc.onload = go; document.head.append(sc);
   }
+  /* Fundos importados pela equipe (Pinterest, links .mp4/.jpg, YouTube): localStorage "xlide.v2.bgs" ↔ xlide_kv "bgs".
+     Cada item: { id, bg, kind, thumb, name, source, from }. bg vai direto no slide (link do Storage do XLIDE ou loop:). */
+  function bgLib() { try { const v = JSON.parse(localStorage.getItem("xlide.v2.bgs")); return Array.isArray(v) ? v : []; } catch { return []; } }
+  async function importBg(urls, name) {
+    const list = [].concat(urls).map((u) => String(u).trim()).filter(Boolean);
+    if (!list.length) throw new Error("Cole pelo menos um link.");
+    let tok = null; try { tok = window.XCLOUD && XCLOUD.on ? await XCLOUD.token() : null; } catch {}
+    const r = await fetch("/api/backgrounds", { method: "POST", headers: { "Content-Type": "application/json", ...(tok ? { Authorization: "Bearer " + tok } : {}) }, body: JSON.stringify({ urls: list, name }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.message || j.error || "Não importou (" + r.status + ")");
+    const cur = bgLib(), ids = new Set((j.imported || []).map((x) => x.id));
+    localStorage.setItem("xlide.v2.bgs", JSON.stringify([...(j.imported || []).map((x) => ({ ...x, added: new Date().toISOString() })), ...cur.filter((x) => !ids.has(x.id))].slice(0, 400)));
+    return j;
+  }
+  /* miniatura de um fundo importado: a capa (não toca o vídeo em cada quadradinho) */
+  const bgThumb = (it) => (it.thumb ? `<img class="xw-media" src="${String(it.thumb).replace(/"/g, "%22")}" alt="" style="object-fit:cover;width:100%;height:100%">` : backdrop(it.bg, null, { play: false }));
   const INKS = ["#f7f6f3", "#161615", "#f5c26b", "#9fd8ff", "#ffb4a2"];
   // Fundos de avisos: planos e calmos, para texto longo (datas, endereços, inscrições).
   const PLAIN = [
@@ -147,7 +163,7 @@
     // link de imagem ou vídeo (ex. fundos de um brand kit)
     if (/^https?:\/\//.test(bg || "")) {
       const u = String(bg).replace(/"/g, "%22");
-      return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u) ? `<video class="xw-media" src="${u}" ${opts.play === false ? "" : "autoplay"} ${opts.loop === false ? "" : "loop"} muted playsinline style="object-fit:cover;width:100%;height:100%"></video>` : `<img class="xw-media" src="${u}" alt="" style="object-fit:cover;width:100%;height:100%">`;
+      return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u) ? `<video class="xw-media" src="${u}" ${opts.play === false ? 'preload="metadata"' : "autoplay"} ${opts.loop === false ? "" : "loop"} muted playsinline style="object-fit:cover;width:100%;height:100%"></video>` : `<img class="xw-media" src="${u}" alt="" style="object-fit:cover;width:100%;height:100%">`;
     }
     const w = WASHES.find((x) => x.id === (bg || "").slice(5)) || WASHES[0];
     return `<div class="xw" style="--w0:${w.base};--w1:${w.c[0]};--w2:${w.c[1]};--w3:${w.c[2]};--w4:${w.c[3]};--ws:${w.streak || "transparent"}"><span></span><span></span><span></span><span></span>${w.streak ? "<i></i>" : ""}</div>`;
@@ -204,5 +220,5 @@
     hydrate(el);
   }
 
-  window.XLOOK = { embed, hydrate, mount, WASHES, LOOPS, PLAIN, FONTS, fontOf, fontChoices, loadFont, library, pickFont, useFontInLibrary, INKS, inkOf, thumb, get, set, reset, resolve, backdrop, songSlide, on: (f) => (subs.add(f), () => subs.delete(f)) };
+  window.XLOOK = { embed, hydrate, mount, WASHES, LOOPS, PLAIN, FONTS, fontOf, fontChoices, loadFont, bgLib, importBg, bgThumb, library, pickFont, useFontInLibrary, INKS, inkOf, thumb, get, set, reset, resolve, backdrop, songSlide, on: (f) => (subs.add(f), () => subs.delete(f)) };
 })();
