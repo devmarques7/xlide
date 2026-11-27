@@ -69,7 +69,9 @@
   const C = window.XCLOUD && XCLOUD.on ? XCLOUD.client : null;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const ROLES = [["primary", "Principal"], ["background", "Fundo"], ["text", "Texto"], ["accent", "Destaque"], ["support", "Apoio"]];
-  const SFONTS = [["grotesk", "Grotesk"], ["serif", "Serif"], ["condensed", "Condensed"], ["mono", "Mono"]];
+  const SFONTS0 = [["grotesk", "Grotesk"], ["serif", "Serif"], ["condensed", "Condensed"], ["mono", "Mono"]];
+  /* fonte padrão dos slides: as do kit primeiro (títulos, texto, extras), depois as 4 da casa */
+  const sfonts = (k) => [...[k.fonts?.heading, k.fonts?.body, ...(k.fonts?.extra || [])].filter(Boolean).map((f) => [f, f + " · do kit"]), ...SFONTS0];
   const me = XL.people[UI.me()] || {};
   const canEdit = !C || !["operator", "reader"].includes(me.role);
   let kits = [], cur = null, dirty = false;
@@ -126,7 +128,7 @@
     const ink = sl.tone === "light" ? (hexOf(k, "background") && sl.bg?.startsWith("plain:papel") ? hexOf(k, "background") : "#161615") : hexOf(k, "text") || "#f7f6f3";
     useFont(k.fonts?.heading); useFont(k.fonts?.body);
     const back = window.XLOOK ? XLOOK.backdrop(sl.bg || "plain:tinta") : "";
-    return `<div class="pv">${back}<div class="t" style="color:${esc(ink)}"><small style="font-family:'${esc(k.fonts?.body || "")}',var(--font)">${esc(k.tagline || k.name)}</small><b style="font-family:'${esc(k.fonts?.heading || "")}',var(--font)">${esc(k.name)} <i style="color:${esc(accent)}">●</i></b><span style="font-family:'${esc(k.fonts?.body || "")}',var(--font)">${esc((k.about || "Quem é, em uma frase.").slice(0, 90))}</span></div></div>`;
+    return `<div class="pv">${back}<div class="t" style="color:${esc(ink)}"><small style="font-family:'${esc(k.fonts?.body || "")}',var(--font)">${esc(k.tagline || k.name)}</small><b style="font-family:${esc(XLOOK.fontOf(sl.font && !SFONTS0.some(([v]) => v === sl.font) ? sl.font : k.fonts?.heading || sl.font).family.replace(/"/g, "'"))}">${esc(k.name)} <i style="color:${esc(accent)}">●</i></b><span style="font-family:'${esc(k.fonts?.body || "")}',var(--font)">${esc((k.about || "Quem é, em uma frase.").slice(0, 90))}</span></div></div>`;
   }
 
   async function usedBy() {
@@ -164,8 +166,10 @@
         </div>
 
         <div class="card"><h3>Fontes</h3>
-          <div class="two"><label class="field"><span class="lbl">Títulos</span><input class="input" data-ff="heading" value="${esc(k.fonts?.heading || "")}" placeholder="Ex.: Lexend (Google Fonts)" ${dis}></label>
-          <label class="field"><span class="lbl">Texto</span><input class="input" data-ff="body" value="${esc(k.fonts?.body || "")}" placeholder="Ex.: Literata" ${dis}></label></div>
+          <div class="two"><label class="field"><span class="lbl">Títulos</span><span class="bar"><input class="input" style="flex:1" data-ff="heading" value="${esc(k.fonts?.heading || "")}" placeholder="Ex.: Lexend" ${dis}>${canEdit ? `<button type="button" class="btn" data-pickf="heading">Escolher</button>` : ""}</span></label>
+          <label class="field"><span class="lbl">Texto</span><span class="bar"><input class="input" style="flex:1" data-ff="body" value="${esc(k.fonts?.body || "")}" placeholder="Ex.: Literata" ${dis}>${canEdit ? `<button type="button" class="btn" data-pickf="body">Escolher</button>` : ""}</span></label></div>
+          <label class="field"><span class="lbl">Outras fontes do kit (uma por linha: destaque, versículo, assinatura…)</span><textarea class="input" data-fx ${dis} style="min-height:60px">${esc((k.fonts?.extra || []).join("\n"))}</textarea></label>
+          ${canEdit ? `<button type="button" class="btn add" data-pickf="extra">+ Adicionar do catálogo (~2.100 fontes) ou importar</button>` : ""}
           <label class="field"><span class="lbl">Notas de tipografia</span><input class="input" data-ff="notes" value="${esc(k.fonts?.notes || "")}" placeholder="Ex.: títulos em caixa-baixa, peso 600" ${dis}></label>
           <p style="font:600 28px '${esc(k.fonts?.heading || "")}', var(--font)">${esc(k.name)} Aa</p><p style="font:400 16px '${esc(k.fonts?.body || "")}', var(--font)">Um texto de exemplo na fonte do corpo, para ver o par.</p>
         </div>
@@ -186,7 +190,7 @@
         <div class="card"><h3>Slides com este kit</h3>
           <div id="pv">${preview()}</div>
           <label class="field"><span class="lbl">Fundo padrão</span><select class="select" data-s="bg" ${dis}>${bgOpts.map(([v, n]) => `<option value="${esc(v)}" ${sl.bg === v ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
-          <div class="two"><label class="field"><span class="lbl">Fonte do slide</span><select class="select" data-s="font" ${dis}>${SFONTS.map(([v, n]) => `<option value="${v}" ${sl.font === v ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+          <div class="two"><label class="field"><span class="lbl">Fonte do slide</span><select class="select" data-s="font" ${dis}>${sfonts(k).map(([v, n]) => `<option value="${esc(v)}" ${sl.font === v ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>
           <label class="field"><span class="lbl">Tom</span><select class="select" data-s="tone" ${dis}><option value="dark" ${sl.tone !== "light" ? "selected" : ""}>Escuro (texto claro)</option><option value="light" ${sl.tone === "light" ? "selected" : ""}>Claro (texto escuro)</option></select></label></div>
           <p class="note">Decks e músicas criados com este kit saem com esse fundo, fonte e tom; as fontes do kit (títulos/texto) e a cor de destaque valem nos decks.</p>
           ${canEdit ? `<div class="bar"><button class="btn primary" id="save">Salvar kit</button><button class="btn" id="copy">Copiar pedido para o Claude</button>${kits.some((x) => x.id === k.id && x.updated) ? `<button class="btn danger" id="del">Apagar</button>` : ""}</div>` : ""}
@@ -220,6 +224,16 @@
     UI.qsa("[data-u$=':url']", ed).forEach((el) => (el.onchange = () => touch(true)));
     UI.qsa("[data-del]", ed).forEach((b) => (b.onclick = () => { const [k, i] = b.dataset.del.split(":"); cur[k].splice(+i, 1); touch(true); }));
     UI.qsa("[data-addurl]", ed).forEach((b) => (b.onclick = () => { (cur[b.dataset.addurl] ||= []).push({ url: "", note: "" }); touch(true); }));
+    UI.qs("[data-fx]", ed) && (UI.qs("[data-fx]", ed).oninput = (e) => { cur.fonts = { ...(cur.fonts || {}), extra: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean) }; touch(); });
+    UI.qs("[data-fx]", ed) && (UI.qs("[data-fx]", ed).onchange = () => touch(true));
+    UI.qsa("[data-pickf]", ed).forEach((b) => (b.onclick = () => {
+      const k = b.dataset.pickf;
+      XLOOK.pickFont(k === "extra" ? "" : cur.fonts?.[k], (f) => {
+        cur.fonts = { ...(cur.fonts || {}) };
+        if (k === "extra") cur.fonts.extra = [...new Set([...(cur.fonts.extra || []), f])]; else cur.fonts[k] = f;
+        touch(true);
+      });
+    }));
     UI.qs("#save") && (UI.qs("#save").onclick = save);
     UI.qs("#copy") && (UI.qs("#copy").onclick = () => { navigator.clipboard?.writeText(`Use o brand kit "${cur.name}" do XLIDE (get_brand) para criar: `); toast("Pedido copiado. Cole no Claude e diga o que criar."); });
     UI.qs("#del") && (UI.qs("#del").onclick = async () => {

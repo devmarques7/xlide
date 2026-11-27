@@ -287,7 +287,7 @@ function openPanel(k, keep) {
   } else if (k === "text") {
     const L = s.layout;
     h = `<h3>Texto</h3><div class="blk-l">${[["eb", "Rótulo"], ["t", "Título"], ["b", "Texto"]].map(([bk, n]) => `<button data-blk="${bk}" class="${L[bk]?.on ? "on" : ""}"><b>${n}</b><span>${L[bk]?.on ? "na tela · editar" : "oculto · mostrar"}</span></button>`).join("")}</div>
-      <span class="lbl">Fonte do deck</span><div class="seg">${XLOOK.FONTS.map((f) => `<button data-font="${f.id}" class="${doc.font === f.id ? "on" : ""}" style="font-family:${f.family};text-transform:none;letter-spacing:0;font-size:14px">${f.name}</button>`).join("")}</div>
+      <span class="lbl">Fonte do deck</span><div class="seg">${XLOOK.fontChoices(doc.font).map((f) => `<button data-font="${f.id.replace(/"/g, "&quot;")}" class="${doc.font === f.id ? "on" : ""}" style="font-family:${f.family.replace(/"/g, "'")};text-transform:none;letter-spacing:0;font-size:14px">${f.name}</button>`).join("")}<button data-font="__more" style="text-transform:none;letter-spacing:0;font-size:14px">+ Todas</button></div>
       <span class="lbl">Cor do texto do deck</span><div class="inks"><button class="sw auto${doc.ink ? "" : " on"}" data-ink="">Auto</button>${XLOOK.INKS.map((c) => `<button class="sw${doc.ink === c ? " on" : ""}" data-ink="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div>
       <p class="muted" style="font-size:var(--t-xs)">Clique num texto no slide para trocar a fonte e a cor só dele.</p>`;
   } else if (k === "img") {
@@ -362,6 +362,7 @@ UI.qs("#panel").addEventListener("click", (e) => {
   if (d.lyAll != null) { doc.slides.forEach((x, i) => { if (i !== cur) { const img = x.layout.img; x.layout = clone(s.layout); delete x.layout.img; if (img) x.layout.img = img; } }); render(); return toast("Layout aplicado em todos os slides."); }
   if (d.lyNext != null) { const x = doc.slides[cur + 1]; const img = x.layout.img; x.layout = clone(s.layout); delete x.layout.img; if (img) x.layout.img = img; render(); return toast(`Layout aplicado no slide ${cur + 2}.`); }
   if (d.blk) { const bl = s.layout[d.blk]; if (!bl.on) { bl.on = true; s[{ eb: "eyebrow", t: "title", b: "text" }[d.blk]] ||= { eb: "Rótulo", t: "Título", b: "Texto" }[d.blk]; } render(); return cv.select(d.blk); }
+  if (d.font === "__more") return XLOOK.pickFont(doc.font, (f) => { doc.font = f; render(); });
   if (d.font) { doc.font = d.font; return render(); }
   if (d.ink != null) { doc.ink = d.ink || null; return render(); }
 });

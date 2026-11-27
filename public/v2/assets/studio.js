@@ -146,7 +146,7 @@
   /* ───────── slide (fundo + letra + elementos) ───────── */
   function elsHTML(id, i, editable) {
     const L = XLOOK.resolve(id, i);
-    const F = XLOOK.FONTS.find((f) => f.id === L.font) || XLOOK.FONTS[0];
+    const F = XLOOK.fontOf(L.font);
     return els(id, i).map((e) => `<div class="el el-${e.kind}${editable && S.sel === e.id ? " sel" : ""}" data-el="${e.id}" style="left:${e.x}%;top:${e.y}%;width:${e.w}%">${
       e.kind === "image"
         ? `<img src="${e.src}" alt="">`
@@ -306,7 +306,7 @@
         ${sgOn ? `<p class="hint">Este é o visual sugerido pela letra.</p>` : `<p class="hint">Pela letra${sg.hit.length ? ` (${sg.hit.slice(0, 3).join(", ")})` : ""}: <button class="link" data-act="suggest">${esc(bgName({ bg: sg.bg }))} com ${XLOOK.FONTS.find((f) => f.id === sg.font).name}</button></p>`}
       </div>
       <div class="ig"><div class="ig-h"><h3>Tipografia</h3></div>
-        <div class="fonts">${XLOOK.FONTS.map((f) => `<button class="font-o${f.id === L.font ? " on" : ""}" data-font="${f.id}" aria-pressed="${f.id === L.font}"><span class="aa" style="font-family:${f.family};font-weight:${f.weight}">${f.upper ? "AA" : "Aa"}</span><small>${f.name}</small></button>`).join("")}</div>
+        <div class="fonts">${[...XLOOK.FONTS, ...(XLOOK.FONTS.some((f) => f.id === L.font) || !L.font ? [] : [XLOOK.fontOf(L.font)]), ...XLOOK.library().filter((f) => f.id !== L.font).slice(0, 6)].map((f) => `<button class="font-o${f.id === L.font ? " on" : ""}" data-font="${f.id}" aria-pressed="${f.id === L.font}"><span class="aa" style="font-family:${f.family};font-weight:${f.weight}">${f.upper ? "AA" : "Aa"}</span><small>${esc(f.name)}</small></button>`).join("")}<button class="font-o" data-act="more-fonts"><span class="aa">+</span><small>Todas as fontes</small></button></div>
         ${range("r-size", "Tamanho", L.size, 0.6, 1.6, 0.05, Math.round(L.size * 100) + "%")}
         <div class="ctl"><span>Alinhar</span><div class="seg" id="align" style="grid-column:span 2">${[["left", "Esquerda"], ["center", "Centro"], ["right", "Direita"]].map(([v, n]) => `<button data-align="${v}" class="${L.align === v ? "on" : ""}">${n}</button>`).join("")}</div></div>
         <div class="ctl"><span>Cor</span><div class="inks" style="grid-column:span 2"><button class="sw auto${L.inkSet ? "" : " on"}" data-ink="auto">Auto</button>${XLOOK.INKS.map((c) => `<button class="sw${L.inkSet && L.ink === c ? " on" : ""}" data-ink="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div></div>
@@ -678,6 +678,7 @@
       case "add-text": return addText();
       case "add-img": return $("#file").click();
       case "bgs": S.lib = "bgs"; renderLib(); if (innerWidth < 1100) $('#tabs [data-t="lib"]').click(); return;
+      case "more-fonts": return XLOOK.pickFont(XLOOK.resolve(S.song, S.i).font, (f) => applyLook({ font: f }));
       case "suggest": { const sg = suggest(S.song); applyLook({ bg: sg.bg, font: sg.font, image: null }); return toast("Visual sugerido aplicado"); }
       case "trans": return applyLook({ trans: !XLOOK.resolve(S.song, S.i).trans });
       case "center": return applyLook({ x: 50, y: 50, align: "center" });

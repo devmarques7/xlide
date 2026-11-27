@@ -6,6 +6,7 @@ import type { LText, Slide, SongSection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { loopEmbed, thumbnail, youtubeId } from "@/lib/youtube";
 import { useLook } from "./look";
+import { loadFont } from "./fonts";
 
 /* Worship lyrics: words centred over a slow colour wash or a looping video. */
 
@@ -147,7 +148,10 @@ export const sectionName = (section: SongSection, lang = "en") => (SECTION_NAMES
 export function Lyrics({ s, T }: { s: Slide; T: (v: LText | undefined) => string }) {
   const { music, lang } = useLook();
   const wash = washOf(s.bg || DEFAULT_BG);
-  const font = FONTS.find((f) => f.id === s.font) ?? FONTS[0];
+  // uma das 4 da casa, ou qualquer família (catálogo ou importada), carregada na hora
+  const house = FONTS.find((f) => f.id === s.font);
+  const font = house ?? (s.font ? { id: "custom", name: s.font, family: `"${s.font.replace(/"/g, "")}", var(--font-sans)` } : FONTS[0]);
+  useEffect(() => { if (!house && s.font) loadFont(s.font); }, [house, s.font]);
   const lines = T(s.title).split("\n");
   // The chorus can stand out in its own colour, so the room knows where it is.
   const ink = (s.section === "chorus" && music?.chorusInk) || music?.ink || wash?.ink || "#f7f5f0";

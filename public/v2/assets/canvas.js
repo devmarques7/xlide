@@ -47,7 +47,7 @@
 
     const L = () => o.layout();
     const B = () => (sel ? L()[sel] : null);
-    const font = (id) => XLOOK.FONTS.find((f) => f.id === id) || XLOOK.FONTS[0];
+    const font = (id) => XLOOK.fontOf(id);
 
     /* ── desenhar ── */
     function render() {
@@ -82,7 +82,7 @@
         return;
       }
       const v = o.view(), F = font(b.f || v.font), isImg = sel === "img", bold = sel === "t" ? b.bo !== false : !!b.bo;
-      const fontSel = isImg ? "" : `<select class="cv-font" data-font aria-label="Fonte"><option value="">Fonte do slide (${font(v.font).name})</option>${XLOOK.FONTS.map((f) => `<option value="${f.id}" ${b.f === f.id ? "selected" : ""}>${f.name}</option>`).join("")}</select>`;
+      const fontSel = isImg ? "" : `<select class="cv-font" data-font aria-label="Fonte"><option value="">Fonte do slide (${font(v.font).name})</option>${XLOOK.fontChoices(b.f).map((f) => `<option value="${f.id.replace(/"/g, "&quot;")}" ${b.f === f.id ? "selected" : ""}>${f.name}</option>`).join("")}<option value="__more">+ Todas as fontes…</option></select>`;
       const size = `<span class="cv-num"><button data-size="-1" aria-label="Diminuir">−</button><b>${isImg ? Math.round(b.w) + "%" : Math.round(b.s * 10)}</b><button data-size="1" aria-label="Aumentar">+</button></span>`;
       const color = isImg ? "" : `<span class="cv-inks" aria-label="Cor"><button class="sw auto${b.c ? "" : " on"}" data-ink="" title="Automática">A</button>${XLOOK.INKS.map((c) => `<button class="sw${b.c === c ? " on" : ""}" data-ink="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</span>`;
       const style = isImg || sel === "tm" ? "" : `<button class="cv-i${bold ? " on" : ""}" data-bold aria-pressed="${bold}" title="Negrito"><b>B</b></button>`;
@@ -197,7 +197,10 @@
     ctx.addEventListener("mousedown", (e) => e.preventDefault());
     bar.addEventListener("change", (e) => {
       const b = B(); if (!b) return;
-      if (e.target.dataset.font != null) { if (e.target.value) b.f = e.target.value; else delete b.f; return style(); }
+      if (e.target.dataset.font != null) {
+        if (e.target.value === "__more") { e.target.value = b.f || ""; return XLOOK.pickFont(b.f, (f) => { b.f = f; style(); }); }
+        if (e.target.value) b.f = e.target.value; else delete b.f; return style();
+      }
       if (e.target.dataset.pos != null) {
         const v = e.target.value;
         if (v === "top") b.y = 14; if (v === "middle") b.y = 50; if (v === "bottom") b.y = 86;

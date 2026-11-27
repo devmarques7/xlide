@@ -100,6 +100,8 @@ Campos de texto (por língua): `eyebrow`, `title`, `subtitle`, `body`, `cta`. Es
 | `contact` | Contato / encerramento |
 | `lyrics` | Letra de música |
 
+Fontes (`font`): `grotesk`, `serif`, `condensed`, `mono` ou o nome de qualquer família do catálogo (~2100, `search_fonts`) ou importada (`add_font`). Catálogo: `GET /api/fonts?q=&category=`.
+
 Fundos (`bg`): `wash:ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold` · `plain:papel|tinta|grade|coluna|sabado|brasa` · `loop:<id YouTube>` · URL de imagem/vídeo. Fontes: `grotesk`, `serif`, `condensed`, `mono`.
 
 **Identidade do deck:** `palette [{hex, name, role}]` (roles `primary`, `background`, `text`, `accent`, `support`), `fonts {heading, body}`, `references [{url, note}]`, `mood`, `notes`, `board_id`, `apply` (a cor principal vira destaque e as fontes valem nos slides).
@@ -120,6 +122,7 @@ Estados: `rascunho` → `salvo` → `feito` · `arquivado` · `lixeira`. Transi�
 - **Identidade e pedidos:** `get_deck_identity`, `set_deck_identity`, `list_ai_requests`, `resolve_ai_request`
 - **Línguas:** `missing_translations`, `add_translations`
 - **Brand kits:** `list_brands`, `get_brand`, `save_brand`, `apply_brand`
+- **Fontes:** `search_fonts`, `add_font`
 - **Música:** `create_song` (com `folder`, `key`, `notes`, `brand_id`), `update_song`, `retime_song`
 - **Arquivos:** `list_files`, `save_file`, `set_file_status`
 - **Programas:** `list_programs`, `get_program`, `create_program`, `add_program_items`, `update_program_item`, `move_program_item`, `remove_program_items`, `set_program_status`, `set_program_settings`, `duplicate_program`

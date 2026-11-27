@@ -29,6 +29,59 @@
     { id: "condensed", name: "Condensed", family: "'Bebas Neue', Impact, sans-serif", weight: 400, track: "0.01em", lh: 0.96, k: 1.4, upper: true },
     { id: "mono", name: "Mono", family: "var(--mono)", weight: 400, track: "-0.03em", lh: 1.12, k: 0.82, upper: true },
   ];
+  /* Qualquer família do catálogo (Google Fonts, Fontshare, Fontsource) ou importada pela equipe:
+     font = "grotesk" | "serif" | "condensed" | "mono" (as 4 da casa) ou o nome da família ("Lexend").
+     loadFont tenta Google → Fontshare → Fontsource; importadas (xlide.v2.fonts.custom) entram por @font-face. */
+  const CUSTOM = () => { try { return (JSON.parse(localStorage.getItem("xlide.v2.fonts")) || {}).custom || []; } catch { return []; } };
+  const loadedF = new Map();
+  const slug = (f) => f.toLowerCase().trim().replace(/\s+/g, "-");
+  function loadFont(family) {
+    family = String(family || "").trim();
+    if (!family || FONTS.some((f) => f.id === family) || loadedF.has(family) || typeof document === "undefined") return;
+    loadedF.set(family, true);
+    const own = CUSTOM().find((f) => f.family.toLowerCase() === family.toLowerCase());
+    if (own) { const st = document.createElement("style"); st.textContent = `@font-face{font-family:"${own.family.replace(/"/g, "")}";src:url("${own.url}");font-weight:${own.weight || 400};font-display:swap}`; document.head.append(st); return; }
+    const urls = [
+      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:wght@400;500;600;700;800&display=swap`,
+      `https://api.fontshare.com/v2/css?f[]=${slug(family)}@400,500,600,700&display=swap`,
+      `https://cdn.jsdelivr.net/npm/@fontsource/${slug(family)}@latest/index.css`,
+    ];
+    const tryAt = (k) => { if (k >= urls.length) return; const l = document.createElement("link"); l.rel = "stylesheet"; l.href = urls[k]; l.onerror = () => { l.remove(); tryAt(k + 1); }; document.head.append(l); };
+    tryAt(0);
+  }
+  /* definição de fonte de um slide: uma das 4 da casa, ou a família pedida (carregada na hora) */
+  function fontOf(id) {
+    const t = FONTS.find((f) => f.id === id);
+    if (t || !id) return t || FONTS[0];
+    loadFont(id);
+    const fam = String(id).replace(/["\\]/g, "");
+    return { id: fam, name: fam, family: `"${fam}", var(--font)`, weight: 600, track: "-0.015em", lh: 1.08, k: 1, custom: true };
+  }
+  /* fontes da equipe que aparecem nos seletores, além das 4 da casa: usadas recentemente + importadas */
+  function library() {
+    let v = {}; try { v = JSON.parse(localStorage.getItem("xlide.v2.fonts")) || {}; } catch {}
+    const names = [...new Set([...(v.custom || []).map((f) => f.family), ...(v.used || [])])].filter((f) => f && !FONTS.some((x) => x.id === f));
+    return names.slice(0, 24).map(fontOf);
+  }
+  function useFontInLibrary(family) {
+    if (!family || FONTS.some((x) => x.id === family)) return;
+    let v = {}; try { v = JSON.parse(localStorage.getItem("xlide.v2.fonts")) || {}; } catch {}
+    v.used = [family, ...(v.used || []).filter((x) => x !== family)].slice(0, 40);
+    try { localStorage.setItem("xlide.v2.fonts", JSON.stringify(v)); } catch {}
+  }
+  /* opções de um seletor: as 4 da casa, a atual (se for outra família) e as da equipe */
+  function fontChoices(cur) {
+    const out = [...FONTS]; const add = (f) => { if (f && !out.some((x) => x.id === f.id)) out.push(f); };
+    if (cur && !FONTS.some((f) => f.id === cur)) add(fontOf(cur));
+    library().slice(0, 8).forEach(add);
+    return out;
+  }
+  /* abre o navegador de fontes (catálogo inteiro + importar); carrega assets/fonts.js na primeira vez */
+  function pickFont(cur, cb) {
+    const go = () => window.XFONTPICK.open(cur, (f) => { useFontInLibrary(f); cb(f); });
+    if (window.XFONTPICK) return go();
+    const sc = document.createElement("script"); sc.src = "assets/fonts.js"; sc.onload = go; document.head.append(sc);
+  }
   const INKS = ["#f7f6f3", "#161615", "#f5c26b", "#9fd8ff", "#ffb4a2"];
   // Fundos de avisos: planos e calmos, para texto longo (datas, endereços, inscrições).
   const PLAIN = [
@@ -55,9 +108,19 @@
   bc && (bc.onmessage = (e) => { store = e.data; subs.forEach((f) => f()); });
   addEventListener("storage", (e) => { if (e.key === KEY) { try { store = JSON.parse(e.newValue) || {}; } catch {} subs.forEach((f) => f()); } });
 
+  /* o visual gravado na própria música (fundo, fonte, cor da letra, por slide) vale até alguém ajustar aqui */
+  function songBase(key) {
+    const sg = window.XL && XL.songs && XL.songs[key];
+    if (!sg || !sg.real) return {};
+    const b = {};
+    if (sg.bg) b.bg = sg.bg; if (sg.font) b.font = sg.font;
+    if (sg.ink) { b.ink = sg.ink; b.inkSet = true; }
+    if (sg.bgs) { b.slides = {}; sg.bgs.forEach((bg, i) => { if (bg && bg !== sg.bg) b.slides[i] = { bg }; }); }
+    return b;
+  }
   function get(key) {
-    const s = store[key] || {};
-    return { ...BASE, ...(DEFAULTS[key] || {}), ...s, slides: { ...(s.slides || {}) } };
+    const s = store[key] || {}, sb = songBase(key);
+    return { ...BASE, ...(DEFAULTS[key] || {}), ...sb, ...s, slides: { ...(sb.slides || {}), ...(s.slides || {}) } };
   }
   function set(key, patch, slide) {
     const cur = store[key] || {};
@@ -81,6 +144,11 @@
     if (bg?.startsWith("loop:")) { const id = bg.slice(5); return `<div class="xw-media xw-yt" data-yt="${id}" data-loop="${opts.loop === false ? 0 : 1}" data-play="${opts.play === false ? 0 : 1}" aria-hidden="true"><img src="${thumb(id)}" alt=""></div>`; }
     if (bg?.startsWith("plain:")) { const p = PLAIN.find((x) => x.id === bg.slice(6)) || PLAIN[0]; return `<div class="xw-media" style="background:${p.css}"></div>`; }
     if (bg?.startsWith("solid:")) return `<div class="xw-media" style="background:${bg.slice(6)}"></div>`;
+    // link de imagem ou vídeo (ex. fundos de um brand kit)
+    if (/^https?:\/\//.test(bg || "")) {
+      const u = String(bg).replace(/"/g, "%22");
+      return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u) ? `<video class="xw-media" src="${u}" ${opts.play === false ? "" : "autoplay"} ${opts.loop === false ? "" : "loop"} muted playsinline style="object-fit:cover;width:100%;height:100%"></video>` : `<img class="xw-media" src="${u}" alt="" style="object-fit:cover;width:100%;height:100%">`;
+    }
     const w = WASHES.find((x) => x.id === (bg || "").slice(5)) || WASHES[0];
     return `<div class="xw" style="--w0:${w.base};--w1:${w.c[0]};--w2:${w.c[1]};--w3:${w.c[2]};--w4:${w.c[3]};--ws:${w.streak || "transparent"}"><span></span><span></span><span></span><span></span>${w.streak ? "<i></i>" : ""}</div>`;
   }
@@ -93,7 +161,7 @@
   function songSlide(songId, i, { lang = "pt", editable = false, section = true } = {}) {
     const sl = XL.songSlides(songId, lang)[i] || { section: "", text: "" };
     const L = resolve(songId, i);
-    const F = FONTS.find((f) => f.id === L.font) || FONTS[0];
+    const F = fontOf(L.font);
     const text = L.text ?? sl.text;
     const n = text.split("\n").length;
     // tradução embaixo só quando existe OUTRA língua de verdade (música só em inglês não repete o inglês)
@@ -136,5 +204,5 @@
     hydrate(el);
   }
 
-  window.XLOOK = { embed, hydrate, mount, WASHES, LOOPS, PLAIN, FONTS, INKS, inkOf, thumb, get, set, reset, resolve, backdrop, songSlide, on: (f) => (subs.add(f), () => subs.delete(f)) };
+  window.XLOOK = { embed, hydrate, mount, WASHES, LOOPS, PLAIN, FONTS, fontOf, fontChoices, loadFont, library, pickFont, useFontInLibrary, INKS, inkOf, thumb, get, set, reset, resolve, backdrop, songSlide, on: (f) => (subs.add(f), () => subs.delete(f)) };
 })();

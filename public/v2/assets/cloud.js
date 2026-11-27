@@ -43,7 +43,7 @@
   const now = () => Date.now() + skew;
 
   /* listas que o v2 guarda inteiras no xlide_kv (chave local → chave no banco) */
-  const KV = { "xlide.v2.decks": "decks", "xlide.v2.agenda": "agenda", "xlide.v2.looks": "looks", "xlide.v2.trilha": "trilha", "xlide.v2.setlist": "setlist", "xlide.v2.tests": "tests", "xlide.v2.images": "images" };
+  const KV = { "xlide.v2.decks": "decks", "xlide.v2.agenda": "agenda", "xlide.v2.looks": "looks", "xlide.v2.trilha": "trilha", "xlide.v2.setlist": "setlist", "xlide.v2.tests": "tests", "xlide.v2.images": "images", "xlide.v2.fonts": "fonts" };
   const PK = "xlide.v2.programs", FK = "xlide.v2.files", DIRTY = "xlide.v2.cloud.dirty";
 
   /* ---------- formatos ---------- */
@@ -96,7 +96,7 @@
     return {
       title: tx(doc.title, langs[0]) || d.title || "Sem título", author: tx(cover && cover.eyebrow, langs[0]) || doc.author || "", key: doc.key || "—", bpm: doc.bpm || "", uses: 0, last: rel(d.updated_at),
       langs, source: doc.music && doc.music.video ? "YouTube · letra sincronizada" : "XLIDE", lyrics: Object.keys(lyrics).length ? lyrics : { pt: "" },
-      dur: (at.length ? at[at.length - 1] : 0) + 20, at, video: doc.music && doc.music.video, bg: first.bg, font: first.font, real: true, folder: doc.folder || "", notes: doc.notes || "",
+      dur: (at.length ? at[at.length - 1] : 0) + 20, at, video: doc.music && doc.music.video, bg: (body[0] || first).bg, font: (body[0] || first).font, bgs: body.map((x) => x.bg), ink: doc.music && doc.music.ink, chorusInk: doc.music && doc.music.chorusInk, brand: doc.brand_id || null, real: true, folder: doc.folder || "", notes: doc.notes || "",
     };
   }
   function deck(d) {

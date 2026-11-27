@@ -21,6 +21,10 @@
       "destination": "/api/x/audit"
     },
     {
+      "source": "/api/fonts",
+      "destination": "/api/x/fonts"
+    },
+    {
       "source": "/v2",
       "destination": "/v2/inicio.html"
     },

@@ -37,7 +37,8 @@ Princípios de design do XLIDE:
 - **Uma ideia por slide.** Título ≤ 8 palavras; `body` ≤ 25 palavras. Se passar disso, divida em dois slides.
 - Ritmo: abra com `cover` ou `aura`, separe partes com `chapter`, frases fortes em `statement`, números em `stats`, listas em `services`, comparações em `split`, fotos em `image`/`gallery`/`reel`, perguntas para a classe em `questions`, feche com `contact` ou `statement`.
 - Fundos: `wash:<ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold>` (gradientes), `plain:<papel|tinta|grade|coluna|sabado|brasa>` (avisos), `loop:<id do YouTube>` (vídeo em loop) ou URL de imagem/vídeo. `tone: "light"` em fundo claro, `"dark"` em escuro.
-- Fontes de slide: `grotesk` (padrão, limpa), `serif` (editorial, reflexão), `condensed` (impacto, caixa-alta, títulos curtos), `mono` (técnico, datas).
+- Fontes de slide: `grotesk` (padrão, limpa), `serif` (editorial, reflexão), `condensed` (impacto, caixa-alta, títulos curtos), `mono` (técnico, datas) — **ou qualquer família** do catálogo (~2100: Google Fonts, Fontshare, Fontsource) ou importada pela equipe: `font: "Lexend"`. Ache com `search_fonts` (nome e categoria sans/serif/display/script/mono); importe com `add_font` (link .woff2/.ttf/.otf). Com brand kit, use as fontes do kit (`fonts.heading`, `fonts.body`, `fonts.extra`).
+- Fundos por link (imagem ou vídeo `https://…`) valem em slides e músicas. Brand kit pode ter `slides.song_bgs` (rotação de fundos: cada música pega o próximo) — `apply_brand` com `folder` aplica numa pasta inteira.
 - Avisos: um aviso por slide, data e hora no `eyebrow`, chamada no `title`, onde/como no `subtitle`.
 
 ## 2 · Músicas

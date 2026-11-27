@@ -1,11 +1,12 @@
 import { Loader2, Search } from "lucide-react";
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import { thumbnail, youtubeId } from "@/lib/youtube";
 import { DEFAULT_BG, FONTS, LOOPS, loopUrl, WASHES } from "@/slides/lyrics";
+import { loadFont } from "@/slides/fonts";
 
 interface PexelsVideo {
   id: number;
@@ -127,8 +128,21 @@ export function BackgroundPicker({ value, onChange }: { value?: string; onChange
   );
 }
 
+let catalog: Promise<string[]> | null = null;
+/** Every family the team can use (Google Fonts, Fontshare, Fontsource, imported): /api/fonts. */
+const fontCatalog = () =>
+  (catalog ||= fetch("/api/fonts?all=1&limit=5000")
+    .then((r) => r.json())
+    .then((j: { fonts?: { family: string }[] }) => (j.fonts || []).map((f) => f.family))
+    .catch(() => []));
+
 export function FontPicker({ value, onChange }: { value?: string; onChange: (font: string) => void }) {
+  const { t } = usePrefs();
   const current = value || FONTS[0].id;
+  const house = FONTS.some((f) => f.id === current);
+  const [names, setNames] = useState<string[]>([]);
+  const [other, setOther] = useState(house ? "" : current);
+  useEffect(() => { if (!house) loadFont(current); }, [house, current]);
   return (
     <div className="flex flex-col gap-1.5">
       <div className="grid grid-cols-4 gap-1.5">
@@ -146,6 +160,22 @@ export function FontPicker({ value, onChange }: { value?: string; onChange: (fon
           </button>
         ))}
       </div>
+      <Input
+        list="xlide-font-catalog"
+        value={other}
+        placeholder={t("lyrics.otherFont")}
+        onFocus={() => void fontCatalog().then(setNames)}
+        onChange={(e) => setOther(e.target.value)}
+        onBlur={() => { const f = other.trim(); if (f && f !== current) { loadFont(f); onChange(f); } }}
+        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+        style={!house ? ({ fontFamily: `"${current}"` } as CSSProperties) : undefined}
+        className={cn(!house && "border-foreground")}
+      />
+      <datalist id="xlide-font-catalog">
+        {names.map((n) => (
+          <option key={n} value={n} />
+        ))}
+      </datalist>
     </div>
   );
 }

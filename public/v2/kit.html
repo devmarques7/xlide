@@ -150,7 +150,7 @@
 <script>
 const L = XLOOK;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const font = (id) => L.FONTS.find((f) => f.id === id) || L.FONTS[0];
+const font = (id) => L.fontOf(id);
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
 /* Catálogo: três famílias de fundo, cada uma com um uso. */
@@ -233,7 +233,7 @@ function paint() {
   });
   cv.render();
   UI.qs("#pick-bg").innerHTML = ALL.map(([bg, n]) => `<button class="dw-bg${bg === o.bg ? " on" : ""}" data-bg="${bg}" title="${n}" aria-label="Fundo ${n}" aria-pressed="${bg === o.bg}"><span class="slide song">${L.backdrop(bg)}</span></button>`).join("");
-  UI.qs("#pick-ft").innerHTML = L.FONTS.map((f) => `<button data-ft="${f.id}" class="${f.id === o.font ? "on" : ""}" aria-pressed="${f.id === o.font}"><b style="font-family:${f.family};font-weight:${f.weight}">${f.upper ? "AA" : "Aa"}</b><span>${f.name}</span></button>`).join("");
+  UI.qs("#pick-ft").innerHTML = L.fontChoices(o.font).map((f) => `<button data-ft="${esc(f.id)}" class="${f.id === o.font ? "on" : ""}" aria-pressed="${f.id === o.font}"><b style="font-family:${f.family.replace(/"/g, "'")};font-weight:${f.weight}">${f.upper ? "AA" : "Aa"}</b><span>${esc(f.name)}</span></button>`).join("") + `<button data-ft="__more"><b>+</b><span>Todas</span></button>`;
   UI.qs("#pick-ink").innerHTML = `<button class="sw auto${o.ink ? "" : " on"}" data-ink="">Auto</button>` + L.INKS.map((c) => `<button class="sw${o.ink === c ? " on" : ""}" data-ink="${c}" style="background:${c}" aria-label="Texto ${c}"></button>`).join("");
   UI.qs("#now-bg").textContent = `${NAMES[kind]} · ${bgName(o.bg)}`;
   UI.qs("#now-ft").textContent = `${font(o.font).name} · ${Math.round(o.size * 100)}%`;
@@ -244,6 +244,7 @@ UI.qs(".pg-p").addEventListener("click", (e) => {
   const o = st();
   if (b.dataset.k) { kind = b.dataset.k; history.replaceState(null, "", `?tipo=${kind}#testar`); return panel(); }
   if (b.dataset.bg) { o.bg = b.dataset.bg; return paint(); }
+  if (b.dataset.ft === "__more") return L.pickFont(o.font, (f) => { o.font = f; paint(); });
   if (b.dataset.ft) { o.font = b.dataset.ft; return paint(); }
   if (b.dataset.ink != null) { o.ink = b.dataset.ink || null; return paint(); }
   if (b.dataset.create != null) return create();
@@ -326,15 +327,17 @@ const FONT_NOTE = {
   mono: "Para títulos e números. Evite em letra longa.",
 };
 function fonts() {
-  UI.qs("#ft-n").textContent = `${L.FONTS.length} fontes`;
-  UI.qs("#fonts").innerHTML = L.FONTS.map((f) => {
+  const list = L.fontChoices();
+  UI.qs("#ft-n").innerHTML = `${list.length} fontes · <button class="chip" data-addfont>+ Buscar entre ~2.100 fontes ou importar</button>`;
+  UI.qs("#fonts").innerHTML = list.map((f) => {
     const u = fontUse(f.id);
     const fam = f.family.replace(/'/g, "").split(",")[0].replace("var(--font)", "BDO Grotesk").replace("var(--mono)", "Fragment Mono");
-    return `<div class="fn"><div class="who"><b>${f.name}</b><code>${esc(fam)} · ${f.weight}${f.upper ? " · maiúsculas" : ""}</code><p>${FONT_NOTE[f.id]}</p><p>${u.length ? "Em uso: " + esc(u.join(", ")) : "Ainda sem uso"}</p><div class="acts"><button class="chip" data-tryf="${f.id}">Testar</button></div></div>
+    return `<div class="fn"><div class="who"><b>${f.name}</b><code>${esc(fam)} · ${f.weight}${f.upper ? " · maiúsculas" : ""}</code><p>${FONT_NOTE[f.id] || "Fonte da equipe (catálogo ou importada)."}</p><p>${u.length ? "Em uso: " + esc(u.join(", ")) : "Ainda sem uso"}</p><div class="acts"><button class="chip" data-tryf="${f.id}">Testar</button></div></div>
       <div class="spec" style="font-size:clamp(40px, ${(7 * (f.id === "mono" ? 0.66 : 1)).toFixed(2)}vw, ${Math.round(92 * (f.id === "mono" ? 0.66 : 1))}px);font-family:${f.family};font-weight:${f.weight};letter-spacing:${f.track};${f.upper ? "text-transform:uppercase;" : ""}">Aa Bb Ç 0123<small style="font-family:${f.family}">Há um caminho aberto no meio do deserto</small></div>
       <div class="slide song">${render({ section: "", text: "A luz da manhã chegou\nE o medo foi embora", bg: "wash:dusk", font: f.id, size: 1 }, "musica")}</div></div>`;
   }).join("");
   UI.qsa("[data-tryf]").forEach((b) => (b.onclick = () => tryIt({ font: b.dataset.tryf }, `Fonte ${font(b.dataset.tryf).name} no teste`)));
+  UI.qs("[data-addfont]") && (UI.qs("[data-addfont]").onclick = () => L.pickFont("", () => fonts()));
 }
 
 /* ── cores do texto: cada cor em três fundos típicos ── */

@@ -8,7 +8,8 @@
   const mmss = (t) => `${String(Math.floor(Math.max(0, t) / 60)).padStart(2, "0")}:${String(Math.max(0, Math.round(t)) % 60).padStart(2, "0")}`;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const BGS = () => [["solid:#0e0e0d", "Preto"], ...XLOOK.LOOPS.slice(0, 6).map((l) => ["loop:" + l.id, l.name]), ...XLOOK.WASHES.slice(0, 7).map((w) => ["wash:" + w.id, w.name]), ...XLOOK.PLAIN.map((p) => ["plain:" + p.id, p.name])];
-  const font = (id) => XLOOK.FONTS.find((f) => f.id === id) || XLOOK.FONTS[0];
+  const font = (id) => XLOOK.fontOf(id);
+  const fontSeg = (cur, attrs = "") => `${XLOOK.fontChoices(cur).map((f) => `<button data-f="${f.id.replace(/"/g, "&quot;")}" class="${f.id === cur ? "on" : ""}" style="font-family:${f.family.replace(/"/g, "'")};text-transform:none;letter-spacing:0;font-size:15px">${f.name}</button>`).join("")}<button data-f="__more" style="text-transform:none;letter-spacing:0;font-size:15px" title="Todas as fontes (Google Fonts, Fontshare, importadas)">+ Todas</button>`;
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const IC_EXPAND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>`;
 
@@ -65,7 +66,7 @@
       ${o.slides ? `<div class="dw-strip" id="dw-strip"></div>` : ""}
       ${o.seconds ? `<div class="dw-timer"><button class="icon-btn" id="dw-play" aria-label="Testar o timer">${UI.I.play}</button><b class="num" id="dw-left"></b><span class="grow muted" style="font-size:var(--t-sm)">Timer na tela</span><div class="stepper" style="width:150px"><button data-d="-30" aria-label="Menos 30 segundos">−</button><b class="num" id="dw-dur" style="font-size:var(--t-md)"></b><button data-d="30" aria-label="Mais 30 segundos">+</button></div></div>` : ""}
       <div class="field"><span class="lbl">Fundo</span><div class="dw-bgs" id="dw-bgs"></div></div>
-      <div class="field"><span class="lbl">Fonte</span><div class="seg" id="dw-font">${XLOOK.FONTS.map((f) => `<button data-f="${f.id}" style="font-family:${f.family};text-transform:none;letter-spacing:0;font-size:15px">${f.name}</button>`).join("")}</div></div>
+      <div class="field"><span class="lbl">Fonte</span><div class="seg" id="dw-font">${fontSeg(o.font || "grotesk")}</div></div>
       <label class="field"><span class="lbl">Título na tela</span><input class="input" id="dw-title"></label>
       <label class="field"><span class="lbl">Texto</span><textarea class="textarea" id="dw-text" style="min-height:96px" placeholder="Escreva e veja como fica no template"></textarea></label>
       ${o.extra || ""}
@@ -104,6 +105,7 @@
       if (b.dataset.expand != null && o.editor) { clearInterval(timer); location.href = o.editor(st); return; }
       if (b.dataset.expand != null) { clearInterval(timer); st.run = false; expand(st, o, () => { fields(); paint(); }, { view: cur, text: setText }); }
       else if (b.dataset.bg) { st.bg = b.dataset.bg; paint(); }
+      else if (b.dataset.f === "__more") XLOOK.pickFont(st.font, (f) => { st.font = f; const seg = sh.querySelector("#dw-font"); if (seg) seg.innerHTML = fontSeg(f); paint(); });
       else if (b.dataset.f) { st.font = b.dataset.f; paint(); }
       else if (b.dataset.s) { st.slide = +b.dataset.s; fields(); paint(); }
       else if (b.dataset.d) { st.seconds = Math.max(30, st.seconds + +b.dataset.d); st.left = st.seconds; paint(); }
@@ -188,7 +190,7 @@
       f.innerHTML = `
         <div class="lx-sec"><span class="lbl">Blocos</span>${[...BLOCKS, ...(lay().img ? [["img", "Imagem"]] : [])].filter(([k]) => (k !== "tm" || st.seconds) && lay()[k]).map(([k, n]) => blockFields(k, n)).join("")}</div>
         <div class="lx-sec"><span class="lbl">Fundo</span><div class="dw-bgs">${BGS().map(([bg, n]) => `<button class="dw-bg${bg === st.bg ? " on" : ""}" data-bg="${bg}" title="${n}" aria-label="Fundo ${n}"><span class="slide song">${XLOOK.backdrop(bg)}</span></button>`).join("")}</div></div>
-        <div class="lx-sec"><span class="lbl">Fonte</span><div class="seg">${XLOOK.FONTS.map((x) => `<button data-f="${x.id}" class="${x.id === st.font ? "on" : ""}" style="font-family:${x.family};text-transform:none;letter-spacing:0;font-size:15px">${x.name}</button>`).join("")}</div></div>`;
+        <div class="lx-sec"><span class="lbl">Fonte</span><div class="seg">${fontSeg(st.font)}</div></div>`;
       f.scrollTop = keep;
       page.querySelectorAll("#lx-pre button").forEach((b) => b.classList.toggle("on", JSON.stringify(PRESETS[b.dataset.pre]) === JSON.stringify({ name: PRESETS[b.dataset.pre].name, ...lay() })));
     }
@@ -221,6 +223,7 @@
       if (ds.box != null) { lay().tm.box = !lay().tm.box; return repaint(); }
       if (ds.d) { st.seconds = Math.max(30, (st.seconds || 0) + +ds.d); st.left = st.seconds; return repaint(); }
       if (ds.bg) { st.bg = ds.bg; return repaint(); }
+      if (ds.f === "__more") return XLOOK.pickFont(st.font, (f) => { st.font = f; repaint(); });
       if (ds.f) { st.font = ds.f; return repaint(); }
     });
     page.addEventListener("input", (e) => {
