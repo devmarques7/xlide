@@ -38,7 +38,7 @@
   /* famílias variáveis com largura (font-stretch): Archivo condensada dos pôsteres do Cafofo */
   const AXES = { Archivo: "wdth,wght@62..125,100..900" };
   /* famílias com jeito próprio na tela: Archivo = pôster do Cafofo (condensada 70%, 800, caixa-alta, grande); a tradução embaixo vai em Lexend */
-  const FAMLOOK = { Archivo: { weight: 800, stretch: 70, upper: true, lh: 0.92, track: "-0.005em", k: 1.32, trans: "Lexend" } };
+  const FAMLOOK = { Archivo: { weight: 800, stretch: 68, upper: true, lh: 0.88, track: "-0.01em", k: 1.45, trans: "Lexend" } };
   function loadFont(family) {
     family = String(family || "").trim();
     if (!family || FONTS.some((f) => f.id === family) || loadedF.has(family) || typeof document === "undefined") return;
