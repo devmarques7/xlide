@@ -38,7 +38,7 @@
   /* famílias variáveis com largura (font-stretch): Archivo condensada dos pôsteres do Cafofo */
   const AXES = { Archivo: "wdth,wght@62..125,100..900" };
   /* famílias com jeito próprio na tela: Archivo = pôster do Cafofo (condensada 70%, 800, caixa-alta, grande); a tradução embaixo vai em Lexend */
-  const FAMLOOK = { Archivo: { weight: 800, stretch: 68, upper: true, lh: 0.88, track: "-0.01em", k: 1.45, trans: "Lexend" } };
+  const FAMLOOK = { Archivo: { weight: 800, stretch: 68, upper: true, lh: 0.88, track: "-0.01em", k: 1.45, trans: "Lexend", cw: 0.46 } };
   function loadFont(family) {
     family = String(family || "").trim();
     if (!family || FONTS.some((f) => f.id === family) || loadedF.has(family) || typeof document === "undefined") return;
@@ -199,7 +199,20 @@
     const text = L.text ?? sl.text;
     const n = text.split("\n").length;
     const tr = L.trans && other !== shown && ly[other] && ly[other] !== ly[shown] ? XL.songSlides(songId, other)[i]?.text : "";
-    const fs = Math.min(6.4, 26 / Math.max(2, n)) * F.k * L.size;
+    // tamanho que cabe: a letra e a tradução inteiras dentro do slide (largura pela linha mais longa, altura pelas duas)
+    const lines = text.split("\n"), trl = tr ? String(tr).split("\n") : [];
+    const cw = F.cw || (F.upper ? 0.6 : 0.5), trK = F.trans ? 0.36 : 0.42, W = (L.w || 80) * 0.94;
+    const maxC = Math.max(1, ...lines.map((l) => l.length)), trC = Math.max(0, ...trl.map((l) => l.length));
+    // começa grande e diminui até a letra (podendo quebrar linha) e a tradução caberem na altura do slide
+    let fs = Math.min(6.4, 26 / Math.max(2, n)) * F.k * L.size;
+    const longest = Math.max(1, ...lines.flatMap((l) => l.split(/\s+/)).map((w) => w.length));
+    for (let k = 0; k < 30; k++) {
+      const rows = lines.reduce((a, l) => a + Math.max(1, Math.ceil((l.length * cw * fs) / W)), 0);
+      const trRows = trl.reduce((a, l) => a + Math.max(1, Math.ceil((l.length * 0.5 * trK * fs) / W)), 0);
+      const h = rows * (F.lh || 1.08) * fs + (trl.length ? trRows * trK * 1.25 * fs + 1.6 : 0);
+      if (h <= 46 && longest * cw * fs <= W && (!trC || trC * 0.5 * trK * fs <= W * 2)) break;
+      fs *= 0.94;
+    }
     return `${backdropFx(L)}<div class="xw-grain"></div>
       ${section && sl.section ? `<div class="xw-sec" style="color:${inkFor(L)}">${esc(sl.section)}</div>` : ""}
       <div class="tb" data-i="${i}" style="left:${L.x}%;top:${L.y}%;width:${L.w}%;text-align:${L.align};color:${inkFor(L)};--ff:${F.family.replace(/"/g, "'")};--fw:${F.weight};--tr:${F.track};--lh:${F.lh};--fs:${fs}cqw;${F.upper ? "text-transform:uppercase;" : ""}${F.stretch ? `font-stretch:${F.stretch}%;` : ""}">
@@ -224,9 +237,20 @@
   }
   const blocked = new Set();
   if (typeof document !== "undefined") addEventListener("pointerdown", () => { blocked.forEach((v) => { if (v.isConnected && v.paused && !v.ended) v.play().catch(() => {}); }); blocked.clear(); }, true);
+  /* rede de segurança: se a letra (com a tradução) ainda passar da altura do slide, diminui até caber */
+  function fitLyrics(root) {
+    const run = () => (root.matches?.(".tb") ? [root] : [...root.querySelectorAll(".tb")]).forEach((tb) => {
+      const box = tb.closest(".slide"); if (!box || !box.clientHeight || tb.querySelector("[contenteditable]")) return;
+      for (let k = 0; k < 12 && tb.offsetHeight > box.clientHeight * 0.92; k++) {
+        const cur = parseFloat(tb.style.getPropertyValue("--fs")) || 6; tb.style.setProperty("--fs", (cur * 0.9).toFixed(3) + "cqw");
+      }
+    });
+    run(); document.fonts && document.fonts.ready.then(run);
+  }
   function hydrate(root = document) {
     window.MEDIA && MEDIA.hydrate(root);
     playVideos(root);
+    fitLyrics(root);
     const list = root.matches?.(".xw-yt") ? [root] : [...root.querySelectorAll(".xw-yt")];
     list.forEach((el) => {
       if (el.querySelector("iframe") || el.dataset.play === "0" || !el.closest(".animate, [data-video]") || el.closest("[data-still]")) return;
