@@ -57,7 +57,7 @@ function brandDeck(d, b, restyle, k = 0) {
   // música: fundos da rotação do kit (slides.song_bgs: [{ lyrics, cover }]), uma por música; letra em Creme, refrão no destaque
   const rot = d.music && Array.isArray(sl.song_bgs) && sl.song_bgs.length ? sl.song_bgs[k % sl.song_bgs.length] : null;
   if (restyle && rot) {
-    d.slides.forEach((x, i) => { x.bg = i === 0 && rot.cover ? rot.cover : rot.lyrics || x.bg; if (sl.font) x.font = sl.font; x.tone = "dark"; });
+    d.slides.forEach((x, i) => { x.bg = i === 0 && rot.cover ? rot.cover : rot.lyrics || x.bg; if (sl.song_font || sl.font) x.font = sl.song_font || sl.font; x.tone = "dark"; });
     const pick = (r) => ((b.palette || []).find((c) => c.role === r) || {}).hex;
     d.music = { ...d.music, ...(pick("text") ? { ink: pick("text") } : {}), ...(pick("accent") ? { chorusInk: pick("accent") } : {}) };
     return d;

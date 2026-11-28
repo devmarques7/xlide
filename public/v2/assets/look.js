@@ -37,6 +37,8 @@
   const slug = (f) => f.toLowerCase().trim().replace(/\s+/g, "-");
   /* famílias variáveis com largura (font-stretch): Archivo condensada dos pôsteres do Cafofo */
   const AXES = { Archivo: "wdth,wght@62..125,100..900" };
+  /* famílias com jeito próprio na tela: Archivo = pôster do Cafofo (condensada 70%, 800, caixa-alta, grande); a tradução embaixo vai em Lexend */
+  const FAMLOOK = { Archivo: { weight: 800, stretch: 70, upper: true, lh: 0.92, track: "-0.005em", k: 1.32, trans: "Lexend" } };
   function loadFont(family) {
     family = String(family || "").trim();
     if (!family || FONTS.some((f) => f.id === family) || loadedF.has(family) || typeof document === "undefined") return;
@@ -57,7 +59,7 @@
     if (t || !id) return t || FONTS[0];
     loadFont(id);
     const fam = String(id).replace(/["\\]/g, "");
-    return { id: fam, name: fam, family: `"${fam}", var(--font)`, weight: 600, track: "-0.015em", lh: 1.08, k: 1, custom: true };
+    return { id: fam, name: fam, family: `"${fam}", var(--font)`, weight: 600, track: "-0.015em", lh: 1.08, k: 1, custom: true, ...(FAMLOOK[fam] || {}) };
   }
   /* fontes da equipe que aparecem nos seletores, além das 4 da casa: usadas recentemente + importadas */
   function library() {
@@ -184,24 +186,25 @@
   const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 
   /* HTML interno de um slide de música (fundo + caixa de texto). */
-  function songSlide(songId, i, { lang = "pt", editable = false, section = true } = {}) {
+  function songSlide(songId, i, { lang, editable = false, section = true } = {}) {
     // na tela, a letra original da música em cima (a língua em que ela é cantada: a primeira do deck)
     // e a tradução embaixo; no editor, a língua escolhida
     const S = XL.songs[songId], ly = S.lyrics, langs = S.langs && S.langs.length ? S.langs : Object.keys(ly);
-    const shown = editable ? (ly[lang] ? lang : langs[0]) : ly[langs[0]] ? langs[0] : Object.keys(ly)[0];
+    const shown = editable && lang && ly[lang] ? lang : ly[langs[0]] ? langs[0] : Object.keys(ly)[0];
     const other = langs.find((l) => l !== shown && ly[l]) || (shown === "en" ? "pt" : "en");
     const sl = XL.songSlides(songId, shown)[i] || { section: "", text: "" };
     const L = resolve(songId, i);
     const F = fontOf(L.font);
+    if (F.trans) loadFont(F.trans);
     const text = L.text ?? sl.text;
     const n = text.split("\n").length;
     const tr = L.trans && other !== shown && ly[other] && ly[other] !== ly[shown] ? XL.songSlides(songId, other)[i]?.text : "";
     const fs = Math.min(6.4, 26 / Math.max(2, n)) * F.k * L.size;
     return `${backdropFx(L)}<div class="xw-grain"></div>
       ${section && sl.section ? `<div class="xw-sec" style="color:${inkFor(L)}">${esc(sl.section)}</div>` : ""}
-      <div class="tb" data-i="${i}" style="left:${L.x}%;top:${L.y}%;width:${L.w}%;text-align:${L.align};color:${inkFor(L)};--ff:${F.family};--fw:${F.weight};--tr:${F.track};--lh:${F.lh};--fs:${fs}cqw;${F.upper ? "text-transform:uppercase;" : ""}">
+      <div class="tb" data-i="${i}" style="left:${L.x}%;top:${L.y}%;width:${L.w}%;text-align:${L.align};color:${inkFor(L)};--ff:${F.family.replace(/"/g, "'")};--fw:${F.weight};--tr:${F.track};--lh:${F.lh};--fs:${fs}cqw;${F.upper ? "text-transform:uppercase;" : ""}${F.stretch ? `font-stretch:${F.stretch}%;` : ""}">
         <div class="tb-lines" ${editable ? 'contenteditable="plaintext-only" spellcheck="false"' : ""}>${esc(text)}</div>
-        ${tr ? `<div class="tb-trans">${esc(tr)}</div>` : ""}
+        ${tr ? `<div class="tb-trans"${F.trans ? ` style="font-family:'${F.trans}',var(--font);font-stretch:100%;font-weight:500;opacity:.78;font-size:calc(var(--fs) * .36)"` : ""}>${esc(tr)}</div>` : ""}
         ${editable ? '<span class="tb-h" title="Arraste para mover"></span><span class="tb-r" title="Arraste para a largura"></span>' : ""}
       </div>`;
   }
