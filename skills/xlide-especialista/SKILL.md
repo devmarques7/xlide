@@ -61,7 +61,9 @@ Fluxo:
 4. Confira a soma dos minutos com a duração alvo e avise se passar.
 5. Ajustes: `update_program_item`, `move_program_item`, `add_program_items`, `remove_program_items`. Transição e piloto automático: `set_program_settings`.
 6. **Vídeo do YouTube sem o áudio original, com outra trilha:** item `type: "media"`, `media` = link do vídeo, `mute: true`, `track` = link do YouTube da trilha que a pessoa tem (ou `mix1`/`mix2`), `track_volume` 60–80 (sem a voz do vídeo, a trilha é o som principal). O vídeo toca mudo no projetor e a trilha sai do computador do console para a mesa de som. Para devolver o som do vídeo: `update_program_item` com `mute: false` e `track: "off"`. Peça o link da trilha; nunca invente.
-7. Repetir um culto: `duplicate_program` com a nova data. Pôr no ar: `set_program_status` com `live: true` **só com confirmação**.
+7. **Visual de marca nos itens (ex. Cafofo):** cada item leva `layout` (`cf-count` boas-vindas com contagem, `cf-cover` capa com a marca, `cf-poster` pôster Archivo caixa-alta, `cf-quote` frase [ ] em Lexend, `cf-info` título + texto), `bg`, `ink`, `font`, `frame` (rodapé + marca + círculo das quatro cores) e, para vários slides num item, `slides: [{ eyebrow, title, text, bg, ink }]` + `per` (layout por slide). `==palavra==` destaca. Com `brand_id`, o kit (`slides.items` por tipo) preenche isso sozinho. O título do item fica limpo; o texto da tela vai em `slides[0]`.
+8. **Testar antes:** no Ao vivo, "Testar em demo" roda o programa inteiro sem ir para o projetor (tela.html?demo=1 acompanha); "Recomeçar do início" zera e deixa o primeiro item pronto na tela.
+9. Repetir um culto: `duplicate_program` com a nova data. Pôr no ar: `set_program_status` com `live: true` **só com confirmação**.
 
 Estrutura típica de culto principal (≈ 75 min): espera com contagem 5 → boas-vindas 3 → louvor 15 (3–4 músicas) → oração 3 → avisos 5 → música especial 4 → leitura 2 → sermão 30 → apelo/música 5 → oração final e bênção 3.
 

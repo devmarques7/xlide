@@ -137,7 +137,7 @@ const FX_PROPS = { brightness: { type: "number", description: "Brilho do fundo (
 function cleanItem(raw) {
   const type = ITEM_TYPES.includes(raw.type) ? raw.type : "notice";
   const it = { id: raw.id || rid("i_"), type, title: String(raw.title || type), planned: Math.max(10, Math.round((Number(raw.minutes) || Number(raw.planned) / 60 || 3) * 60)), advance: raw.advance || (["wait", "notice", "video", "media"].includes(type) ? "auto" : "manual"), public: raw.public !== false };
-  for (const k of ["text", "owner", "area", "deck", "song", "media", "eyebrow", "bg", "font", "hidden", "ink"]) if (raw[k] != null) it[k] = raw[k];
+  for (const k of ["text", "owner", "area", "deck", "song", "media", "eyebrow", "bg", "font", "hidden", "ink", "layout", "slides", "per", "frame", "vloop"]) if (raw[k] != null) it[k] = raw[k];
   const fx = fxOf(raw); if (fx) it.fx = fx;
   // vídeo por link (YouTube…) é um item media: é ele que toca o link no projetor
   if (type === "video" && raw.media) it.type = "media";
@@ -165,7 +165,7 @@ const progSummary = (p) => ({ id: p.id, title: p.title, date: p.service_date, st
 
 const S = (props, required = []) => ({ type: "object", properties: props, required });
 const slideProps = { ...FX_PROPS, bg: { type: "string", description: "Fundo: wash:<ember|amber|crimson|dusk|ocean|midnight|teal|mist|gold>, loop:<id YouTube>, plain:<papel|tinta|grade|coluna|sabado|brasa>, ou URL de imagem/vídeo (inclusive fundos importados do Pinterest: list_backgrounds / import_background)" }, font: { type: "string", description: "Fonte: grotesk, serif, condensed, mono (as 4 da casa) ou o nome de QUALQUER família do catálogo (Google Fonts, Fontshare, Fontsource, ~2100) ou importada pela equipe, ex. \"Lexend\". Use search_fonts para achar." }, tone: { type: "string", enum: ["dark", "light"] }, section: { type: "string", enum: ["intro", "verse", "prechorus", "chorus", "bridge", "tag", "instrumental", "outro"] }, repeat: { type: "number" }, at: { type: "number", description: "Segundo da música em que o slide entra" }, notes: { type: "string", description: "Notas do apresentador" }, layout: { type: "string", enum: LAYOUTS }, eyebrow: { type: "string" }, title: { type: "string" }, subtitle: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, image: { type: "string", description: "URL https real de imagem" } };
-const itemProps = { ...FX_PROPS, bg: { type: "string", description: "Fundo do item na tela: wash:/plain:/loop:<id YouTube>, ou link de imagem/vídeo (inclusive os importados: list_backgrounds / import_background, ex. pins do Pinterest)" }, font: { type: "string", description: "Fonte: grotesk, serif, condensed, mono ou qualquer família (search_fonts / fontes do brand kit)" }, eyebrow: { type: "string", description: "Rótulo pequeno acima do título" }, ink: { type: "string", description: "Cor do texto (#hex)" }, type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media (o vídeo toca no projetor)" }, mute: { type: "boolean", description: "Só para vídeo (item media): true = toca SEM o áudio original do vídeo; o som da tela vem de `track` (a trilha que a pessoa escolheu). false volta o áudio do vídeo." }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela (toca no computador do console → mesa de som): off, mix1, mix2, ou link/id do YouTube de uma faixa. Com mute: true, é ela que toca por cima do vídeo sem som." }, track_volume: { type: "number" } };
+const itemProps = { ...FX_PROPS, bg: { type: "string", description: "Fundo do item na tela: wash:/plain:/loop:<id YouTube>, ou link de imagem/vídeo (inclusive os importados: list_backgrounds / import_background, ex. pins do Pinterest)" }, font: { type: "string", description: "Fonte: grotesk, serif, condensed, mono ou qualquer família (search_fonts / fontes do brand kit)" }, eyebrow: { type: "string", description: "Rótulo pequeno acima do título" }, ink: { type: "string", description: "Cor do texto (#hex)" }, type: { type: "string", enum: ITEM_TYPES }, title: { type: "string" }, minutes: { type: "number" }, text: { type: "string" }, owner: { type: "string" }, area: { type: "string", enum: ["music", "sound", "comms", "pulpit"] }, deck_id: { type: "string" }, song_id: { type: "string" }, media: { type: "string", description: "Link do YouTube, Vimeo, Spotify ou arquivo, para itens media (o vídeo toca no projetor)" }, mute: { type: "boolean", description: "Só para vídeo (item media): true = toca SEM o áudio original do vídeo; o som da tela vem de `track` (a trilha que a pessoa escolheu). false volta o áudio do vídeo." }, advance: { type: "string", enum: ["auto", "manual"] }, public: { type: "boolean" }, track: { type: "string", description: "Trilha de fundo desta tela (toca no computador do console → mesa de som): off, mix1, mix2, ou link/id do YouTube de uma faixa. Com mute: true, é ela que toca por cima do vídeo sem som." }, track_volume: { type: "number" }, layout: { type: "string", description: "Layout da tela: centro, contagem, esquerda, rodape, ou os do Cafofo: cf-count (boas-vindas com contagem), cf-cover (capa com a marca), cf-poster (pôster Archivo caixa-alta), cf-quote (frase [ ] em Lexend), cf-info (título + texto). ==palavra== destaca." }, slides: { type: "array", description: "Vários slides no mesmo item (ex. 'O que é o Cafofo'): [{ eyebrow, title, text, bg, ink }]. O primeiro substitui os textos do item na tela (o título do item fica limpo na lista).", items: { type: "object" } }, per: { type: "object", description: "Layout por slide: { \"1\": \"cf-poster\", \"2\": \"cf-quote\" } (índice a partir de 0)" }, frame: { type: "object", description: "Moldura da marca: { foot: \"linha 1\\nlinha 2\", pageLabel: \"Page\", mark: true, dots: true } — rodapé, a marca e o círculo das quatro cores" }, vloop: { type: "boolean", description: "Vídeo de fundo: false = toca uma vez e para no último quadro (ex. intro do Cafofo)" } };
 
 export const LIVE_TOOLS = [
   { name: "search_fonts", description: "Busca fontes no catálogo do XLIDE (Google Fonts, Fontshare, Fontsource: ~2100 famílias) e nas importadas pela equipe. Filtros: nome (q), categoria (sans, serif, display, script, mono) e origem. O nome que voltar pode ir direto em font (slides, músicas, brand kit).", inputSchema: S({ q: { type: "string" }, category: { type: "string", enum: ["sans", "serif", "display", "script", "mono"] }, source: { type: "string", enum: ["google", "fontshare", "fontsource", "custom"] }, limit: { type: "number" } }) },
@@ -275,7 +275,13 @@ export async function callLiveTool(name, a = {}, origin = "") {
       if (a.program_id) {
         const p = await loadProg(a.program_id); p.doc.brand_id = b.id;
         const sl = b.slides || {};
-        if (a.restyle !== false) (p.doc.items || []).forEach((it) => { if (["song", "media"].includes(it.type)) return; if (sl.bg) it.bg = sl.bg; if (sl.font) it.font = sl.font; });
+        // kit com visual por tipo de item (slides.items: { wait, prayer, sermon, notice: { layout, bg, ink, font, fx, frame } }): cada item pega o do tipo dele
+        if (a.restyle !== false) (p.doc.items || []).forEach((it) => {
+          if (["song", "media"].includes(it.type)) return;
+          const per = (sl.items || {})[it.type];
+          if (per) { for (const k of ["layout", "bg", "ink", "font", "fx", "vloop"]) if (per[k] != null) it[k] = per[k]; if (per.frame || sl.frame) it.frame = { ...(sl.frame || {}), ...(per.frame || {}) }; return; }
+          if (sl.bg) it.bg = sl.bg; if (sl.font) it.font = sl.font;
+        });
         await saveProg(p); out.programs.push({ id: p.id, title: p.title });
       }
       return out;
@@ -371,7 +377,16 @@ export async function callLiveTool(name, a = {}, origin = "") {
     }
     case "create_program": {
       const p = { id: rid("pg_"), title: String(a.title), service_date: a.date || null, starts_at: a.starts || "10:00", target_min: a.target_min || null, status: "rascunho", is_live: false, doc: { items: (a.items || []).map(cleanItem), archived: [], trash: [] } };
-      if (a.brand_id) { const b = await brandOf(a.brand_id), sl = b.slides || {}; p.doc.brand_id = b.id; p.doc.items.forEach((it) => { if (["song", "media"].includes(it.type)) return; if (sl.bg && !it.bg) it.bg = sl.bg; if (sl.font && !it.font) it.font = sl.font; }); }
+      if (a.brand_id) {
+        const b = await brandOf(a.brand_id), sl = b.slides || {}; p.doc.brand_id = b.id;
+        p.doc.items.forEach((it) => {
+          if (["song", "media"].includes(it.type)) return;
+          const per = (sl.items || {})[it.type] || {};
+          for (const k of ["layout", "bg", "ink", "font", "fx", "vloop"]) if (it[k] == null && per[k] != null) it[k] = per[k];
+          if (!it.frame && (per.frame || sl.frame)) it.frame = { ...(sl.frame || {}), ...(per.frame || {}) };
+          if (sl.bg && !it.bg) it.bg = sl.bg; if (sl.font && !it.font) it.font = sl.font;
+        });
+      }
       await saveProg(p); return progSummary(p);
     }
     case "add_program_items": {

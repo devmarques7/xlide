@@ -25,8 +25,29 @@
     esquerda: { name: "Esquerda", eb: { x: 30, y: 30, w: 50, s: 1.5, a: "left", on: true }, t: { x: 40, y: 46, w: 70, s: 6.4, a: "left", on: true }, b: { x: 35, y: 64, w: 60, s: 2.6, a: "left", on: true }, tm: { x: 91, y: 91, w: 14, s: 3, a: "center", on: true, box: true } },
     rodape: { name: "Faixa embaixo", eb: { x: 50, y: 70, w: 80, s: 1.4, a: "center", on: false }, t: { x: 50, y: 80, w: 86, s: 4.4, a: "center", on: true }, b: { x: 50, y: 89, w: 80, s: 2.2, a: "center", on: true }, tm: { x: 92, y: 8, w: 14, s: 2.6, a: "center", on: true, box: true } },
   };
+  /* Cafofo (Class × Classe Jovens): pôster em Archivo condensada caixa-alta, citação em Lexend com [ ],
+     rótulo com contorno tracejado no canto, rodapé (página, seção) e a marca + o círculo das quatro cores.
+     Destaque com ==palavra== (faixa embaixo da palavra ou palavra na cor de destaque). */
+  const CF_EB = { x: 2.6, y: 7, w: 60, s: 1.35, a: "left", on: true, f: "Lexend", up: true, wt: 700, ls: ".08em", dash: true };
+  Object.assign(PRESETS, {
+    "cf-cover": { name: "Cafofo · capa", eb: CF_EB, img: { x: 10.5, y: 27, w: 11, s: 1, a: "left", on: true, src: "/brand/cafofo/mark-sun.svg" }, t: { x: 41, y: 52, w: 78, s: 10.5, a: "left", on: true, f: "Archivo", st: 70, wt: 800, up: true, lh: 0.88, hm: "ink", hc: "#F4D266", ns: true }, b: { x: 36, y: 78, w: 66, s: 2.2, a: "left", on: true, f: "Lexend" }, tm: { x: 88, y: 84, w: 18, s: 4.6, a: "right", on: true, f: "Archivo", st: 70, wt: 800 } },
+    "cf-count": { name: "Cafofo · boas-vindas com contagem", eb: CF_EB, img: { x: 10.5, y: 25, w: 10, s: 1, a: "left", on: true, src: "/brand/cafofo/mark-sun.svg" }, t: { x: 40, y: 53, w: 76, s: 10.5, a: "left", on: true, f: "Archivo", st: 70, wt: 800, up: true, lh: 0.88, hm: "ink", hc: "#F4D266", ns: true }, b: { x: 30, y: 80, w: 54, s: 2.4, a: "left", on: true, f: "Lexend", wt: 500 }, tm: { x: 84, y: 79, w: 26, s: 9, a: "right", on: true, f: "Archivo", st: 70, wt: 800 } },
+    "cf-poster": { name: "Cafofo · pôster", eb: { ...CF_EB, x: 2.6, dash: false, l: true }, t: { x: 50, y: 49, w: 88, s: 10, a: "center", on: true, f: "Archivo", st: 70, wt: 800, up: true, lh: 0.88, hm: "bar", hc: "#FAF8F1", ns: true }, b: { x: 50, y: 78, w: 70, s: 2.4, a: "center", on: true, f: "Lexend", wt: 500 }, tm: { x: 91, y: 8, w: 14, s: 3, a: "center", on: true, f: "Archivo", st: 70, wt: 800 } },
+    "cf-quote": { name: "Cafofo · frase [ ]", eb: CF_EB, t: { x: 61, y: 46, w: 58, s: 4.4, a: "left", on: true, f: "Lexend", wt: 600, lh: 1.12, hm: "bar", hc: "#F4D266", ns: true }, b: { x: 61, y: 66, w: 58, s: 2.2, a: "left", on: true, f: "Lexend" }, tm: { x: 91, y: 8, w: 14, s: 3, a: "center", on: true, box: true } },
+    "cf-info": { name: "Cafofo · informação", eb: CF_EB, t: { x: 40, y: 38, w: 74, s: 7.2, a: "left", on: true, f: "Archivo", st: 70, wt: 800, up: true, lh: 0.9, hm: "bar", hc: "#F4D266", ns: true }, b: { x: 35, y: 66, w: 64, s: 2.5, a: "left", on: true, f: "Lexend", wt: 500, lh: 1.35 }, tm: { x: 91, y: 8, w: 14, s: 3, a: "center", on: true, box: true } },
+  });
   const presetFor = (kind) => (/espera/i.test(kind || "") ? "contagem" : "centro");
-  const layoutOf = (o) => o.layout || clone(PRESETS[presetFor(o.kind || o.eyebrow)]);
+  const layoutOf = (o) => (typeof o.layout === "string" ? clone(PRESETS[o.layout] || PRESETS.centro) : o.layout || clone(PRESETS[presetFor(o.kind || o.eyebrow)]));
+  /* ==palavra== → destaque: "bar" = faixa por baixo da palavra; "ink" = a palavra na cor de destaque */
+  const hl = (html, b) => html.replace(/==(.+?)==/g, (_, w) => b && b.hm === "ink" ? `<mark style="background:none;color:${b.hc || "#F4D266"}">${w}</mark>` : `<mark style="background:linear-gradient(transparent 56%, ${(b && b.hc) || "#F4D266"} 56% 94%, transparent 94%);color:inherit;padding:0 .04em">${w}</mark>`);
+  /* moldura da marca: rodapé à esquerda (página, seção, assinatura) e a marca + o círculo das quatro cores à direita */
+  function frameHTML(fr, ink) {
+    if (!fr) return "";
+    const foot = [fr.page ? `${fr.pageLabel || "Page"} ${fr.page}` : "", ...String(fr.foot || "").split("\n")].filter(Boolean);
+    const mk = [fr.mark !== false ? `<img src="${esc(fr.markSrc || "/brand/cafofo/mark-sun.svg")}" alt="" style="width:4.2cqw;height:4.2cqw">` : "", fr.dots !== false ? `<img src="${esc(fr.dotsSrc || "/brand/cafofo/dots.svg")}" alt="" style="width:2.6cqw;height:2.6cqw">` : ""].join("");
+    return `<div class="tpl-frame" style="position:absolute;left:2.8%;bottom:4.6%;font:600 1.05cqw/1.32 Lexend,var(--font);color:${esc(fr.ink || ink)};text-align:left">${foot.map(esc).join("<br>")}</div>
+      <div class="tpl-frame" style="position:absolute;right:2.6%;bottom:4%;display:flex;align-items:center;gap:1cqw">${mk}</div>`;
+  }
 
   /* O template: fundo + blocos posicionados. Usado no canvas, na gaveta e nas miniaturas. */
   function template(o, { timer = true, edit = false } = {}) {
@@ -38,22 +59,22 @@
       const b = L[k];
       if (!b || !b.on || !html) return "";
       const Fb = b.f ? font(b.f) : null;
-      const st = `left:${b.x}%;top:${b.y}%;width:${b.w}%;text-align:${b.a};font-size:${b.s}cqw;${b.c ? `color:${b.c};` : ""}${Fb ? `font-family:${Fb.family};` : ""}${k !== "t" && b.bo ? "font-weight:700;" : ""}`;
+      const st = `left:${b.x}%;top:${b.y}%;width:${b.w}%;text-align:${b.a};font-size:${b.s}cqw;${b.c ? `color:${b.c};` : ""}${Fb ? `font-family:${Fb.family.replace(/"/g, "'")};` : ""}${k !== "t" && b.bo ? "font-weight:700;" : ""}${k !== "t" && b.wt ? `font-weight:${b.wt};` : ""}${b.st ? `font-stretch:${b.st}%;` : ""}${b.up ? "text-transform:uppercase;" : ""}${b.lh ? `line-height:${b.lh};` : ""}${b.ls ? `letter-spacing:${b.ls};` : ""}${b.ns ? "text-shadow:none;" : ""}${b.dash ? "border:2px dashed currentColor;border-color:color-mix(in srgb,currentColor 55%,transparent);padding:.35em .6em;" : ""}${b.dash || b.l ? "width:auto;max-width:" + b.w + "%;white-space:nowrap;transform:translate(0,-50%);" : ""}`;
       const hs = edit ? '<span class="h hl"></span><span class="h hr"></span><span class="h c tl"></span><span class="h c tr"></span><span class="h c bl"></span><span class="h c br"></span>' : "";
       return `<div class="tpl-blk tpl-${k}${extra}${edit ? " ed" : ""}" data-b="${k}" style="${st}">${html}${hs}</div>`;
     };
     const T = L.t || {}, FT = T.f ? font(T.f) : F;
-    const tw = T.bo === false ? FT.weight : Math.max(FT.weight, 600);
+    const tw = T.wt || (T.bo === false ? FT.weight : Math.max(FT.weight, 600));
     const md = o.media && window.MEDIA ? MEDIA.parse(o.media) : null;
     if (md && o.mediaOnly) return MEDIA.html(md); // item de vídeo/áudio do programa: só a mídia, sem fonte nem estilo
     return `${md ? MEDIA.html(md) : ""}${md && md.kind === "video" ? "" : fxWrap(o.fx, XLOOK.backdrop(o.bg || "solid:#0e0e0d", o.image, { loop: o.vloop !== false, play: o.vplay !== false }))}<div class="xw-grain"></div>
-      <div class="tpl2" style="color:${ink};font-family:${F.family}">
+      <div class="tpl2" style="color:${ink};font-family:${F.family.replace(/"/g, "'")}">
         ${blk("eb", o.eyebrow || edit ? `<span class="tx" data-ph="Rótulo">${esc(o.eyebrow)}</span>` : "")}
-        ${blk("t", o.title || edit ? `<span class="tx" data-ph="Título" style="font-weight:${tw};letter-spacing:${FT.track};${FT.upper ? "text-transform:uppercase;" : ""}">${esc(o.title)}</span>` : "")}
-        ${blk("b", o.text || edit ? `<span class="tx" data-ph="Texto">${esc(o.text)}</span>` : "")}
+        ${blk("t", o.title || edit ? `<span class="tx" data-ph="Título" style="font-weight:${tw};letter-spacing:${T.st ? "-0.005em" : FT.track};${FT.upper ? "text-transform:uppercase;" : ""}">${edit ? esc(o.title) : hl(esc(o.title), T)}</span>` : "")}
+        ${blk("b", o.text || edit ? `<span class="tx" data-ph="Texto">${edit ? esc(o.text) : hl(esc(o.text), L.b)}</span>` : "")}
         ${timer && o.seconds ? blk("tm", mmss(t), ` tpl-timer${L.tm.box ? " box" : ""}`) : ""}
         ${L.img && L.img.src ? blk("img", `<img class="tpl-im" src="${esc(L.img.src)}" alt="" draggable="false">`) : ""}
-        ${edit ? '<i class="guide gv"></i><i class="guide gh"></i>' : ""}
+        ${edit ? '<i class="guide gv"></i><i class="guide gh"></i>' : frameHTML(o.frame || L.frame, ink)}
       </div>`;
   }
   const mini = (o, cls = "") => `<div class="slide song ${cls}">${template(o)}</div>`;

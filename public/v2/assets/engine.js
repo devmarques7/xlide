@@ -4,12 +4,15 @@
    Aqui: localStorage + BroadcastChannel, então console, tela e página pública
    abertos em abas diferentes andam juntos. Relógio virtual com velocidade (×1, ×10, ×60). */
 (function () {
-  const KEY = "xlide.v2.run";
-  const bc = "BroadcastChannel" in window ? new BroadcastChannel("xlide-v2-live") : null;
+  /* Modo demo (?demo=1): roda o programa inteiro para testar, sem mexer no ao vivo de verdade —
+     estado próprio só neste navegador (tela.html?demo=1 acompanha), nada vai para o banco nem para o projetor. */
+  const DEMO = /[?&]demo=1\b/.test(location.search);
+  const KEY = DEMO ? "xlide.v2.run.demo" : "xlide.v2.run";
+  const bc = "BroadcastChannel" in window ? new BroadcastChannel(DEMO ? "xlide-v2-live-demo" : "xlide-v2-live") : null;
   const subs = new Set();
   const items = () => XL.program.items;
   // Supabase ligado: relógio do servidor, estado em xlide_runs + Realtime (cloud.js)
-  const CL = window.XCLOUD && XCLOUD.on && !XCLOUD.leaving ? XCLOUD : null;
+  const CL = !DEMO && window.XCLOUD && XCLOUD.on && !XCLOUD.leaving ? XCLOUD : null;
   const clock = () => (CL ? CL.now() : Date.now());
   let seen = 0;
 
@@ -39,6 +42,8 @@
 
   function slidesOf(it) {
     if (it.type === "song") return XL.songSlides(it.song);
+    // contagem é uma tela só (o relógio não se repete em cada slide de um deck ligado)
+    if (it.type === "wait" && !(it.slides && it.slides.length > 1)) return [{ section: "", text: it.title }];
     // PDF importado: uma página por slide; slides do editor de deck: um por slide
     if (it.pages && it.pages.length) return it.pages.map((src, i) => ({ section: "", text: `${it.title} · ${i + 1}`, image: src }));
     if (it.slides && it.slides.length) return it.slides.map((x) => ({ section: "", text: x.title || it.title, image: x.image }));
@@ -146,7 +151,7 @@
   const dmin = (sec) => (Math.abs(sec) < 30 ? "no horário" : `${sec > 0 ? "+" : "−"}${Math.round(Math.abs(sec) / 60)} min`);
 
   window.LIVE = {
-    get state() { return st; }, cmd, timing, drive, slidesOf, wall, mmss, dmin, now,
+    get state() { return st; }, cmd, timing, drive, slidesOf, wall, mmss, dmin, now, demo: DEMO,
     on(f) { subs.add(f); f(st); return () => subs.delete(f); },
     loop(f) { const tick = () => { f(st, timing()); requestAnimationFrame(tick); }; tick(); },
   };

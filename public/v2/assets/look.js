@@ -35,6 +35,8 @@
   const CUSTOM = () => { try { return (JSON.parse(localStorage.getItem("xlide.v2.fonts")) || {}).custom || []; } catch { return []; } };
   const loadedF = new Map();
   const slug = (f) => f.toLowerCase().trim().replace(/\s+/g, "-");
+  /* famílias variáveis com largura (font-stretch): Archivo condensada dos pôsteres do Cafofo */
+  const AXES = { Archivo: "wdth,wght@62..125,100..900" };
   function loadFont(family) {
     family = String(family || "").trim();
     if (!family || FONTS.some((f) => f.id === family) || loadedF.has(family) || typeof document === "undefined") return;
@@ -42,7 +44,7 @@
     const own = CUSTOM().find((f) => f.family.toLowerCase() === family.toLowerCase());
     if (own) { const st = document.createElement("style"); st.textContent = `@font-face{font-family:"${own.family.replace(/"/g, "")}";src:url("${own.url}");font-weight:${own.weight || 400};font-display:swap}`; document.head.append(st); return; }
     const urls = [
-      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:wght@400;500;600;700;800&display=swap`,
+      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:${AXES[family] || "wght@400;500;600;700;800"}&display=swap`,
       `https://api.fontshare.com/v2/css?f[]=${slug(family)}@400,500,600,700&display=swap`,
       `https://cdn.jsdelivr.net/npm/@fontsource/${slug(family)}@latest/index.css`,
     ];
@@ -169,7 +171,7 @@
     if (bg?.startsWith("plain:")) { const p = PLAIN.find((x) => x.id === bg.slice(6)) || PLAIN[0]; return `<div class="xw-media" style="background:${p.css}"></div>`; }
     if (bg?.startsWith("solid:")) return `<div class="xw-media" style="background:${bg.slice(6)}"></div>`;
     // link de imagem ou vídeo (ex. fundos de um brand kit)
-    if (/^https?:\/\//.test(bg || "")) {
+    if (/^(https?:\/\/|\/[a-z])/.test(bg || "")) {
       const u = String(bg).replace(/"/g, "%22");
       return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u) ? `<video class="xw-media" src="${u}" ${opts.play === false ? 'preload="metadata"' : "autoplay"} ${opts.loop === false ? "" : "loop"} muted playsinline style="object-fit:cover;width:100%;height:100%"></video>` : `<img class="xw-media" src="${u}" alt="" style="object-fit:cover;width:100%;height:100%">`;
     }

@@ -38,8 +38,10 @@ window.ITEMLOOK = (function () {
   /* template do item (sem música e sem vídeo/áudio); slide k usa os textos/fundo próprios daquele slide, se houver */
   function tpl(it, k = 0) {
     const s = (it.slides && it.slides[k]) || {};
-    const base = { kind: name(it), eyebrow: it.eyebrow || name(it), title: it.title, text: it.type === "wait" ? it.text || "" : (it.text || "").replace(/ · /g, "\n"), seconds: it.type === "wait" ? it.planned : 0, layout: (it.per && it.per[k]) || it.layout, ink: it.ink, fx: it.fx || null, ...look(it) };
-    if (k > 0 && (s.title || s.text || s.bg || s.image)) Object.assign(base, { title: s.title ?? base.title, text: s.text ?? "", ...(s.bg ? { bg: s.bg } : {}), ...(s.image ? { image: s.image } : {}) });
+    const base = { kind: name(it), eyebrow: it.eyebrow || name(it), title: it.title, text: it.type === "wait" ? it.text || "" : (it.text || "").replace(/ · /g, "\n"), seconds: it.type === "wait" ? it.planned : 0, layout: (it.per && it.per[k]) || it.layout, ink: it.ink, fx: it.fx || null, frame: it.frame || null, vloop: it.vloop, ...look(it) };
+    // slides próprios do item (ex. "O que é o Cafofo" em vários slides): cada um com os textos, o fundo e a cor dele
+    if ((k > 0 || (it.slides && it.slides.length)) && (s.title || s.text || s.bg || s.image || s.eyebrow)) Object.assign(base, { title: s.title ?? base.title, text: s.text ?? "", ...(s.eyebrow != null ? { eyebrow: s.eyebrow } : {}), ...(s.bg ? { bg: s.bg, fx: s.fx || null } : {}), ...(s.image ? { image: s.image } : {}), ...(s.ink ? { ink: s.ink } : {}), ...(s.fx ? { fx: s.fx } : {}), ...(s.vloop != null ? { vloop: s.vloop } : {}) });
+    if (base.frame && it.slides && it.slides.length > 1) base.frame = { ...base.frame, page: `${k + 1} / ${it.slides.length}` };
     return base;
   }
   /* o item tem visual próprio para desenhar com o template? (fundo, layout, fonte, ajuste) */
@@ -48,6 +50,8 @@ window.ITEMLOOK = (function () {
 })();
 
 window.paintSlide = function (el, it, slide, T, lang, status) {
+  // antes do play, a tela já mostra o primeiro item pronto (ex. a contagem cheia, esperando começar)
+  if (status === "idle" && it) status = "live";
   // Música com o look do Estúdio (fundo, fonte, posição), quando look.js está na página.
   if (window.XLOOK && it && it.type === "song" && status !== "idle" && status !== "done") {
     const key = `song|${it.song}|${slide}|${lang}`;

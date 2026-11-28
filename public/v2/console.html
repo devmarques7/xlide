@@ -302,6 +302,8 @@
     .v-now { grid-column: 1 / -1; }
   }
   @media (prefers-reduced-motion: reduce) { .zone, .go { transition: none; } }
+  body.is-demo .v-now { outline: 2px dashed var(--warn); outline-offset: 3px; }
+  #run-ctl .chip { cursor: pointer; }
 </style>
 </head>
 <body data-tab="console" class="cx">
@@ -309,6 +311,7 @@
   <header class="cx-top">
     <div class="pg-sw" id="pg-sw"><button class="icon-btn" id="pg-prev" aria-label="Programa anterior" title="Programa anterior"></button><button type="button" class="ttl pg-t" id="pg-t" title="Escolher o programa do ao vivo"><span class="lbl" id="pg-d">Console</span><b id="pg-n">Culto principal</b></button><button class="icon-btn" id="pg-next" aria-label="Próximo programa" title="Próximo programa"></button></div>
     <div class="chips" id="chips"></div>
+    <div class="chips" id="run-ctl"><button type="button" class="chip" id="demo-btn" title="Rodar o programa inteiro para testar, sem ir para o projetor nem para os outros aparelhos"></button><button type="button" class="chip" id="restart-btn" title="Voltar ao começo: o programa fica pronto para começar do primeiro item">Recomeçar do início</button></div>
     <div class="cx-stats" id="stats"></div>
     <button class="icon-btn" id="net" title="Simular queda de internet" aria-label="Simular queda de internet"></button>
     <a class="icon-btn" href="tela.html" target="xlide-tela" title="Abrir a tela do projetor" aria-label="Abrir a tela do projetor" id="scr"></a>
@@ -538,7 +541,21 @@ try { const t = sessionStorage.getItem("xlide.v2.started"); if (t) { sessionStor
 
 UI.qs("#play").onclick = () => (noProg ? pickProgram() : focusP ? swap() : atEnd() ? askEnd() : C.toggle());
 // abrir a tela do projetor por script, para poder fechá-la no fim
-UI.qs("#scr").onclick = (e) => { e.preventDefault(); projWin = window.open("tela.html", "xlide-tela"); };
+UI.qs("#scr").onclick = (e) => { e.preventDefault(); projWin = window.open(LIVE.demo ? "tela.html?demo=1" : "tela.html", LIVE.demo ? "xlide-tela-demo" : "xlide-tela"); };
+/* Modo demo: o mesmo console, com estado próprio (nada vai para o projetor real nem para o banco).
+   Recomeçar: zera o ao vivo (demo ou de verdade) e deixa o primeiro item pronto na tela. */
+UI.qs("#demo-btn").textContent = LIVE.demo ? "Sair da demo" : "Testar em demo";
+UI.qs("#demo-btn").onclick = () => { const u = new URL(location.href); LIVE.demo ? u.searchParams.delete("demo") : u.searchParams.set("demo", "1"); location.href = u.toString(); };
+UI.qs("#restart-btn").onclick = () => {
+  const s = LIVE.state;
+  const doIt = () => { UI.closeSheet(); if (tr.st.playing) tr.fadeTo(0, () => tr.pause()); C.reset(); focusP = null; toastTr(LIVE.demo ? "Demo zerada: pronta para começar do início." : "Programa pronto para começar do início."); };
+  if (s.status === "idle") return doIt();
+  UI.sheet(`<div class="stack end-ask" role="alertdialog" aria-labelledby="rs-t"><h2 id="rs-t">${LIVE.demo ? "Zerar a demo?" : "Recomeçar o programa do início?"}</h2>
+    <p class="muted">${LIVE.demo ? "A demo volta para o primeiro item." : "O que está na tela agora sai, os tempos desta execução são descartados e o primeiro item fica pronto, esperando o play."}</p>
+    <div class="grid grid-2"><button class="btn danger-fill block" id="rs-ok">Sim, recomeçar</button><button class="btn ghost block" id="rs-no">Cancelar</button></div></div>`);
+  UI.qs("#rs-ok").onclick = doIt; UI.qs("#rs-no").onclick = () => UI.closeSheet();
+};
+if (LIVE.demo) document.body.classList.add("is-demo");
 UI.qs("#next").onclick = () => C.next();
 UI.qs("#prev").onclick = () => C.prev();
 UI.qs("#snext").onclick = UI.qs("#z-next").onclick = () => (LIVE.state.status === "idle" ? C.play() : C.slide(1));
@@ -835,7 +852,7 @@ let lastList = "", lastStrip = "";
 LIVE.loop((s, T) => {
   const it = T.it, idle = s.status === "idle", done = s.status === "done", run = !idle && !done;
   const label = { idle: ["Pronto", ""], live: ["Ao vivo", "live"], paused: ["Pausado", "warn"], done: ["Encerrado", "solid"] }[s.status];
-  UI.set("#chips", `<span class="chip ${label[1]}">${s.status === "live" ? '<span class="dot pulse"></span>' : ""}${label[0]}</span><span class="chip">${s.offline ? "local" : "sincronizado"}</span>${s.clock.speed > 1 ? `<span class="chip">×${s.clock.speed}</span>` : ""}`);
+  UI.set("#chips", `${LIVE.demo ? '<span class="chip warn">Demo · não vai para o projetor</span>' : ""}<span class="chip ${label[1]}">${s.status === "live" ? '<span class="dot pulse"></span>' : ""}${label[0]}</span><span class="chip">${s.offline ? "local" : "sincronizado"}</span>${s.clock.speed > 1 ? `<span class="chip">×${s.clock.speed}</span>` : ""}`);
   UI.set("#offline", s.offline ? `<div class="banner off" style="margin-bottom:var(--s3)">${I.wifi.replace("<svg", '<svg width="14" height="14"')} Sem internet · rodando local · 3 comandos na fila</div>` : "");
   UI.qs("#net").style.color = s.offline ? "var(--warn)" : "";
   const delay = idle ? "—" : Math.abs(T.delay) < 30 ? "0" : (T.delay > 0 ? "+" : "−") + Math.round(Math.abs(T.delay) / 60);
