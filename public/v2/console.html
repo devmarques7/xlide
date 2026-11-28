@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIDE · Console</title>
 <link rel="stylesheet" href="assets/tokens.css"><link rel="stylesheet" href="assets/ui.css">
-<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/render.js"></script><script src="assets/trilha.js"></script><script src="assets/media.js"></script><script src="assets/drawer.js"></script>
+<script src="assets/vendor/supabase.js"></script><script src="config.js"></script><script src="assets/cloud.js"></script><script src="assets/data.js"></script><script src="assets/engine.js"></script><script src="assets/shell.js"></script><script src="assets/look.js"></script><script src="assets/render.js"></script><script src="assets/trilha.js"></script><script src="assets/media.js"></script><script src="assets/drawer.js"></script><script src="assets/vendor/qr.js"></script><script src="assets/controls.js"></script>
 <style>
   /* Console multiview: a tela agora (grande) + as duas próximas; controles embaixo.
      Celular em pé: telas em cima, pad de controle logo abaixo. Celular deitado: telas à esquerda, pad à direita. */
@@ -303,6 +303,65 @@
   }
   @media (prefers-reduced-motion: reduce) { .zone, .go { transition: none; } }
   body.is-demo .v-now { outline: 2px dashed var(--warn); outline-offset: 3px; }
+  /* ── quem está com o controle ── */
+  .ctl-who { display: inline-flex; align-items: center; gap: 6px; }
+  .ctl-who i { font-style: normal; display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: -4px; background: var(--fg); color: var(--bg); font: 600 9px var(--mono); border: 1px solid var(--bg); }
+  .ctl-who i:first-of-type { margin-left: 0; }
+  .ctl-share { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--s4); align-items: center; }
+  .ctl-qr svg { display: block; width: 180px; height: 180px; }
+  @media (max-width: 560px) { .ctl-share { grid-template-columns: 1fr; } .ctl-qr svg { width: 200px; height: 200px; margin: 0 auto; } }
+  .ctl-list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .ctl-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3); background: var(--surface); }
+  .ctl-row.me { background: var(--bg); }
+  .ctl-row b { display: block; font-weight: 600; } .ctl-row small { display: block; font-size: var(--t-xs); color: var(--fg-2); }
+  .ctl-av { flex: none; display: grid; place-items: center; width: 34px; height: 34px; background: var(--fg); color: var(--bg); font: 600 12px var(--mono); }
+  .btn.sm { min-height: 34px; padding: 0 var(--s3); }
+  .ctl-kicked { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; padding: var(--s5); background: rgb(0 0 0 / .92); color: #f1f0ec; text-align: center; }
+  .ctl-kicked > div { display: grid; gap: var(--s3); max-width: 460px; }
+  .ctl-x, #view-btn { display: none !important; }
+
+  /* ── visão de controle (celular e tablet): agora grande | a seguir em cima + controles embaixo ──
+     "Todos os controles" estende os controles nas duas linhas da direita (piloto, transição, estender, trilha). */
+  @media (max-width: 1199px) {
+    #view-btn { display: inline-flex !important; }
+    body.ctl .cx-top { gap: var(--s2); padding-bottom: var(--s2); }
+    body.ctl .cx-stats, body.ctl #net { display: none; }
+    body.ctl .cx-main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; align-items: start; height: auto; }
+    body.ctl .mv, body.ctl .deck { display: contents; }
+    body.ctl .v-now { grid-column: 1; grid-row: 1 / span 2; margin: 3px; align-self: start; width: auto; min-width: 0; }
+    body.ctl .v-now, body.ctl .v-slot, body.ctl .p-pad, body.ctl #pad, body.ctl #pad .c { min-width: 0; }
+    body.ctl .v-now .hud { flex-wrap: wrap; max-width: calc(100% - 16px); }
+    body.ctl .v-slot[data-slot="0"] { grid-column: 2; grid-row: 1; margin-top: 3px; }
+    body.ctl .v-slot[data-slot="1"], body.ctl .keys { display: none; }
+    body.ctl .d-col { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } /* a trilha continua tocando */
+    body.ctl .p-pad { grid-column: 2; grid-row: 2; order: 0; display: grid; gap: 8px; align-content: start; }
+    body.ctl .ctl-x { display: grid !important; grid-column: 1 / -1; }
+    body.ctl .ctl-x .ctl-x-l { font: 600 var(--t-sm) var(--font); letter-spacing: 0; }
+    body.ctl:not(.ctl-xp) .p-pad .ap, body.ctl:not(.ctl-xp) .p-pad .txp, body.ctl:not(.ctl-xp) #pad .c.sm, body.ctl:not(.ctl-xp) #pad .ext, body.ctl:not(.ctl-xp) #p-tr { display: none; }
+    body.ctl:not(.ctl-xp) #pad { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(64px, auto); }
+    body.ctl:not(.ctl-xp) #pad .play { grid-column: 2; grid-row: 1 / span 2; }
+    body.ctl.ctl-xp .v-slot[data-slot="0"] { display: none; }
+    body.ctl.ctl-xp .p-pad { grid-row: 1 / span 2; max-height: calc(100dvh - 110px); overflow-y: auto; overscroll-behavior: contain; }
+    body.ctl.ctl-xp .ctl-x { background: var(--fg); color: var(--bg); }
+    body.ctl .pad .c { font-size: clamp(18px, 2.6vw, 28px); }
+    body.ctl .pad .play svg { width: 40px; height: 40px; }
+  }
+  /* celular em pé: agora em cima; embaixo, a seguir | controles lado a lado */
+  @media (max-width: 640px) and (orientation: portrait) {
+    body.ctl .cx-main { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto; }
+    body.ctl .v-now { grid-column: 1 / -1; grid-row: 1; }
+    body.ctl .v-slot[data-slot="0"] { grid-column: 1; grid-row: 2; }
+    body.ctl .p-pad { grid-column: 2; grid-row: 2; }
+    body.ctl.ctl-xp .p-pad { grid-column: 1 / -1; grid-row: 2; max-height: none; }
+    body.ctl #run-ctl { width: 100%; flex-wrap: wrap; }
+    body.ctl .v-now .hud-tl .tag:nth-child(n+3), body.ctl .hud-bl { display: none; }
+    body.ctl #pad .c > span { font-size: 9px; top: 5px; left: 6px; }
+  }
+  /* celular deitado: a regra antiga escondia o topo; na visão de controle ele fica (compartilhar, quem controla) */
+  @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+    body.ctl .cx-top { display: flex; padding: 0 0 6px; } body.ctl .cx-top .pg-sw, body.ctl .cx-top .chips#chips { display: none; }
+    body.ctl .cx-main { height: auto; }
+  }
   #run-ctl .chip { cursor: pointer; }
 </style>
 </head>
@@ -311,7 +370,7 @@
   <header class="cx-top">
     <div class="pg-sw" id="pg-sw"><button class="icon-btn" id="pg-prev" aria-label="Programa anterior" title="Programa anterior"></button><button type="button" class="ttl pg-t" id="pg-t" title="Escolher o programa do ao vivo"><span class="lbl" id="pg-d">Console</span><b id="pg-n">Culto principal</b></button><button class="icon-btn" id="pg-next" aria-label="Próximo programa" title="Próximo programa"></button></div>
     <div class="chips" id="chips"></div>
-    <div class="chips" id="run-ctl"><button type="button" class="chip" id="demo-btn" title="Rodar o programa inteiro para testar, sem ir para o projetor nem para os outros aparelhos"></button><button type="button" class="chip" id="restart-btn" title="Voltar ao começo: o programa fica pronto para começar do primeiro item">Recomeçar do início</button></div>
+    <div class="chips" id="run-ctl"><button type="button" class="chip ctl-who" id="ctl-who" title="Quem está com o controle · compartilhar com outro aparelho"></button><button type="button" class="chip" id="view-btn" title="Celular e tablet: visão de controle (tela agora + próxima + controles) ou o console completo"></button><button type="button" class="chip" id="demo-btn" title="Rodar o programa inteiro para testar, sem ir para o projetor nem para os outros aparelhos"></button><button type="button" class="chip" id="restart-btn" title="Voltar ao começo: o programa fica pronto para começar do primeiro item">Recomeçar do início</button></div>
     <div class="cx-stats" id="stats"></div>
     <button class="icon-btn" id="net" title="Simular queda de internet" aria-label="Simular queda de internet"></button>
     <a class="icon-btn" href="tela.html" target="xlide-tela" title="Abrir a tela do projetor" aria-label="Abrir a tela do projetor" id="scr"></a>
@@ -380,6 +439,7 @@
             <button class="c" id="snext"><span>Slide</span></button>
             <button class="c" id="prev"><span>Item</span></button>
             <button class="c" id="next"><span>Item</span></button>
+            <button class="c ctl-x" id="ctl-x" aria-expanded="false"><span>Controles</span><b class="ctl-x-l">Todos os controles</b></button>
             <button class="c ext" data-e="60"><span>Estender</span>+1</button>
             <button class="c ext" data-e="120"><span>min</span>+2</button>
             <button class="c ext" data-e="300"><span>min</span>+5</button>
@@ -556,6 +616,19 @@ UI.qs("#restart-btn").onclick = () => {
   UI.qs("#rs-ok").onclick = doIt; UI.qs("#rs-no").onclick = () => UI.closeSheet();
 };
 if (LIVE.demo) document.body.classList.add("is-demo");
+/* Controle em vários aparelhos: quem está com o controle (iniciais no topo) e a folha de compartilhar (QR + link). */
+XCTL.join();
+XCTL.on((L) => {
+  const ini = (n) => String(n || "?").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  UI.qs("#ctl-who").innerHTML = `${L.slice(0, 4).map((c) => `<i title="${(c.name || "").replace(/"/g, "&quot;")} · ${c.label || ""}">${ini(c.name)}</i>`).join("")}<span>${L.length > 1 ? `${L.length} controles` : "Compartilhar controle"}</span>`;
+});
+UI.qs("#ctl-who").onclick = () => XCTL.sheet();
+/* visão de controle no celular e no tablet (padrão abaixo de 1200 px); "Console completo" volta ao layout inteiro */
+const VK = "xlide.v2.console.view";
+const paintView = () => { const full = localStorage.getItem(VK) === "full"; document.body.classList.toggle("ctl", !full); UI.qs("#view-btn").textContent = full ? "Visão controle" : "Console completo"; };
+UI.qs("#view-btn").onclick = () => { try { localStorage.setItem(VK, localStorage.getItem(VK) === "full" ? "ctl" : "full"); } catch {} paintView(); };
+paintView();
+UI.qs("#ctl-x").onclick = () => { const on = document.body.classList.toggle("ctl-xp"); UI.qs("#ctl-x").setAttribute("aria-expanded", on); UI.qs("#ctl-x .ctl-x-l").textContent = on ? "Menos controles" : "Todos os controles"; };
 UI.qs("#next").onclick = () => C.next();
 UI.qs("#prev").onclick = () => C.prev();
 UI.qs("#snext").onclick = UI.qs("#z-next").onclick = () => (LIVE.state.status === "idle" ? C.play() : C.slide(1));
