@@ -39,9 +39,9 @@ window.ITEMLOOK = (function () {
   /* template do item (sem música e sem vídeo/áudio); slide k usa os textos/fundo próprios daquele slide, se houver */
   function tpl(it, k = 0) {
     const s = (it.slides && it.slides[k]) || {};
-    const base = { kind: name(it), eyebrow: it.eyebrow || name(it), title: it.title, text: it.type === "wait" ? it.text || "" : (it.text || "").replace(/ · /g, "\n"), seconds: it.type === "wait" ? it.planned : 0, layout: (it.per && it.per[k]) || it.layout, ink: it.ink, fx: it.fx || null, frame: it.frame || null, vloop: it.vloop, ...look(it) };
+    const base = { kind: name(it), eyebrow: it.eyebrow || name(it), title: it.title, text: it.type === "wait" ? it.text || "" : (it.text || "").replace(/ · /g, "\n"), seconds: it.type === "wait" ? it.planned : 0, layout: (it.per && it.per[k]) || it.layout, ink: it.ink, fx: it.fx || null, frame: it.frame || null, vloop: it.vloop, poster: it.poster, ...look(it) };
     // slides próprios do item (ex. "O que é o Cafofo" em vários slides): cada um com os textos, o fundo e a cor dele
-    if ((k > 0 || (it.slides && it.slides.length)) && (s.title || s.text || s.bg || s.image || s.eyebrow)) Object.assign(base, { title: s.title ?? base.title, text: s.text ?? "", ...(s.eyebrow != null ? { eyebrow: s.eyebrow } : {}), ...(s.bg ? { bg: s.bg, fx: s.fx || null } : {}), ...(s.image ? { image: s.image } : {}), ...(s.ink ? { ink: s.ink } : {}), ...(s.fx ? { fx: s.fx } : {}), ...(s.vloop != null ? { vloop: s.vloop } : {}) });
+    if ((k > 0 || (it.slides && it.slides.length)) && (s.title || s.text || s.bg || s.image || s.eyebrow)) Object.assign(base, { title: s.title ?? base.title, text: s.text ?? "", ...(s.eyebrow != null ? { eyebrow: s.eyebrow } : {}), ...(s.bg ? { bg: s.bg, fx: s.fx || null } : {}), ...(s.image ? { image: s.image } : {}), ...(s.ink ? { ink: s.ink } : {}), ...(s.fx ? { fx: s.fx } : {}), ...(s.vloop != null ? { vloop: s.vloop } : {}), ...(s.poster ? { poster: s.poster } : {}) });
     if (base.frame && it.slides && it.slides.length > 1) base.frame = { ...base.frame, page: `${k + 1} / ${it.slides.length}` };
     return base;
   }

@@ -175,7 +175,7 @@
     // link de imagem ou vídeo (ex. fundos de um brand kit)
     if (/^(https?:\/\/|\/[a-z])/.test(bg || "")) {
       const u = String(bg).replace(/"/g, "%22");
-      return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u) ? `<video class="xw-media" src="${u}" ${opts.play === false ? 'preload="metadata"' : "autoplay"} ${opts.loop === false ? "" : "loop"} muted playsinline style="object-fit:cover;width:100%;height:100%"></video>` : `<img class="xw-media" src="${u}" alt="" style="object-fit:cover;width:100%;height:100%">`;
+      return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u) ? `<video class="xw-media" src="${u}" ${opts.play === false ? 'preload="metadata"' : "autoplay"} ${opts.loop === false ? "" : "loop"} muted playsinline webkit-playsinline disablepictureinpicture${opts.poster ? ` poster="${String(opts.poster).replace(/"/g, "%22")}"` : ""} style="object-fit:cover;width:100%;height:100%"></video>` : `<img class="xw-media" src="${u}" alt="" style="object-fit:cover;width:100%;height:100%">`;
     }
     const w = WASHES.find((x) => x.id === (bg || "").slice(5)) || WASHES[0];
     return `<div class="xw" style="--w0:${w.base};--w1:${w.c[0]};--w2:${w.c[1]};--w3:${w.c[2]};--w4:${w.c[3]};--ws:${w.streak || "transparent"}"><span></span><span></span><span></span><span></span>${w.streak ? "<i></i>" : ""}</div>`;
@@ -212,8 +212,21 @@
   /* Loops de vídeo rodando de verdade (mesmo player do XLIDE: src/lib/youtube.ts loopEmbed).
      Só onde o slide anima (.animate ou [data-video]); miniaturas ficam com a imagem parada. */
   const embed = (id, loop = true) => `https://www.youtube.com/embed/${id}?autoplay=1&mute=1${loop ? `&loop=1&playlist=${id}` : ""}&controls=0&disablekb=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3`;
+  /* vídeo de fundo (mp4): o Safari só toca sozinho se a propriedade muted estiver ligada — o atributo vindo de
+     innerHTML/template não basta e aparece o ▶ parado. Liga muted + playsInline e chama play(); se ainda assim o
+     navegador bloquear (economia de energia), o primeiro clique na página solta todos. */
+  function playVideos(root) {
+    (root.matches?.("video.xw-media") ? [root] : [...root.querySelectorAll("video.xw-media")]).forEach((v) => {
+      if (!v.hasAttribute("autoplay")) return;
+      v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute("webkit-playsinline", "");
+      if (v.paused && !v.ended) { const p = v.play(); p && p.catch(() => { blocked.add(v); }); }
+    });
+  }
+  const blocked = new Set();
+  if (typeof document !== "undefined") addEventListener("pointerdown", () => { blocked.forEach((v) => { if (v.isConnected && v.paused && !v.ended) v.play().catch(() => {}); }); blocked.clear(); }, true);
   function hydrate(root = document) {
     window.MEDIA && MEDIA.hydrate(root);
+    playVideos(root);
     const list = root.matches?.(".xw-yt") ? [root] : [...root.querySelectorAll(".xw-yt")];
     list.forEach((el) => {
       if (el.querySelector("iframe") || el.dataset.play === "0" || !el.closest(".animate, [data-video]") || el.closest("[data-still]")) return;

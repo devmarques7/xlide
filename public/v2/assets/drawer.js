@@ -67,7 +67,7 @@
     const tw = T.wt || (T.bo === false ? FT.weight : Math.max(FT.weight, 600));
     const md = o.media && window.MEDIA ? MEDIA.parse(o.media) : null;
     if (md && o.mediaOnly) return MEDIA.html(md); // item de vídeo/áudio do programa: só a mídia, sem fonte nem estilo
-    return `${md ? MEDIA.html(md) : ""}${md && md.kind === "video" ? "" : fxWrap(o.fx, XLOOK.backdrop(o.bg || "solid:#0e0e0d", o.image, { loop: o.vloop !== false, play: o.vplay !== false }))}<div class="xw-grain"></div>
+    return `${md ? MEDIA.html(md) : ""}${md && md.kind === "video" ? "" : fxWrap(o.fx, XLOOK.backdrop(o.bg || "solid:#0e0e0d", o.image, { loop: o.vloop !== false, play: o.vplay !== false, poster: o.poster }))}<div class="xw-grain"></div>
       <div class="tpl2" style="color:${ink};font-family:${F.family.replace(/"/g, "'")}">
         ${blk("eb", o.eyebrow || edit ? `<span class="tx" data-ph="Rótulo">${esc(o.eyebrow)}</span>` : "")}
         ${blk("t", o.title || edit ? `<span class="tx" data-ph="Título" style="font-weight:${tw};letter-spacing:${T.st ? "-0.005em" : FT.track};${FT.upper ? "text-transform:uppercase;" : ""}">${edit ? esc(o.title) : hl(esc(o.title), T)}</span>` : "")}
