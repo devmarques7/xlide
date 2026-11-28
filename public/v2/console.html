@@ -857,10 +857,59 @@ const atOf = (id) => AT[id] || XL.songs[id].at || LIVE.slidesOf({ type: "song", 
 const slideAt = (id, t) => { let k = 0; atOf(id).forEach((v, j) => { if (v <= t) k = j; }); return k; };
 const mmssS = (x) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, "0")}`;
 let sg = { idx: -1, t: 0, playing: false, follow: true };
+/* ── som da música: o vídeo do YouTube da própria música (music.video), como no editor de música.
+   Toca no aparelho com "Som da música neste aparelho" ligado (padrão: computador; celular e tablet desligado),
+   no ao vivo e na demo; a faixa vira o relógio e os slides seguem os tempos do editor. ── */
+const SOUND_K = "xlide.v2.console.sound";
+function soundHere() { const v = localStorage.getItem(SOUND_K); return v ? v === "1" : !matchMedia("(pointer: coarse)").matches; }
+const SA = { p: null, id: null, ready: false, api: null, err: null };
+const songVid = (it) => (it && it.type === "song" && !it.media && XL.songs[it.song] ? XL.songs[it.song].video || null : null);
+function saApi() {
+  if (window.YT && YT.Player) return Promise.resolve();
+  return (SA.api ||= new Promise((res) => { const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { prev && prev(); res(); }; if (!document.querySelector('script[src*="iframe_api"]')) { const sc = document.createElement("script"); sc.src = "https://www.youtube.com/iframe_api"; document.head.append(sc); } const w = setInterval(() => { if (window.YT && YT.Player) { clearInterval(w); res(); } }, 300); }));
+}
+function saLoad(v, t) {
+  SA.id = v; SA.ready = false; SA.err = null; saMsg("Carregando a faixa da música…");
+  saApi().then(() => {
+    if (SA.id !== v) return;
+    const onReady = () => {
+      SA.ready = true;
+      const it = items[LIVE.state.index], d = SA.p.getDuration && SA.p.getDuration();
+      if (d > 1 && it && it.type === "song" && songVid(it) === v) XL.songs[it.song].dur = Math.max(d, (atOf(it.song).slice(-1)[0] || 0) + 5);
+      SA.p.setVolume && SA.p.setVolume(100); SA.p.unMute && SA.p.unMute();
+      SA.p.seekTo(sg.t || t || 0, true);
+      if (sg.playing && LIVE.state.status === "live") SA.p.playVideo();
+      saMsg("");
+    };
+    if (SA.p && SA.p.cueVideoById) { SA.onCue = onReady; SA.p.cueVideoById({ videoId: v, startSeconds: t || 0 }); return; }
+    let box = document.getElementById("sg-audio");
+    if (!box) { box = document.createElement("div"); box.id = "sg-audio"; box.style.cssText = "position:fixed;right:8px;bottom:8px;width:200px;height:113px;opacity:.01;pointer-events:none;z-index:-1"; box.innerHTML = "<div></div>"; document.body.append(box); }
+    SA.p = new YT.Player(box.firstChild, { width: 200, height: 113, videoId: v, playerVars: { controls: 0, playsinline: 1, rel: 0, modestbranding: 1, start: Math.floor(t || 0) },
+      events: { onReady: () => { SA.onCue = null; onReady(); }, onStateChange: (e) => { if (e.data === 5 && SA.onCue) { const f = SA.onCue; SA.onCue = null; f(); } },
+        onError: () => { SA.ready = false; SA.err = v; saMsg("O vídeo desta música não toca aqui (bloqueado pelo YouTube). Os slides seguem o relógio, sem som."); } } });
+  });
+}
+const saOn = () => SA.ready && SA.p && SA.id && SA.id === songVid(items[LIVE.state.index]);
+const saTime = () => (saOn() && SA.p.getPlayerState && SA.p.getPlayerState() === 1 ? SA.p.getCurrentTime() : null);
+const saWaiting = () => soundHere() && !!songVid(items[LIVE.state.index]) && SA.err !== songVid(items[LIVE.state.index]) && !(saOn() && SA.p.getPlayerState && SA.p.getPlayerState() === 1) && (!SA.ready || SA.p.getPlayerState() === 3);
+function saSeek(t) { if (saOn() && soundHere()) { const c = SA.p.getCurrentTime ? SA.p.getCurrentTime() : 0; if (Math.abs(c - t) > 0.8) SA.p.seekTo(t, true); } }
+function saMsg(m) { const el = document.getElementById("sg-aud"); if (el) el.textContent = m; }
+function saSync() {
+  const s = LIVE.state, it = items[s.index];
+  const v = soundHere() && (s.status === "live" || s.status === "paused") ? songVid(it) : null;
+  if (!v) { if (SA.p && SA.ready && SA.p.getPlayerState && SA.p.getPlayerState() === 1) SA.p.pauseVideo(); return; }
+  if (SA.err === v) return;
+  if (SA.id !== v) return saLoad(v, sg.t);
+  if (!SA.ready) return;
+  const want = sg.playing && s.status === "live", st = SA.p.getPlayerState();
+  if (want && st !== 1 && st !== 3) { SA.p.seekTo(sg.t, true); SA.p.playVideo(); }
+  if (!want && st === 1) SA.p.pauseVideo();
+}
 const SGI = { start: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 5v14M18 5 8 12l10 7z"/></svg>`, back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none">10</text></svg>`, fwd: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none">10</text></svg>` };
-function songSeek(t, fromSlide) {
+function songSeek(t, fromSlide, fromAudio) {
   const it = items[sg.idx]; if (!it) return;
   sg.t = Math.max(0, Math.min(XL.songs[it.song].dur, t));
+  if (!fromAudio) saSeek(sg.t);
   if (sg.follow && !fromSlide) { const k = slideAt(it.song, sg.t); if (k !== LIVE.state.slide) LIVE.cmd.at(sg.idx, k); }
   paintSong();
 }
@@ -878,7 +927,8 @@ function paintSong() {
       <div class="sg-tl" id="sgtl" role="slider" aria-label="Linha do tempo da música" aria-valuemin="0" aria-valuemax="${Math.round(dur)}" tabindex="0">${at.map((a, j) => `<span class="sg" data-k="${j}" style="flex:${(at[j + 1] ?? dur) - a}" title="${esc(slides[j]?.section || "")} ${mmssS(a)}">${esc(slides[j]?.section || j + 1)}</span>`).join("")}<i class="ph"></i></div>
       <div class="sg-time"><span><b id="sg-t"></b> · <span id="sg-k"></span></span><span>${mmssS(dur)}</span></div>
       <div class="sg-ctl"><button type="button" data-sg="start" title="Do início">${SGI.start}Início</button><button type="button" data-sg="back" title="Voltar 10 segundos">${SGI.back}Voltar</button><button type="button" class="pp" data-sg="pp"></button><button type="button" data-sg="fwd" title="Avançar 10 segundos">${SGI.fwd}Avançar</button></div>
-      <div class="sg-fl"><span>Slides seguem a música<small class="muted" style="display:block">A estrofe troca no tempo marcado no editor de música</small></span><button type="button" class="toggle${sg.follow ? " on" : ""}" data-sg="follow" role="switch" aria-checked="${sg.follow}" aria-label="Slides seguem a música"></button></div>`;
+      <div class="sg-fl"><span>Slides seguem a música<small class="muted" style="display:block">A estrofe troca no tempo marcado no editor de música</small></span><button type="button" class="toggle${sg.follow ? " on" : ""}" data-sg="follow" role="switch" aria-checked="${sg.follow}" aria-label="Slides seguem a música"></button></div>
+      ${XL.songs[it.song].video && !it.media ? `<div class="sg-fl"><span>Som da música neste aparelho<small class="muted" style="display:block">Toca o vídeo da música (o mesmo do editor de música) e os slides seguem a faixa. Ligue só no computador da mesa de som.</small></span><button type="button" class="toggle${soundHere() ? " on" : ""}" data-sg="sound" role="switch" aria-checked="${soundHere()}" aria-label="Som da música neste aparelho"></button></div><p class="muted" id="sg-aud" style="font-size:var(--t-xs)"></p>` : ""}`;
     const tl = el.querySelector("#sgtl");
     const seekAt = (e) => { const r = tl.getBoundingClientRect(); songSeek(((e.clientX - r.left) / r.width) * dur); };
     tl.onpointerdown = (e) => { tl.setPointerCapture(e.pointerId); seekAt(e); tl.onpointermove = (ev) => seekAt(ev); };
@@ -892,6 +942,7 @@ function paintSong() {
       else if (a === "fwd") songSeek(sg.t + 10);
       else if (a === "pp") { sg.playing = !sg.playing; if (sg.playing && sg.t >= dur) songSeek(0); paintSong(); }
       else if (a === "follow") { sg.follow = !sg.follow; b.classList.toggle("on", sg.follow); b.setAttribute("aria-checked", sg.follow); }
+      else if (a === "sound") { const v = !soundHere(); try { localStorage.setItem(SOUND_K, v ? "1" : "0"); } catch {} b.classList.toggle("on", v); b.setAttribute("aria-checked", v); saSync(); }
     };
   }
   window.MEDIA && MEDIA.hydrate(el);
@@ -907,8 +958,15 @@ setInterval(() => {
   const nowR = Date.now(), dt = ((nowR - sgLast) / 1000) * (LIVE.state.clock.speed || 1); sgLast = nowR;
   const s = LIVE.state, it = items[s.index];
   if (!it || it.type !== "song") return;
-  if (sg.playing && s.status === "live") { const dur = XL.songs[it.song].dur; if (sg.t + dt >= dur) { sg.t = dur; sg.playing = false; } songSeek(sg.t + dt); }
+  saSync();
+  if (sg.playing && s.status === "live") {
+    const dur = XL.songs[it.song].dur, pt = saTime();
+    if (pt != null) { if (pt >= dur - 0.2) { sg.t = dur; sg.playing = false; } songSeek(pt, false, true); return; }
+    if (saWaiting()) return; // a faixa está carregando: o relógio espera por ela
+    if (sg.t + dt >= dur) { sg.t = dur; sg.playing = false; } songSeek(sg.t + dt, false, true);
+  }
 }, 250);
+
 
 /* Piloto automático: liga e desliga; o estado fica no culto (vale para o console e sobrevive a recarregar). */
 const AP_I = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>`;
@@ -988,7 +1046,7 @@ LIVE.loop((s, T) => {
   UI.qs(".p-tr").classList.toggle("locked", isSong); UI.qs("#tr-lock").hidden = !isSong;
   ["#p-tr", "#p-vd", "#p-vu"].forEach((q) => UI.qs(q).classList.toggle("locked", isSong));
   // trocar de estrofe na mão leva a música junto
-  if (isSong && sg.idx === s.index && sg.follow && slideAt(it.song, sg.t) !== s.slide) { sg.t = atOf(it.song)[s.slide] || 0; }
+  if (isSong && sg.idx === s.index && sg.follow && slideAt(it.song, sg.t) !== s.slide) { sg.t = atOf(it.song)[s.slide] || 0; saSeek(sg.t); }
   if (isSong) { if (s.status === "paused" && sg.playing) sg.playing = false; }
   paintSong();
   UI.set("#h-tr", isSong ? "♪ música" : trTag(done ? null : trOf(s.index))); UI.qs("#h-tr").classList.toggle("tr-on", !done && trOf(s.index).on);
