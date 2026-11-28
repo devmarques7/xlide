@@ -185,13 +185,16 @@
 
   /* HTML interno de um slide de música (fundo + caixa de texto). */
   function songSlide(songId, i, { lang = "pt", editable = false, section = true } = {}) {
-    const sl = XL.songSlides(songId, lang)[i] || { section: "", text: "" };
+    // na tela, a letra original da música em cima (a língua em que ela é cantada: a primeira do deck)
+    // e a tradução embaixo; no editor, a língua escolhida
+    const S = XL.songs[songId], ly = S.lyrics, langs = S.langs && S.langs.length ? S.langs : Object.keys(ly);
+    const shown = editable ? (ly[lang] ? lang : langs[0]) : ly[langs[0]] ? langs[0] : Object.keys(ly)[0];
+    const other = langs.find((l) => l !== shown && ly[l]) || (shown === "en" ? "pt" : "en");
+    const sl = XL.songSlides(songId, shown)[i] || { section: "", text: "" };
     const L = resolve(songId, i);
     const F = fontOf(L.font);
     const text = L.text ?? sl.text;
     const n = text.split("\n").length;
-    // tradução embaixo só quando existe OUTRA língua de verdade (música só em inglês não repete o inglês)
-    const ly = XL.songs[songId].lyrics, shown = ly[lang] ? lang : Object.keys(ly)[0], other = shown === "en" ? "pt" : "en";
     const tr = L.trans && other !== shown && ly[other] && ly[other] !== ly[shown] ? XL.songSlides(songId, other)[i]?.text : "";
     const fs = Math.min(6.4, 26 / Math.max(2, n)) * F.k * L.size;
     return `${backdropFx(L)}<div class="xw-grain"></div>

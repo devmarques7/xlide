@@ -9,8 +9,9 @@ window.renderSlide = function (it, slide, T, lang = "pt", status = "live") {
   if (pg && pg.image) return { cls: "page", html: `<img class="s-page" src="${String(pg.image).replace(/"/g, "&quot;")}" alt="${String(it.title).replace(/"/g, "&quot;")} · ${slide + 1}">` };
   switch (it.type) {
     case "song": {
-      const s = XL.songSlides(it.song, lang)[slide] || { text: "" };
-      const tr = lang === "pt" && XL.songs[it.song].lyrics.en ? XL.songSlides(it.song, "en")[slide] : null;
+      const S = XL.songs[it.song], o = (S.langs && S.langs[0]) || lang, t2 = (S.langs || []).find((l) => l !== o && S.lyrics[l]);
+      const s = XL.songSlides(it.song, o)[slide] || { text: "" };
+      const tr = t2 ? XL.songSlides(it.song, t2)[slide] : null;
       return { html: `${s.section ? `<div class="s-section">${s.section}</div>` : ""}<div><div class="s-lines">${s.text}</div>${tr ? `<div class="s-trans">${tr.text}</div>` : ""}</div><div class="s-corner">${XL.songs[it.song].title}</div>` };
     }
     case "wait":
