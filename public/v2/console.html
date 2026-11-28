@@ -884,10 +884,12 @@ function saLoad(v, t) {
       saMsg("");
     };
     if (SA.p && SA.p.cueVideoById) { SA.onCue = onReady; SA.p.cueVideoById({ videoId: v, startSeconds: t || 0 }); return; }
+    // o iframe é nosso, com allow="autoplay": o navegador deixa o YouTube tocar com som depois do primeiro clique na página
     let box = document.getElementById("sg-audio");
-    if (!box) { box = document.createElement("div"); box.id = "sg-audio"; box.style.cssText = "position:fixed;right:8px;bottom:8px;width:200px;height:113px;opacity:.01;pointer-events:none;z-index:-1"; box.innerHTML = "<div></div>"; document.body.append(box); }
-    SA.p = new YT.Player(box.firstChild, { width: 200, height: 113, videoId: v, playerVars: { controls: 0, playsinline: 1, rel: 0, modestbranding: 1, start: Math.floor(t || 0) },
-      events: { onReady: () => { SA.onCue = null; onReady(); }, onStateChange: (e) => { if (e.data === 5 && SA.onCue) { const f = SA.onCue; SA.onCue = null; f(); } },
+    if (!box) { box = document.createElement("div"); box.id = "sg-audio"; box.style.cssText = "position:fixed;right:8px;bottom:8px;width:200px;height:113px;opacity:.01;pointer-events:none;z-index:-1"; document.body.append(box); }
+    box.innerHTML = `<iframe id="sg-yt" width="200" height="113" allow="autoplay; encrypted-media" src="https://www.youtube.com/embed/${v}?enablejsapi=1&controls=0&playsinline=1&rel=0&modestbranding=1&start=${Math.floor(t || 0)}&origin=${encodeURIComponent(location.origin)}"></iframe>`;
+    SA.p = new YT.Player("sg-yt", {
+      events: { onReady: () => { SA.onCue = null; onReady(); }, onStateChange: (e) => { if (e.data === 5 && SA.onCue) { const f = SA.onCue; SA.onCue = null; f(); } if (e.data === 1) saMsg(""); },
         onError: () => { SA.ready = false; SA.err = v; saMsg("O vídeo desta música não toca aqui (bloqueado pelo YouTube). Os slides seguem o relógio, sem som."); } } });
   });
 }
@@ -896,6 +898,22 @@ const saTime = () => (saOn() && SA.p.getPlayerState && SA.p.getPlayerState() ===
 const saWaiting = () => soundHere() && !!songVid(items[LIVE.state.index]) && SA.err !== songVid(items[LIVE.state.index]) && !(saOn() && SA.p.getPlayerState && SA.p.getPlayerState() === 1) && (!SA.ready || SA.p.getPlayerState() === 3);
 function saSeek(t) { if (saOn() && soundHere()) { const c = SA.p.getCurrentTime ? SA.p.getCurrentTime() : 0; if (Math.abs(c - t) > 0.8) SA.p.seekTo(t, true); } }
 function saMsg(m) { const el = document.getElementById("sg-aud"); if (el) el.textContent = m; }
+/* clique no console (passar slide, play, qualquer coisa): toca a faixa dentro do próprio clique — o navegador
+   só deixa sair som de um vídeo começado por um gesto; depois disso, as próximas músicas tocam sozinhas */
+let saBlockedAt = 0;
+// prepara o player com a primeira música do programa: o primeiro clique no console já libera o som
+setTimeout(() => { const f = items.find((i) => songVid(i)); if (f && soundHere() && !SA.p) saLoad(songVid(f), 0); }, 1500);
+document.addEventListener("click", () => {
+  if (!soundHere() || !SA.p || !SA.ready || !SA.p.playVideo) return;
+  const s = LIVE.state, it = items[s.index], v = s.status === "live" ? songVid(it) : null;
+  try {
+    if (!v) { if (!SA.unlocked) { SA.p.mute(); SA.p.playVideo(); setTimeout(() => { SA.p.pauseVideo(); SA.p.unMute(); }, 250); SA.unlocked = true; } return; }
+    const t = sg.idx === s.index ? sg.t : atOf(it.song)[s.slide] || 0;
+    if (SA.id !== v) { SA.id = v; SA.err = null; SA.p.loadVideoById({ videoId: v, startSeconds: t }); }
+    else if (SA.p.getPlayerState() !== 1) { SA.p.unMute(); SA.p.seekTo(t, true); SA.p.playVideo(); }
+    SA.unlocked = true;
+  } catch {}
+}, false);
 function saSync() {
   const s = LIVE.state, it = items[s.index];
   const v = soundHere() && (s.status === "live" || s.status === "paused") ? songVid(it) : null;
@@ -904,7 +922,8 @@ function saSync() {
   if (SA.id !== v) return saLoad(v, sg.t);
   if (!SA.ready) return;
   const want = sg.playing && s.status === "live", st = SA.p.getPlayerState();
-  if (want && st !== 1 && st !== 3) { SA.p.seekTo(sg.t, true); SA.p.playVideo(); }
+  if (want && st !== 1 && st !== 3) { SA.p.seekTo(sg.t, true); SA.p.playVideo(); if (!saBlockedAt) saBlockedAt = Date.now(); else if (Date.now() - saBlockedAt > 1500) saMsg("O navegador segurou o som: clique em Tocar (ou em qualquer lugar do console) para liberar."); }
+  if (st === 1) saBlockedAt = 0;
   if (!want && st === 1) SA.p.pauseVideo();
 }
 const SGI = { start: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 5v14M18 5 8 12l10 7z"/></svg>`, back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none">10</text></svg>`, fwd: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none">10</text></svg>` };
