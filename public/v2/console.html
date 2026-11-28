@@ -374,6 +374,7 @@
     <div class="cx-stats" id="stats"></div>
     <button class="icon-btn" id="net" title="Simular queda de internet" aria-label="Simular queda de internet"></button>
     <a class="icon-btn" href="tela.html" target="xlide-tela" title="Abrir a tela do projetor" aria-label="Abrir a tela do projetor" id="scr"></a>
+    <button type="button" class="icon-btn" id="ctl-ext" title="Controlar de outro aparelho (celular, tablet): QR e link" aria-label="Controlar de outro aparelho"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"><rect x="7" y="2.5" width="10" height="19"/><path d="M11 18.5h2"/></svg></button>
   </header>
   <div id="offline"></div>
 
@@ -623,6 +624,7 @@ XCTL.on((L) => {
   UI.qs("#ctl-who").innerHTML = `${L.slice(0, 4).map((c) => `<i title="${(c.name || "").replace(/"/g, "&quot;")} · ${c.label || ""}">${ini(c.name)}</i>`).join("")}<span>${L.length > 1 ? `${L.length} controles` : "Compartilhar controle"}</span>`;
 });
 UI.qs("#ctl-who").onclick = () => XCTL.sheet();
+UI.qs("#ctl-ext").onclick = () => XCTL.sheet();
 /* visão de controle no celular e no tablet (padrão abaixo de 1200 px); "Console completo" volta ao layout inteiro */
 const VK = "xlide.v2.console.view";
 const paintView = () => { const full = localStorage.getItem(VK) === "full"; document.body.classList.toggle("ctl", !full); UI.qs("#view-btn").textContent = full ? "Visão controle" : "Console completo"; };
